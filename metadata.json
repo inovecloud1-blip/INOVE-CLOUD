@@ -1,0 +1,6 @@
+{
+  "name": "InoveCloud OS",
+  "description": "Área de trabalho em nuvem e gestão de infraestrutura inspirada em umbrelOS e macOS com VN (máquinas virtuais), Web Apps e IDaaS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

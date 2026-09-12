@@ -1,0 +1,43 @@
+name: Build InoveCloud OS ISO
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build Web Application
+        run: |
+          npm ci || npm install
+          npm run build
+
+      - name: Install ISO Mastering Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            debootstrap debian-archive-keyring squashfs-tools xorriso isolinux \
+            syslinux-efi grub-pc-bin grub-efi-amd64-bin mtools
+
+      - name: Make Build Script Executable
+        run: chmod +x iso-builder/build-iso.sh
+
+      - name: Compile Debian 12 Live ISO
+        run: sudo ./iso-builder/build-iso.sh
+
+      - name: Upload ISO Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: inovecloud-os-debian12-amd64
+          path: dist-iso/*.iso
+          retention-days: 14
