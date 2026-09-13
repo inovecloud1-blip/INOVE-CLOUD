@@ -151,7 +151,7 @@ apt-get install -y --no-install-recommends \
   ca-certificates \
   nodejs \
   htop \
-  neofetch \
+  fastfetch \
   unzip
 
 # Adicionar repositório oficial Flathub

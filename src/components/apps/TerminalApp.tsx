@@ -49,14 +49,14 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({
       newHistory.push('  inovectl status              - Exibe o status da infraestrutura e nuvem');
       newHistory.push('  vn list                      - Lista Máquinas Virtuais KVM');
       newHistory.push('  docker ps                    - Lista contêineres em execução');
-      newHistory.push('  neofetch                     - Informações do cluster e hardware');
+      newHistory.push('  fastfetch / neofetch         - Informações do cluster e hardware');
       newHistory.push('  clear                        - Limpa o terminal');
       setHistory(newHistory);
       setInput('');
       return;
     }
 
-    if (main === 'neofetch') {
+    if (main === 'fastfetch' || main === 'neofetch') {
       newHistory.push('        .---.         OS: InoveCloud OS 2026.1 (Debian 13 Trixie GNOME Glass) x86_64');
       newHistory.push('       /     \\        Host: InoveCloud GNOME Desktop (Wayland / Liquid Glass)');
       newHistory.push('      | () () |       Kernel: 6.12.0-trixie-amd64');
