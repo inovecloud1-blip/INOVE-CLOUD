@@ -2,7 +2,7 @@
 # ==============================================================================
 # INOVECLOUD OS - BUILD ULTRARRÁPIDO BASEADO EM ARCH LINUX / ARCHISO
 # Interface: XFCE4 + Plank Dock (Liquid Glass Dark Mode)
-# Tempo de compilação: ~3 a 5 minutos (10x mais rápido que debootstrap Ubuntu/Debian)
+# Tempo de compilação: ~3 a 5 minutos (100% não-interativo com pacotes oficiais)
 # ==============================================================================
 
 set -euo pipefail
@@ -31,25 +31,10 @@ ISO_NAME="inovecloud-os-2026.1-fast-amd64.iso"
 mkdir -p "${WORK_DIR}"
 mkdir -p "${OUTPUT_DIR}"
 
-# 1. Instalar archiso no host (suporta Arch, Manjaro ou Ubuntu com container)
+# 1. Instalar archiso no host se for Arch Linux nativo
 echo -e "${C_BLUE}[1/5] Verificando ferramentas de compilação archiso...${C_RESET}"
 if command -v pacman &>/dev/null; then
   pacman -Sy --noconfirm archiso zstd xorriso
-else
-  # Se estiver rodando no Ubuntu/Debian, usar imagem docker leve do Arch Linux para rodar em 3 minutos
-  echo -e "${C_YELLOW}[INFO] Host não-Arch detectado. Usando motor nativo Arch Docker para build relâmpago...${C_RESET}"
-  cat << 'DOCKER_EOF' > "${WORK_DIR}/Dockerfile"
-FROM archlinux:latest
-RUN pacman -Syu --noconfirm && \
-    pacman -S --noconfirm archiso git sudo xorriso zstd
-WORKDIR /build
-DOCKER_EOF
-  docker build -t inovecloud-arch-builder "${WORK_DIR}"
-  docker run --privileged --rm \
-    -v "$(pwd)":/repo \
-    -w /repo \
-    inovecloud-arch-builder bash -c "./build-inovecloud.sh --internal-arch"
-  exit 0
 fi
 
 # 2. Criar perfil customizado leve do InoveCloud OS
@@ -57,19 +42,37 @@ echo -e "${C_BLUE}[2/5] Estruturando perfil leve do InoveCloud OS...${C_RESET}"
 rm -rf "${PROFILE_DIR}"
 cp -r /usr/share/archiso/configs/releng "${PROFILE_DIR}"
 
-# Lista de pacotes essenciais e leves (sem inchaço)
+# Configurar pacman.conf do perfil para aceitar pacotes sem prompt interativo
+sed -i 's/#Color/Color/g' "${PROFILE_DIR}/pacman.conf"
+sed -i 's/#ParallelDownloads = 5/ParallelDownloads = 10/g' "${PROFILE_DIR}/pacman.conf"
+
+# Lista de pacotes oficiais exatos do Arch Linux (sem nomes inexistentes ou grupos interativos)
 cat << 'EOF' >> "${PROFILE_DIR}/packages.x86_64"
-# Desktop Gráfico Leve & Moderno
-xfce4
-xfce4-goodies
-plank
+# Desktop Gráfico Leve XFCE4
+xfce4-session
+xfce4-panel
+xfce4-settings
+xfdesktop
+xfwm4
+thunar
+thunar-volman
+thunar-archive-plugin
+xfce4-terminal
+xfce4-taskmanager
+xfce4-notifyd
+xfce4-pulseaudio-plugin
+xfce4-whiskermenu-plugin
+xfce4-screenshooter
+pavucontrol
+mousepad
+
+# Gerenciador de Login e Dock Flutuante
 lightdm
 lightdm-gtk-greeter
+plank
 
 # Drivers de Vídeo e Áudio
 mesa
-xf86-video-intel
-xf86-video-amdgpu
 pipewire
 pipewire-pulse
 pipewire-alsa
@@ -77,17 +80,15 @@ wireplumber
 networkmanager
 network-manager-applet
 
-# Aplicativos Nacionais e Suporte
+# Navegador, Ferramentas e Temas Oficiais do Repositório Extra
 firefox
-thunar
-xfce4-terminal
-pavucontrol
 flatpak
 sudo
 fastfetch
 papirus-icon-theme
-arc-gtk-theme
-ttf-inter
+adwaita-icon-theme
+inter-font
+noto-fonts
 noto-fonts-emoji
 EOF
 
@@ -135,13 +136,13 @@ X-GNOME-Autostart-enabled=true
 Name=Plank Dock
 EOF
 
-# Configuração de Tema Escuro no XFCE (Arc-Dark + Papirus-Dark)
+# Configuração de Tema Escuro no XFCE (Adwaita-dark + Papirus-Dark + Fonte Inter)
 mkdir -p "${PROFILE_DIR}/airootfs/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml"
 cat << 'EOF' > "${PROFILE_DIR}/airootfs/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml"
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xsettings" version="1.0">
   <property name="Net" type="empty">
-    <property name="ThemeName" type="string" value="Arc-Dark"/>
+    <property name="ThemeName" type="string" value="Adwaita-dark"/>
     <property name="IconThemeName" type="string" value="Papirus-Dark"/>
     <property name="FontName" type="string" value="Inter 10"/>
     <property name="EnableEventSounds" type="bool" value="false"/>
@@ -150,7 +151,7 @@ cat << 'EOF' > "${PROFILE_DIR}/airootfs/etc/skel/.config/xfce4/xfconf/xfce-perch
 </channel>
 EOF
 
-# Script de primeiro boot para criar o usuário inove e ativar serviços
+# Script de customização airootfs durante o build
 cat << 'EOF' > "${PROFILE_DIR}/airootfs/root/customize_airootfs.sh"
 #!/usr/bin/env bash
 systemctl enable lightdm
@@ -164,11 +165,11 @@ if ! id "inove" &>/dev/null; then
   usermod -aG wheel,video,audio,input,render,storage inove
 fi
 
-# Copiar configurações para o usuário inove
+# Copiar configurações da dock e tema para o usuário inove
 cp -r /etc/skel/. /home/inove/
 chown -R inove:inove /home/inove
 
-# Habilitar Flathub
+# Habilitar Flathub nativo
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
 EOF
 chmod +x "${PROFILE_DIR}/airootfs/root/customize_airootfs.sh"
