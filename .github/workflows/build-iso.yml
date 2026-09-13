@@ -1,4 +1,4 @@
-name: Build InoveCloud OS 2026 - Debian 13 GNOME Glass ISO
+name: Build InoveCloud OS 2026 - Ubuntu 24.04 KDE Plasma 6 ISO
 
 on:
   push:
@@ -6,16 +6,16 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Tag de versão para o Release (ex: v2026.1-glass)'
+        description: 'Tag de versão para o Release (ex: v2026.1-kde)'
         required: false
-        default: 'v2026.1-glass'
+        default: 'v2026.1-kde'
 
 permissions:
   contents: write
 
 jobs:
   build-iso:
-    name: Compilar Debian 13 (Trixie) GNOME Glass Live ISO
+    name: Compilar Ubuntu 24.04 LTS (Noble) KDE Plasma 6 Live ISO
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
@@ -28,17 +28,16 @@ jobs:
         with:
           node-version: 20
 
-      - name: 📦 Instalar Dependências e Compilar Web Suite
+      - name: 📦 Instalar Dependências e Compilar
         run: |
           npm install
           npm run build
 
-      - name: 🛠️ Instalar Ferramentas de Criação de ISO (Debian / GRUB / EFI)
+      - name: 🛠️ Instalar Ferramentas de Criação de ISO (Ubuntu / GRUB / EFI)
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             debootstrap \
-            debian-archive-keyring \
             squashfs-tools \
             xorriso \
             isolinux \
@@ -50,10 +49,10 @@ jobs:
             curl \
             rsync
 
-      - name: 🚀 Executar Script de Compilação da ISO Debian 13 GNOME Glass
+      - name: 🚀 Executar Script de Compilação da ISO InoveCloud OS (Ubuntu + KDE Plasma)
         run: |
-          chmod +x iso-builder/build-iso.sh
-          sudo ./iso-builder/build-iso.sh
+          chmod +x build-inovecloud.sh
+          sudo ./build-inovecloud.sh
 
       - name: 🔒 Verificar Integridade e Checksum SHA256
         run: |
@@ -63,7 +62,7 @@ jobs:
       - name: 📤 Fazer Upload do Artefato da ISO (.iso & .sha256)
         uses: actions/upload-artifact@v4
         with:
-          name: inovecloud-os-debian13-gnome-amd64
+          name: inovecloud-os-ubuntu24-kde-amd64
           path: |
             dist-iso/*.iso
             dist-iso/*.sha256
@@ -74,23 +73,24 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
-          name: "InoveCloud OS 2026 - Debian 13 GNOME Glass Edition"
+          name: "InoveCloud OS 2026 - Ubuntu 24.04 LTS + KDE Plasma 6 Edition"
           body: |
-            ## 💿 InoveCloud OS - Debian 13 (Trixie) GNOME Liquid Glass Live ISO
+            ## 💿 InoveCloud OS - Ubuntu 24.04 LTS (Noble) KDE Plasma 6 Live ISO
             
-            Sistema Operacional completo baseado em **Debian 13 (Trixie)** com interface desktop **GNOME 46+ Liquid Glass Theme**, wallpapers 8K/4K nativos, suporte a Flathub/APT e Web Desktop integrado.
+            Sistema Operacional Linux completo baseado em **Ubuntu 24.04 LTS (Noble Numbat)** com interface desktop **KDE Plasma 6 (Breeze Dark / Liquid Glass)**, Dock flutuante inferior, suporte nativo a Flathub, Snap e pacotes APT.
             
             ### ✨ Destaques:
-            - **Base**: Debian GNU/Linux 13 (Trixie Minimal x86_64)
-            - **Ambiente Gráfico**: GNOME Shell 46+ com Tema Liquid Glass e Transparências
-            - **Dock**: Floating Glass Dock estilo InoveCloud / macOS
-            - **Wallpapers**: Coleção Completa 8K HDR InoveCloud integrada ao seletor do GNOME
-            - **Drivers**: Mesa 24+ com aceleração de GPU (Intel Iris/Xe, AMD Radeon, Nvidia)
-            - **Boot**: Compatível com UEFI (Secure Boot) e BIOS Legacy
+            - **Base**: Ubuntu 24.04 LTS (Noble Numbat 64-bit)
+            - **Ambiente Gráfico**: KDE Plasma 6 com Blur / KWin Glassmorphism nativo
+            - **Desempenho**: Menor consumo de RAM (~650 MB em idle) e máxima fluidez
+            - **Dock**: Centered Floating Dock com atalhos para Dolphin, Konsole, Firefox, Discover e Configurações
+            - **Loja de Aplicativos**: Discover integrado com Flathub, Snap e repositórios Ubuntu
+            - **Áudio e Vídeo**: PipeWire de baixa latência + Drivers Mesa 24 / Vulkan
+            - **Boot**: Compatível com UEFI e BIOS Legacy
             
             ### 📥 Arquivos:
-            - `inovecloud-os-debian13-gnome-amd64.iso`
-            - `inovecloud-os-debian13-gnome-amd64.iso.sha256`
+            - `inovecloud-os-2026.1-ubuntu24-kde-amd64.iso`
+            - `inovecloud-os-2026.1-ubuntu24-kde-amd64.iso.sha256`
           files: |
             dist-iso/*.iso
             dist-iso/*.sha256

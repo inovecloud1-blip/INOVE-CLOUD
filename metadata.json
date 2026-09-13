@@ -1,6 +1,6 @@
 {
   "name": "InoveCloud OS",
-  "description": "Sistema Operacional Linux completo baseado em Debian 13 (Trixie) com interface GNOME Liquid Glass, gerador de ISO Live híbrida, KVM/VN e gestão de infraestrutura.",
+  "description": "Sistema Operacional Linux completo baseado em Ubuntu 24.04 LTS (Noble Numbat) com interface KDE Plasma 6 Breeze Dark, Dock centralizada, gerador de ISO Live híbrida e Flathub nativo.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
