@@ -473,7 +473,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
               </span>
             </div>
             <p className="text-xs text-slate-300">
-              Instale e execute programas reais no Debian 12 com comunicação via <code className="text-cyan-300 font-mono">/api/install</code> e <code className="text-cyan-300 font-mono">/api/launch</code>.
+              Instale e execute programas reais no Debian 13 GNOME com comunicação via <code className="text-cyan-300 font-mono">/api/install</code> e <code className="text-cyan-300 font-mono">/api/launch</code>.
             </p>
           </div>
         </div>

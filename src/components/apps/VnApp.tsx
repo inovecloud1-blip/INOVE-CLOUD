@@ -68,7 +68,7 @@ export const VnApp: React.FC<VnAppProps> = ({
           : newOs === 'windows'
           ? 'Windows Server 2025'
           : newOs === 'debian'
-          ? 'Debian 12 Bookworm'
+          ? 'Debian 13 Trixie'
           : newOs === 'alpine'
           ? 'Alpine 3.20'
           : 'Android 14 x86',
@@ -569,7 +569,7 @@ export const VnApp: React.FC<VnAppProps> = ({
                   {[
                     { key: 'ubuntu', label: 'Ubuntu 24.04 LTS' },
                     { key: 'windows', label: 'Windows Server 2025' },
-                    { key: 'debian', label: 'Debian 12 Bookworm' },
+                    { key: 'debian', label: 'Debian 13 Trixie' },
                     { key: 'alpine', label: 'Alpine Linux 3.20' },
                     { key: 'android', label: 'Android x86 QA' },
                   ].map((osItem) => (

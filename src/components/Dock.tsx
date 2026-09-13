@@ -285,7 +285,7 @@ export const Dock: React.FC<DockProps> = ({
     {
       id: 'isobuilder',
       label: 'Gerador de ISO & Live OS',
-      subLabel: 'Debian 12 Kiosk Appliance',
+      subLabel: 'Debian 13 GNOME Glass',
       gradient: 'from-red-600 via-rose-600 to-amber-600',
       glowColor: 'rgba(239, 68, 68, 0.5)',
       isUtility: false,

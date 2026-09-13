@@ -39,7 +39,7 @@ export const INITIAL_VNS: VirtualNode[] = [
     id: 'vn-debian-k8s',
     name: 'debian-k8s-worker-01',
     os: 'debian',
-    version: 'Debian 12 Bookworm Cloud-Init',
+    version: 'Debian 13 Trixie Cloud-Init',
     status: 'running',
     ip: '10.240.0.25',
     vCpu: 4,

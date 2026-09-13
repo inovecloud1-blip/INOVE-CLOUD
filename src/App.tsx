@@ -395,7 +395,7 @@ export default function App() {
     },
     isobuilder: {
       id: 'isobuilder',
-      title: 'Gerador de ISO & Live OS — Debian 12 Kiosk Appliance',
+      title: 'Gerador de ISO & Live OS — Debian 13 (Trixie) GNOME Glass',
       isOpen: false,
       isMinimized: false,
       isMaximized: false,

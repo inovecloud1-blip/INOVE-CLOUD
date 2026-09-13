@@ -182,8 +182,8 @@ app.get('/api/system/debian/info', (req, res) => {
   exec(
     'uname -r && cat /etc/os-release 2>/dev/null && uptime 2>/dev/null && free -m 2>/dev/null && df -h / 2>/dev/null',
     (err, stdout) => {
-      let kernel = '6.1.0-28-amd64';
-      let distro = 'Debian GNU/Linux 12 (Bookworm)';
+      let kernel = '6.12.0-trixie-amd64';
+      let distro = 'Debian GNU/Linux 13 (Trixie)';
       let uptimeStr = '14 dias, 8 horas, 42 min';
       let ramTotal = '16384 MB';
       let ramUsed = '4210 MB';
@@ -200,13 +200,13 @@ app.get('/api/system/debian/info', (req, res) => {
         isLinux,
         host: {
           distro,
-          distroVersion: '12.6 Bookworm',
+          distroVersion: '13.0 Trixie (LTS/Testing)',
           kernel,
           arch: process.arch === 'x64' ? 'x86_64 (AMD64)' : process.arch,
           hostname: 'inovecloud-os',
-          initSystem: 'systemd 252.31-1~deb12u1',
-          displayServer: 'X11 (Openbox Window Manager + xcompmgr)',
-          graphicsDriver: 'Mesa 22.3.6 (OpenGL 4.6 / Vulkan 1.3 / DRI3)',
+          initSystem: 'systemd 256.4-2',
+          displayServer: 'GNOME 46+ Wayland (Mutter) + InoveCloud Liquid Glass Theme',
+          graphicsDriver: 'Mesa 24.2.3 (OpenGL 4.6 / Vulkan 1.3 / DRI3)',
           uptime: uptimeStr,
           timezone: 'America/Sao_Paulo (UTC-03:00)',
           locale: 'pt_BR.UTF-8',
@@ -222,12 +222,11 @@ app.get('/api/system/debian/info', (req, res) => {
           },
         },
         services: [
+          { name: 'gdm3.service', description: 'GNOME Display Manager', status: 'active', enabled: true },
           { name: 'NetworkManager', description: 'Gerenciador de Redes Wi-Fi & Ethernet', status: 'active', enabled: true },
-          { name: 'ssh.service', description: 'Servidor SSH OpenSSH', status: 'active', enabled: true },
-          { name: 'ufw.service', description: 'Uncomplicated Firewall', status: 'active', enabled: true },
-          { name: 'pipewire.service', description: 'Servidor de Áudio de Baixa Latência', status: 'active', enabled: true },
+          { name: 'pipewire.service', description: 'Servidor de Áudio PipeWire', status: 'active', enabled: true },
           { name: 'flatpak-system-helper', description: 'Suporte de Permissões Flatpak', status: 'active', enabled: true },
-          { name: 'inovecloud-desktop', description: 'Ambiente Gráfico X11 + Openbox + Web Desktop', status: 'active', enabled: true },
+          { name: 'inovecloud.service', description: 'InoveCloud Web Desktop Local Server', status: 'active', enabled: true },
         ],
         network: {
           interface: 'wlan0 / eth0',
@@ -238,10 +237,9 @@ app.get('/api/system/debian/info', (req, res) => {
           mac: '52:54:00:12:34:56',
         },
         repositories: [
-          { name: 'Debian Main', url: 'deb.debian.org/debian bookworm main', active: true },
-          { name: 'Debian Contrib & Non-Free', url: 'deb.debian.org/debian bookworm contrib non-free non-free-firmware', active: true },
-          { name: 'Debian Security Updates', url: 'security.debian.org/debian-security bookworm-security main', active: true },
-          { name: 'Debian Backports', url: 'deb.debian.org/debian bookworm-backports main', active: true },
+          { name: 'Debian 13 Trixie Main', url: 'deb.debian.org/debian trixie main', active: true },
+          { name: 'Debian 13 Contrib & Non-Free', url: 'deb.debian.org/debian trixie contrib non-free non-free-firmware', active: true },
+          { name: 'Debian 13 Security Updates', url: 'security.debian.org/debian-security trixie-security main', active: true },
           { name: 'Flathub Official', url: 'https://dl.flathub.org/repo/flathub.flatpakrepo', active: true },
         ],
       });

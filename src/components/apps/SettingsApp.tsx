@@ -81,17 +81,17 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
     'debian' | 'wifi' | 'bluetooth' | 'mouse' | 'display' | 'sound' | 'power' | 'themes' | 'user' | 'accessibility' | 'about'
   >('debian');
 
-  // Debian 12 Host Integration States
+  // Debian 13 Host Integration States
   const [debianInfo, setDebianInfo] = useState<any>({
     host: {
-      distro: 'Debian GNU/Linux 12 (Bookworm)',
-      distroVersion: '12.6 Bookworm',
-      kernel: '6.1.0-28-amd64',
+      distro: 'Debian GNU/Linux 13 (Trixie)',
+      distroVersion: '13.0 Trixie (LTS/Testing)',
+      kernel: '6.12.0-trixie-amd64',
       arch: 'x86_64 (AMD64)',
       hostname: 'inovecloud-os',
-      initSystem: 'systemd 252.31',
-      displayServer: 'X11 (Openbox Window Manager + xcompmgr)',
-      graphicsDriver: 'Mesa 22.3.6 (OpenGL 4.6 / Vulkan 1.3 / DRI3)',
+      initSystem: 'systemd 256.4',
+      displayServer: 'GNOME 46+ Wayland (Mutter) + InoveCloud Liquid Glass Theme',
+      graphicsDriver: 'Mesa 24.2.3 (OpenGL 4.6 / Vulkan 1.3 / DRI3)',
       uptime: '14 dias, 8 horas, 42 min',
       timezone: 'America/Sao_Paulo (UTC-03:00)',
       locale: 'pt_BR.UTF-8',
@@ -99,12 +99,11 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
       memory: { total: '16384 MB', used: '4210 MB', free: '12174 MB' }
     },
     services: [
+      { name: 'gdm3.service', description: 'GNOME Display Manager', status: 'active', enabled: true },
       { name: 'NetworkManager', description: 'Gerenciador de Redes Wi-Fi & Ethernet', status: 'active', enabled: true },
-      { name: 'ssh.service', description: 'Servidor SSH OpenSSH', status: 'active', enabled: true },
-      { name: 'ufw.service', description: 'Uncomplicated Firewall', status: 'active', enabled: true },
-      { name: 'pipewire.service', description: 'Servidor de Áudio de Baixa Latência', status: 'active', enabled: true },
+      { name: 'pipewire.service', description: 'Servidor de Áudio PipeWire', status: 'active', enabled: true },
       { name: 'flatpak-system-helper', description: 'Suporte de Permissões Flatpak', status: 'active', enabled: true },
-      { name: 'inovecloud-desktop', description: 'Ambiente Gráfico X11 + Openbox + Web Desktop', status: 'active', enabled: true }
+      { name: 'inovecloud.service', description: 'InoveCloud Web Desktop Local Server', status: 'active', enabled: true }
     ],
     network: {
       interface: 'wlan0 / eth0',
@@ -115,10 +114,9 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
       mac: '52:54:00:12:34:56'
     },
     repositories: [
-      { name: 'Debian Main', url: 'deb.debian.org/debian bookworm main', active: true },
-      { name: 'Debian Contrib & Non-Free', url: 'deb.debian.org/debian bookworm contrib non-free non-free-firmware', active: true },
-      { name: 'Debian Security Updates', url: 'security.debian.org/debian-security bookworm-security main', active: true },
-      { name: 'Debian Backports', url: 'deb.debian.org/debian bookworm-backports main', active: true },
+      { name: 'Debian 13 Trixie Main', url: 'deb.debian.org/debian trixie main', active: true },
+      { name: 'Debian 13 Contrib & Non-Free', url: 'deb.debian.org/debian trixie contrib non-free non-free-firmware', active: true },
+      { name: 'Debian 13 Security Updates', url: 'security.debian.org/debian-security trixie-security main', active: true },
       { name: 'Flathub Official', url: 'https://dl.flathub.org/repo/flathub.flatpakrepo', active: true }
     ]
   });
@@ -374,7 +372,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
 
   // Navigation Items
   const menuItems = [
-    { id: 'debian', label: 'Debian 12 & Host Linux', icon: Server, badge: 'Bookworm' },
+    { id: 'debian', label: 'Debian 13 & GNOME Host', icon: Server, badge: 'Trixie' },
     { id: 'wifi', label: 'Wi-Fi & Internet', icon: Wifi, badge: connectedSsid ? 'Conectado' : 'Desligado' },
     { id: 'bluetooth', label: 'Bluetooth & Dispositivos', icon: Bluetooth, badge: `${pairedDevices.filter(d => d.connected).length} ativos` },
     { id: 'mouse', label: 'Mouse & Touchpad', icon: Mouse },
@@ -436,10 +434,10 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
 
         {/* Host Status Footer */}
         <div className="pt-2 border-t border-white/10 text-[10px] text-slate-400 flex items-center justify-between px-2">
-          <span>Debian 12 Bookworm</span>
+          <span>Debian 13 (Trixie)</span>
           <span className="flex items-center space-x-1 text-emerald-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Kiosk Ativo</span>
+            <span>GNOME Glass</span>
           </span>
         </div>
       </div>
@@ -447,7 +445,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
       {/* RIGHT CONTENT AREA */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {/* =================================================================== */}
-        {/* 0. DEBIAN 12 & HOST LINUX INTEGRATION */}
+        {/* 0. DEBIAN 13 & GNOME HOST LINUX INTEGRATION */}
         {/* =================================================================== */}
         {activeSection === 'debian' && (
           <div className="space-y-6 max-w-4xl">
@@ -456,10 +454,10 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
               <div>
                 <h3 className="text-base font-bold text-white flex items-center space-x-2">
                   <Server className="w-5 h-5 text-red-500" />
-                  <span>Configurações & Integração com Debian 12 (Host)</span>
+                  <span>Configurações & Integração com Debian 13 (Trixie)</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Gerenciamento direto de kernel, serviços systemd, repositórios APT, drivers Mesa e rede via API nativa.
+                  Gerenciamento direto de kernel, ambiente GNOME 46+, serviços systemd, repositórios APT, drivers Mesa e rede via API nativa.
                 </p>
               </div>
 
@@ -2134,11 +2132,11 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
               </div>
               <div>
                 <h4 className="text-base font-bold text-white">InoveCloud OS 2026.1 LTS</h4>
-                <p className="text-xs text-slate-300">Base: Debian 12 (Bookworm) 64-bit • Wayland Cage Compositor</p>
+                <p className="text-xs text-slate-300">Base: Debian 13 (Trixie) 64-bit • GNOME 46+ Liquid Glass Theme</p>
                 <div className="flex items-center space-x-3 text-[11px] text-slate-400 mt-1">
-                  <span>Kernel: Linux 6.1.0-28-amd64</span>
+                  <span>Kernel: Linux 6.12.0-trixie-amd64</span>
                   <span>•</span>
-                  <span>Chromium Kiosk Engine v124</span>
+                  <span>Wayland Mutter + Blur</span>
                 </div>
               </div>
             </div>

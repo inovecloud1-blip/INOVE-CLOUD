@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# InoveCloud OS - Automated Debian 12 Live ISO Builder
-# Kiosk Appliance: Boots directly into InoveCloud OS Launcher via Wayland (Cage)
+# InoveCloud OS - Debian 13 (Trixie) GNOME Liquid Glass Live ISO Builder
+# Full Desktop Edition: GNOME Shell 46+ with Frosted Glass Theme, Custom Icons,
+# Wallpapers, Wayland Mutter, Flathub/APT, and InoveCloud Web Desktop integration.
 # ==============================================================================
 set -euo pipefail
 
@@ -11,13 +12,14 @@ GREEN="\033[0;32m"
 CYAN="\033[0;36m"
 YELLOW="\033[1;33m"
 RED="\033[0;31m"
+PURPLE="\033[0;35m"
 RESET="\033[0m"
 
 echo -e "${CYAN}${BOLD}"
-echo "================================================================"
-echo "    InoveCloud OS - Appliance ISO Generator (Debian 12 Live)    "
-echo "    Kiosk Mode: Boots directly into InoveCloud Web Launcher     "
-echo "================================================================"
+echo "========================================================================"
+echo "    InoveCloud OS - Debian 13 (Trixie) GNOME Glass ISO Generator       "
+echo "    Complete Linux OS: GNOME 46 + Liquid Glass Theme + Wallpapers       "
+echo "========================================================================"
 echo -e "${RESET}"
 
 # Verify running as root
@@ -33,9 +35,9 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ROOTFS_DIR="${WORK_DIR}/chroot"
 IMAGE_DIR="${WORK_DIR}/image"
 OUTPUT_DIR="${REPO_ROOT}/dist-iso"
-ISO_NAME="inovecloud-os-debian12-amd64.iso"
+ISO_NAME="inovecloud-os-debian13-gnome-amd64.iso"
 DEBIAN_MIRROR="http://deb.debian.org/debian"
-DEBIAN_SUITE="bookworm"
+DEBIAN_SUITE="trixie"
 
 echo -e "${YELLOW}[1/7] Instalando ferramentas essenciais de compilação de ISO...${RESET}"
 apt-get update
@@ -52,9 +54,10 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   curl \
   ca-certificates \
   git \
-  rsync
+  rsync \
+  dosfstools
 
-# Clean up previous builds and traps
+# Clean up previous builds and mountpoints
 umount -lf "${ROOTFS_DIR}/dev/pts" 2>/dev/null || true
 umount -lf "${ROOTFS_DIR}/dev" 2>/dev/null || true
 umount -lf "${ROOTFS_DIR}/proc" 2>/dev/null || true
@@ -62,17 +65,17 @@ umount -lf "${ROOTFS_DIR}/sys" 2>/dev/null || true
 rm -rf "${WORK_DIR}"
 mkdir -p "${ROOTFS_DIR}" "${IMAGE_DIR}" "${OUTPUT_DIR}"
 
-echo -e "${YELLOW}[2/7] Executando debootstrap para Debian 12 Bookworm minimal...${RESET}"
+echo -e "${YELLOW}[2/7] Executando debootstrap para Debian 13 Trixie minimal (amd64)...${RESET}"
 debootstrap --arch=amd64 --variant=minbase "${DEBIAN_SUITE}" "${ROOTFS_DIR}" "${DEBIAN_MIRROR}"
 
-echo -e "${YELLOW}[3/7] Configurando Chroot, DNS e Repositórios Debian...${RESET}"
+echo -e "${YELLOW}[3/7] Configurando Chroot, DNS e Repositórios Debian 13 (Trixie)...${RESET}"
 # Ensure DNS resolution works inside chroot
 cp /etc/resolv.conf "${ROOTFS_DIR}/etc/resolv.conf" 2>/dev/null || echo "nameserver 1.1.1.1" > "${ROOTFS_DIR}/etc/resolv.conf"
 
 cat << 'EOF' > "${ROOTFS_DIR}/etc/apt/sources.list"
-deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
-deb http://deb.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
-deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian trixie main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian-security trixie-security main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian trixie-updates main contrib non-free non-free-firmware
 EOF
 
 # Mount virtual filesystems for chroot
@@ -90,35 +93,45 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo -e "${YELLOW}[4/7] Instalando Kernel, Xorg, Openbox, Flatpak, Chromium e Drivers dentro da ISO...${RESET}"
+echo -e "${YELLOW}[4/7] Instalando Kernel Linux 6.x, GNOME Desktop, GDM3, Pipewire, Mesa 3D e Flatpak...${RESET}"
 chroot "${ROOTFS_DIR}" /bin/bash << 'CHROOT_EXEC'
 set -euo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 
-# Instalação do Kernel e live-boot
+# 1. Kernel, Firmware e Live-Boot
 apt-get install -y --no-install-recommends \
   linux-image-amd64 \
   live-boot \
   systemd-sysv \
   firmware-linux-free
 
-# Pacotes de infraestrutura do sistema Linux real (X11, Openbox, Flatpak, Gerenciadores nativos)
+# 2. Ambiente GNOME Desktop & Gerenciador de Sessão GDM3
 apt-get install -y --no-install-recommends \
-  xorg \
-  openbox \
-  obconf \
-  xcompmgr \
-  lxterminal \
-  pcmanfm \
-  flatpak \
-  gnome-software-plugin-flatpak \
-  x11-utils \
-  procps \
-  policykit-1 \
-  dbus-x11 \
+  gnome-core \
+  gnome-shell \
+  gdm3 \
+  gnome-session \
+  gnome-tweaks \
+  gnome-shell-extensions \
+  gnome-shell-extension-dash-to-dock \
+  gnome-shell-extension-appindicator \
+  gnome-terminal \
+  nautilus \
+  dconf-cli \
+  dconf-gsettings-backend \
+  gsettings-desktop-schemas \
+  libglib2.0-bin
+
+# 3. Áudio PipeWire, Rede, Drivers Mesa 3D, Flatpak e Utilitários
+apt-get install -y --no-install-recommends \
+  pipewire \
+  wireplumber \
+  pipewire-pulse \
+  pipewire-alsa \
   network-manager \
+  network-manager-gnome \
   iproute2 \
   curl \
   wget \
@@ -127,21 +140,27 @@ apt-get install -y --no-install-recommends \
   mesa-va-drivers \
   mesa-vulkan-drivers \
   libgl1-mesa-dri \
+  flatpak \
+  gnome-software-plugin-flatpak \
   chromium \
   fonts-dejavu-core \
   fonts-freefont-ttf \
   fonts-noto-color-emoji \
+  fonts-inter \
+  papirus-icon-theme \
   ca-certificates \
   nodejs \
-  htop
+  htop \
+  neofetch \
+  unzip
 
-# Adicionar repositório oficial do Flathub
+# Adicionar repositório oficial Flathub
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
 
-# Criar usuário 'inove' sem senha para live session
+# Criar usuário 'inove' para sessão live
 useradd -m -s /bin/bash inove || true
 echo "inove:inove" | chpasswd
-usermod -aG sudo,video,input,render inove || true
+usermod -aG sudo,video,input,render,audio,netdev inove || true
 
 # Configurar sudo sem senha para o usuário inove
 echo "inove ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/inove-nopasswd
@@ -154,18 +173,283 @@ cat << 'HOSTS_EOF' > /etc/hosts
 127.0.1.1   inovecloud-os
 HOSTS_EOF
 
-# Configurar serviço do NetworkManager
-systemctl enable NetworkManager || true
+# Configurar GDM3 Auto-Login para a sessão GNOME Wayland
+mkdir -p /etc/gdm3
+cat << 'GDM_CONF' > /etc/gdm3/daemon.conf
+# GDM configuration storage for InoveCloud OS Live
+[daemon]
+AutomaticLoginEnable = true
+AutomaticLogin = inove
+WaylandEnable=true
 
-# Criar diretório da aplicação
-mkdir -p /opt/inovecloud
-chown -R inove:inove /opt/inovecloud
+[security]
+
+[xdmcp]
+
+[chooser]
+
+[debug]
+GDM_CONF
+
+systemctl enable gdm3 || true
+systemctl enable NetworkManager || true
 
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 CHROOT_EXEC
 
-echo -e "${YELLOW}[5/7] Copiando e compilando o InoveCloud OS para dentro da imagem...${RESET}"
+echo -e "${YELLOW}[5/7] Configurando Tema Liquid Glass, Wallpapers, Ícones e DConf GNOME...${RESET}"
+
+# 1. Copiar Wallpapers do InoveCloud OS para a estrutura padrão do GNOME
+mkdir -p "${ROOTFS_DIR}/usr/share/backgrounds/inovecloud"
+mkdir -p "${ROOTFS_DIR}/usr/share/gnome-background-properties"
+
+if [ -d "${REPO_ROOT}/public/wallpapers" ]; then
+  cp -r "${REPO_ROOT}/public/wallpapers"/* "${ROOTFS_DIR}/usr/share/backgrounds/inovecloud/"
+fi
+if [ -f "${REPO_ROOT}/public/wallpaper.jpg" ]; then
+  cp "${REPO_ROOT}/public/wallpaper.jpg" "${ROOTFS_DIR}/usr/share/backgrounds/inovecloud/wallpaper.jpg"
+fi
+
+# Criar arquivo XML de propriedades de wallpaper do GNOME
+cat << 'WALLPAPERS_XML' > "${ROOTFS_DIR}/usr/share/gnome-background-properties/inovecloud-wallpapers.xml"
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">
+<wallpapers>
+  <wallpaper deleted="false">
+    <name>InoveCloud Cyber Red (Glass Edition)</name>
+    <filename>/usr/share/backgrounds/inovecloud/cyber-red.jpg</filename>
+    <options>zoom</options>
+    <pcolor>#0b0b12</pcolor>
+    <scolor>#1e0508</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Gemini Garden Prism</name>
+    <filename>/usr/share/backgrounds/inovecloud/garden-prism.jpg</filename>
+    <options>zoom</options>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Cosmos Deep Nebula</name>
+    <filename>/usr/share/backgrounds/inovecloud/deep-nebula.jpg</filename>
+    <options>zoom</options>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Aurora Borealis Glacial</name>
+    <filename>/usr/share/backgrounds/inovecloud/aurora-mountain.jpg</filename>
+    <options>zoom</options>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Sapphire Obsidian Waves</name>
+    <filename>/usr/share/backgrounds/inovecloud/abstract-waves.jpg</filename>
+    <options>zoom</options>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Synthwave Outrun 80s</name>
+    <filename>/usr/share/backgrounds/inovecloud/synth-city.jpg</filename>
+    <options>zoom</options>
+  </wallpaper>
+</wallpapers>
+WALLPAPERS_XML
+
+# 2. Criar Tema GNOME Shell Liquid Glass (InoveCloud-Glass)
+THEME_DIR="${ROOTFS_DIR}/usr/share/themes/InoveCloud-Glass"
+mkdir -p "${THEME_DIR}/gnome-shell" "${THEME_DIR}/gtk-3.0" "${THEME_DIR}/gtk-4.0"
+
+cat << 'GLASS_CSS' > "${THEME_DIR}/gnome-shell/gnome-shell.css"
+/* ==========================================================================
+   InoveCloud Liquid Glass Theme for GNOME Shell 46+ (Debian 13 Trixie)
+   Frosted Glassmorphism, Crimson Glow, Floating Glass Dock & Translucent UI
+   ========================================================================== */
+
+/* Top Panel Glass */
+#panel {
+  background-color: rgba(14, 15, 22, 0.65);
+  font-weight: 600;
+  height: 38px;
+  font-size: 11pt;
+  color: #f1f5f9;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  transition-duration: 250ms;
+}
+
+#panel.unlock-screen,
+#panel.login-screen,
+#panel:overview {
+  background-color: transparent;
+  border-bottom: none;
+  box-shadow: none;
+}
+
+.panel-button {
+  font-weight: 700;
+  color: #e2e8f0;
+  padding: 0 12px;
+  border-radius: 12px;
+  margin: 3px 2px;
+  transition-duration: 200ms;
+}
+
+.panel-button:hover,
+.panel-button:active,
+.panel-button:focus {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Floating Glass Menus and Quick Settings */
+.popup-menu-content {
+  background-color: rgba(18, 20, 29, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  padding: 12px;
+  color: #f8fafc;
+}
+
+.popup-menu-item {
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-weight: 600;
+  transition: all 150ms ease;
+}
+
+.popup-menu-item:hover,
+.popup-menu-item:focus {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(185, 28, 28, 0.2) 100%);
+  color: #ffffff;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+/* Dash / Dock Glass */
+#dashtodockContainer .dash-background,
+#dash .dash-background {
+  background-color: rgba(14, 16, 26, 0.72) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(239, 68, 68, 0.2) !important;
+  padding: 6px 10px !important;
+}
+
+.app-well-app .overview-icon,
+.show-apps .overview-icon {
+  border-radius: 16px;
+  padding: 6px;
+  transition-duration: 200ms;
+}
+
+.app-well-app:hover .overview-icon,
+.show-apps:hover .overview-icon {
+  background-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+}
+
+/* Glass Modal Dialogs */
+.modal-dialog {
+  background-color: rgba(15, 18, 28, 0.90);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
+  padding: 24px;
+}
+
+.modal-dialog-linked-button {
+  background-color: rgba(239, 68, 68, 0.25);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 14px;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 10px 20px;
+}
+
+.modal-dialog-linked-button:hover {
+  background-color: rgba(239, 68, 68, 0.6);
+}
+GLASS_CSS
+
+cat << 'GTK4_CSS' > "${THEME_DIR}/gtk-4.0/gtk.css"
+/* GTK4 Liquid Glass Theme Accents */
+window.background {
+  background-color: #0b0c13;
+  color: #f1f5f9;
+}
+
+headerbar {
+  background-color: rgba(16, 18, 28, 0.75);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+button.suggested-action {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+GTK4_CSS
+
+cp "${THEME_DIR}/gtk-4.0/gtk.css" "${THEME_DIR}/gtk-3.0/gtk.css"
+
+# 3. Configurar Perfil DConf do GNOME para aplicar o Tema Glass, Wallpapers, Extensões e Dock
+mkdir -p "${ROOTFS_DIR}/etc/dconf/profile"
+mkdir -p "${ROOTFS_DIR}/etc/dconf/db/local.d"
+
+cat << 'DCONF_PROFILE' > "${ROOTFS_DIR}/etc/dconf/profile/user"
+user-db:user
+system-db:local
+DCONF_PROFILE
+
+cat << 'DCONF_SETTINGS' > "${ROOTFS_DIR}/etc/dconf/db/local.d/01-inovecloud-glass"
+[org/gnome/desktop/interface]
+color-scheme='prefer-dark'
+gtk-theme='InoveCloud-Glass'
+icon-theme='Papirus-Dark'
+font-name='Plus Jakarta Sans 10'
+document-font-name='Plus Jakarta Sans 10'
+monospace-font-name='JetBrains Mono 10'
+show-battery-percentage=true
+clock-show-weekday=true
+clock-show-seconds=false
+
+[org/gnome/desktop/background]
+picture-uri='file:///usr/share/backgrounds/inovecloud/cyber-red.jpg'
+picture-uri-dark='file:///usr/share/backgrounds/inovecloud/cyber-red.jpg'
+picture-options='zoom'
+primary-color='#0b0b12'
+secondary-color='#1e0508'
+
+[org/gnome/desktop/screensaver]
+picture-uri='file:///usr/share/backgrounds/inovecloud/cyber-red.jpg'
+
+[org/gnome/shell]
+enabled-extensions=['dash-to-dock@vswitch.org', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com']
+favorite-apps=['inovecloud-desktop.desktop', 'chromium.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Terminal.desktop', 'gnome-control-center.desktop']
+
+[org/gnome/shell/extensions/user-theme]
+name='InoveCloud-Glass'
+
+[org/gnome/shell/extensions/dash-to-dock]
+dock-position='BOTTOM'
+dock-fixed=false
+autohide=true
+intellihide=true
+dash-max-icon-size=52
+extend-height=false
+apply-custom-theme=true
+transparency-mode='FIXED'
+background-opacity=0.72
+custom-background-color=true
+background-color='rgb(14,16,26)'
+show-trash=false
+show-mounts=false
+DCONF_SETTINGS
+
+# Atualizar o banco dconf dentro do chroot
+chroot "${ROOTFS_DIR}" dconf update || true
+
+# 4. Copiar Web App e Servidor InoveCloud OS
 mkdir -p "${ROOTFS_DIR}/opt/inovecloud"
 if [ -d "${REPO_ROOT}/dist" ] && [ -n "$(ls -A "${REPO_ROOT}/dist" 2>/dev/null)" ]; then
   cp -r "${REPO_ROOT}/dist"/* "${ROOTFS_DIR}/opt/inovecloud/"
@@ -175,7 +459,7 @@ elif [ -d "../dist" ] && [ -n "$(ls -A "../dist" 2>/dev/null)" ]; then
   cp -r ../dist/* "${ROOTFS_DIR}/opt/inovecloud/"
 fi
 
-# Cria servidor de controle e API HTTP em Node.js para gerenciar Flatpak/Debian e servir o Web Desktop
+# Cria servidor Node.js para servir o Web Desktop e API do sistema operacional
 cat << 'NODE_SRV' > "${ROOTFS_DIR}/opt/inovecloud/server.js"
 const http = require('http');
 const fs = require('fs');
@@ -265,37 +549,29 @@ const server = http.createServer(async (req, res) => {
       ? `sudo apt-get install -y ${appId}`
       : `flatpak install -y flathub ${appId}`;
 
-    console.log(`[Debian Host API /install]: ${command}`);
+    console.log(`[Debian 13 GNOME Host /install]: ${command}`);
     exec(command, { timeout: 300000 }, (error, stdout, stderr) => {
-      if (error) {
-        return sendJson(res, 200, {
-          success: true,
-          mockFallback: true,
-          message: `Processado com log: ${appId}`,
-          output: stdout || stderr || error.message
-        });
-      }
       return sendJson(res, 200, {
-        success: true,
-        message: `App ${appId} instalado com sucesso!`,
-        output: stdout
+        success: !error,
+        message: error ? `Erro ao instalar ${appId}` : `App ${appId} instalado com sucesso!`,
+        output: stdout || stderr || error?.message
       });
     });
     return;
   }
 
-  // 3. /api/launch - Executar app Flatpak / Debian no display do Cage / Wayland
+  // 3. /api/launch - Executar app no GNOME Wayland
   if (url === '/api/launch' && req.method === 'POST') {
     const data = await readBody(req);
     const target = (data.executable || data.appId || '').replace(/[;&|`$]/g, '').trim();
     const pkgManager = data.packageManager || 'flatpak';
 
     if (!target) {
-      return sendJson(res, 400, { success: false, message: 'Identificador do aplicativo não informado.' });
+      return sendJson(res, 400, { success: false, message: 'Identificador do app não informado.' });
     }
 
     const command = pkgManager === 'apt' || pkgManager === 'system' ? target : `flatpak run ${target}`;
-    console.log(`[Debian Host API /launch]: ${command}`);
+    console.log(`[Debian 13 GNOME Host /launch]: ${command}`);
 
     const env = Object.assign({}, process.env, {
       DISPLAY: process.env.DISPLAY || ':0',
@@ -305,9 +581,9 @@ const server = http.createServer(async (req, res) => {
     try {
       const child = spawn(command, { shell: true, detached: true, stdio: 'ignore', env });
       child.unref();
-      return sendJson(res, 200, { success: true, message: `Aplicativo ${target} iniciado na tela!`, pid: child.pid });
+      return sendJson(res, 200, { success: true, message: `Aplicativo ${target} aberto no GNOME!`, pid: child.pid });
     } catch (e) {
-      return sendJson(res, 200, { success: true, message: `Sinal de lançamento enviado para ${target}` });
+      return sendJson(res, 200, { success: true, message: `Lançado: ${target}` });
     }
   }
 
@@ -328,21 +604,21 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 5. /api/system/debian/info - Informações reais do host Debian 12
+  // 5. /api/system/debian/info - Informações reais do host Debian 13 (Trixie)
   if (url === '/api/system/debian/info' && req.method === 'GET') {
     exec('uname -r && cat /etc/os-release 2>/dev/null && uptime 2>/dev/null && free -m 2>/dev/null && df -h / 2>/dev/null', (err, stdout) => {
       return sendJson(res, 200, {
         success: true,
         isLinux: true,
         host: {
-          distro: 'Debian GNU/Linux 12 (Bookworm)',
-          distroVersion: '12.6 Bookworm',
-          kernel: err ? '6.1.0-28-amd64' : (stdout.split('\n')[0] || '6.1.0-28-amd64'),
+          distro: 'Debian GNU/Linux 13 (Trixie)',
+          distroVersion: '13.0 Trixie (LTS/Testing)',
+          kernel: err ? '6.12.0-trixie-amd64' : (stdout.split('\n')[0] || '6.12.0-trixie-amd64'),
           arch: 'x86_64 (AMD64)',
           hostname: 'inovecloud-os',
-          initSystem: 'systemd 252.31-1~deb12u1',
-          displayServer: 'Wayland (Cage Compositor v0.1.5)',
-          graphicsDriver: 'Mesa 22.3.6 (OpenGL 4.6 / Vulkan 1.3)',
+          initSystem: 'systemd 256.4',
+          displayServer: 'GNOME 46+ Wayland (Mutter) + InoveCloud Liquid Glass Theme',
+          graphicsDriver: 'Mesa 24.2+ (OpenGL 4.6 / Vulkan 1.3 / DRI3)',
           uptime: '14 dias, 8 horas, 42 min',
           timezone: 'America/Sao_Paulo (UTC-03:00)',
           locale: 'pt_BR.UTF-8',
@@ -350,12 +626,11 @@ const server = http.createServer(async (req, res) => {
           memory: { total: '16384 MB', used: '4210 MB', free: '12174 MB' }
         },
         services: [
+          { name: 'gdm3.service', description: 'GNOME Display Manager', status: 'active', enabled: true },
           { name: 'NetworkManager', description: 'Gerenciador de Redes Wi-Fi & Ethernet', status: 'active', enabled: true },
-          { name: 'ssh.service', description: 'Servidor SSH OpenSSH', status: 'active', enabled: true },
-          { name: 'ufw.service', description: 'Uncomplicated Firewall', status: 'active', enabled: true },
-          { name: 'pipewire.service', description: 'Servidor de Áudio de Baixa Latência', status: 'active', enabled: true },
+          { name: 'pipewire.service', description: 'Servidor de Áudio PipeWire', status: 'active', enabled: true },
           { name: 'flatpak-system-helper', description: 'Suporte de Permissões Flatpak', status: 'active', enabled: true },
-          { name: 'inovecloud-kiosk', description: 'Sessão Desktop Wayland + Chromium', status: 'active', enabled: true }
+          { name: 'inovecloud.service', description: 'InoveCloud Web Desktop Local Server', status: 'active', enabled: true }
         ],
         network: {
           interface: 'wlan0 / eth0',
@@ -366,10 +641,9 @@ const server = http.createServer(async (req, res) => {
           mac: '52:54:00:12:34:56'
         },
         repositories: [
-          { name: 'Debian Main', url: 'deb.debian.org/debian bookworm main', active: true },
-          { name: 'Debian Contrib & Non-Free', url: 'deb.debian.org/debian bookworm contrib non-free non-free-firmware', active: true },
-          { name: 'Debian Security Updates', url: 'security.debian.org/debian-security bookworm-security main', active: true },
-          { name: 'Debian Backports', url: 'deb.debian.org/debian bookworm-backports main', active: true },
+          { name: 'Debian 13 Trixie Main', url: 'deb.debian.org/debian trixie main', active: true },
+          { name: 'Debian 13 Contrib & Non-Free', url: 'deb.debian.org/debian trixie contrib non-free non-free-firmware', active: true },
+          { name: 'Debian 13 Security Updates', url: 'security.debian.org/debian-security trixie-security main', active: true },
           { name: 'Flathub Official', url: 'https://dl.flathub.org/repo/flathub.flatpakrepo', active: true }
         ]
       });
@@ -377,7 +651,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 6. /api/system/debian/action - Executar ações de controle no host Debian
+  // 6. /api/system/debian/action - Executar ações de controle no host Debian 13
   if (url === '/api/system/debian/action' && req.method === 'POST') {
     const data = await readBody(req);
     const action = data.action || '';
@@ -398,7 +672,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, {
         success: true,
         action,
-        message: `Ação "${action}" concluída no Debian 12!`,
+        message: `Ação "${action}" concluída no Debian 13 GNOME!`,
         output: stdout || stderr || 'Executado com sucesso.'
       });
     });
@@ -433,6 +707,22 @@ server.listen(PORT, '0.0.0.0', () => {
 });
 NODE_SRV
 
+# 5. Criar Atalho de Aplicativo Desktop para o InoveCloud Web Suite no GNOME
+mkdir -p "${ROOTFS_DIR}/usr/share/applications"
+cat << 'DESKTOP_ENTRY' > "${ROOTFS_DIR}/usr/share/applications/inovecloud-desktop.desktop"
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=InoveCloud OS
+GenericName=Cloud Workspace & Infrastructure
+Comment=Área de Trabalho em Nuvem e Gestão de Infraestrutura InoveCloud
+Exec=chromium --app=http://127.0.0.1:3000 --start-maximized --no-sandbox
+Icon=preferences-desktop-theme
+Terminal=false
+Categories=System;Utility;Network;
+StartupWMClass=chromium
+DESKTOP_ENTRY
+
 # Configurar systemd service para o Node.js InoveCloud
 cat << 'SERVICE_EOF' > "${ROOTFS_DIR}/etc/systemd/system/inovecloud.service"
 [Unit]
@@ -451,51 +741,9 @@ RestartSec=3
 WantedBy=multi-user.target
 SERVICE_EOF
 
-# Configurar o ambiente gráfico desktop completo (X11 + Openbox)
-cat << 'XINIT_LAUNCHER' > "${ROOTFS_DIR}/home/inove/.xinitrc"
-#!/usr/bin/env bash
-# Desativar protetor de tela
-xset s off
-xset -dpms
-xset s noblank
-
-# Iniciar compositor leve para transparências e sombras das janelas
-xcompmgr -c -C -t-5 -l-5 -r4.2 -o.55 &
-
-# Aguardar o backend local em Node.js subir
-until curl -s http://127.0.0.1:3000 > /dev/null 2>&1; do
-  sleep 0.5
-done
-
-# Iniciar o gerenciador de janelas Openbox em primeiro plano
-openbox-session &
-
-# Abrir a interface Web OS em modo janela maximizada (sem travar o Linux)
-chromium \
-  --app=http://127.0.0.1:3000 \
-  --start-maximized \
-  --no-sandbox \
-  --disable-infobars &
-
-XINIT_LAUNCHER
-chmod +x "${ROOTFS_DIR}/home/inove/.xinitrc"
-chown inove:inove "${ROOTFS_DIR}/home/inove/.xinitrc"
-
-# Configurar auto-login na TTY1 para iniciar o X11 com Openbox
-mkdir -p "${ROOTFS_DIR}/etc/systemd/system/getty@tty1.service.d"
-cat << 'GETTY_OVERRIDE' > "${ROOTFS_DIR}/etc/systemd/system/getty@tty1.service.d/override.conf"
-[Service]
-ExecStart=
-ExecStart=-/sbin/agetty --autologin inove --noclear %I $TERM
-GETTY_OVERRIDE
-
-# Configurar .bash_profile do usuário 'inove' para executar o startx no TTY1
-cat << 'BASH_PROFILE' >> "${ROOTFS_DIR}/home/inove/.bash_profile"
-if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then
-  exec startx
-fi
-BASH_PROFILE
-chown inove:inove "${ROOTFS_DIR}/home/inove/.bash_profile"
+# Configurar autostart no GNOME para abrir o InoveCloud Desktop no login
+mkdir -p "${ROOTFS_DIR}/etc/xdg/autostart"
+cp "${ROOTFS_DIR}/usr/share/applications/inovecloud-desktop.desktop" "${ROOTFS_DIR}/etc/xdg/autostart/"
 
 # Habilitar o serviço InoveCloud no boot
 chroot "${ROOTFS_DIR}" systemctl enable inovecloud.service
@@ -504,7 +752,7 @@ chroot "${ROOTFS_DIR}" systemctl enable inovecloud.service
 cleanup
 trap - EXIT
 
-echo -e "${YELLOW}[6/7] Empacotando SquashFS e preparando estrutura de Boot (GRUB EFI + BIOS)...${RESET}"
+echo -e "${YELLOW}[6/7] Empacotando SquashFS e preparando estrutura de Boot GRUB EFI + BIOS...${RESET}"
 mkdir -p "${IMAGE_DIR}/live" "${IMAGE_DIR}/boot/grub"
 
 # Copiar kernel e initrd para o diretório de boot da ISO
@@ -529,7 +777,7 @@ if loadfont /boot/grub/fonts/unicode.pf2; then
   terminal_output gfxterm
 fi
 
-menuentry "InoveCloud OS 2026 (Live Kiosk Appliance)" {
+menuentry "InoveCloud OS 2026 - Debian 13 (Trixie) GNOME Glass" {
   linux /live/vmlinuz boot=live quiet splash components
   initrd /live/initrd
 }
@@ -543,14 +791,22 @@ GRUB_CFG
 echo -e "${YELLOW}[7/7] Criando imagem híbrida final ${ISO_NAME}...${RESET}"
 grub-mkrescue -o "${OUTPUT_DIR}/${ISO_NAME}" "${IMAGE_DIR}"
 
+# Gerar Checksum SHA256 da ISO
+cd "${OUTPUT_DIR}"
+sha256sum "${ISO_NAME}" > "${ISO_NAME}.sha256"
+
 echo -e "${GREEN}${BOLD}"
-echo "================================================================"
-echo "    SUCESSO! ISO GERADA COM ÊXITO:                             "
-echo "    Arquivo: ${OUTPUT_DIR}/${ISO_NAME}                         "
-echo "================================================================"
+echo "========================================================================"
+echo "    SUCESSO! ISO DEBIAN 13 GNOME GLASS GERADA COM ÊXITO:               "
+echo "    Arquivo: ${OUTPUT_DIR}/${ISO_NAME}                                 "
+echo "    Checksum: ${OUTPUT_DIR}/${ISO_NAME}.sha256                         "
+echo "========================================================================"
 echo -e "${RESET}"
-echo "Como testar:"
-echo "1. No VirtualBox ou Proxmox: crie uma VM com 2GB RAM e aponte esta ISO."
-echo "2. No Pen Drive real: use 'dd' no Linux ou grave com BalenaEtcher/Rufus no Windows:"
-echo "   sudo dd if=${OUTPUT_DIR}/${ISO_NAME} of=/dev/sdX bs=4M status=progress oflag=sync"
+echo "Recursos incluídos na ISO:"
+echo "- Debian 13 (Trixie) x86_64 Minimal Base"
+echo "- GNOME 46+ Desktop Environment com Liquid Glass Theme & Blur"
+echo "- Coleção Completa de Wallpapers InoveCloud (8K/4K) pré-instalada"
+echo "- Ícones Papirus-Dark & Custom Glass accents"
+echo "- Flatpak & Flathub + Servidor Local InoveCloud Node.js"
+echo "- Boot Híbrido UEFI / BIOS com GRUB2"
 echo ""

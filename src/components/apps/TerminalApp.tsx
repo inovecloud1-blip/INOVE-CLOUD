@@ -14,10 +14,10 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({
   onToggleVnStatus,
 }) => {
   const [history, setHistory] = useState<string[]>([
-    'InoveCloud Debian 12 Web Terminal & Control Console (x86_64)',
-    'Linux inovecloud-os 6.8.0-31-generic #31-InoveCloud-SMP Debian Bookworm',
+    'InoveCloud Debian 13 (Trixie) GNOME Web Terminal & Control Console (x86_64)',
+    'Linux inovecloud-os 6.12.0-trixie-amd64 #1-InoveCloud-SMP Debian Trixie',
     'Conectado ao subsistema local via /api/terminal/exec e socket.',
-    'Suporte direto a comandos do host: flatpak, apt, systemctl, ls, uname, htop, etc.',
+    'Suporte direto a comandos do host: flatpak, apt, systemctl, gnome-shell, ls, uname, htop, etc.',
     'Digite "help" para ver comandos do cluster ou digite comandos nativos do Debian.',
     '',
   ]);
@@ -57,25 +57,26 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({
     }
 
     if (main === 'neofetch') {
-      newHistory.push('        .---.         OS: InoveCloud OS 2.4 (Debian 12 Bookworm) x86_64');
-      newHistory.push('       /     \\        Host: InoveCloud Web Desktop Appliance (Wayland/Cage)');
-      newHistory.push('      | () () |       Kernel: 6.8.0-31-InoveCloud-Debian');
+      newHistory.push('        .---.         OS: InoveCloud OS 2026.1 (Debian 13 Trixie GNOME Glass) x86_64');
+      newHistory.push('       /     \\        Host: InoveCloud GNOME Desktop (Wayland / Liquid Glass)');
+      newHistory.push('      | () () |       Kernel: 6.12.0-trixie-amd64');
       newHistory.push('       \\  _  /        Uptime: 14 days, 8 hours, 42 mins');
-      newHistory.push('        \'---\'         Packages: 1420 (dpkg), Flathub Flatpaks (ativo)');
+      newHistory.push('        \'---\'         Packages: 1540 (dpkg), Flathub Flatpaks (ativo)');
       newHistory.push('                      Shell: inove-bash 5.2.21');
+      newHistory.push('                      DE: GNOME 46+ (Mutter / Liquid Glass Theme)');
       newHistory.push('                      CPU: AMD EPYC 9654 96-Core (192) @ 2.400GHz');
-      newHistory.push('                      GPU: Mesa / Wayland Compositor (Kiosk)');
-      newHistory.push('                      Memory: 6.2GB / 64.0GB (64%)');
+      newHistory.push('                      Memory: 4.2GB / 64.0GB');
       setHistory(newHistory);
       setInput('');
       return;
     }
 
     if (main === 'inovectl' && parts[1] === 'status') {
-      newHistory.push('=== INOVECLOUD DEBIAN 12 HOST STATUS ===');
+      newHistory.push('=== INOVECLOUD DEBIAN 13 (TRIXIE) GNOME HOST STATUS ===');
       newHistory.push(`Total VNs KVM: ${vns.length} (Ativas: ${vns.filter((v) => v.status === 'running').length})`);
       newHistory.push(`Web Apps: ${webApps.length} (Proxy Reverso Nginx + SSL Ativo)`);
       newHistory.push('Flathub Repo: Ativo (https://dl.flathub.org/repo/flathub.flatpakrepo)');
+      newHistory.push('GNOME Liquid Glass Theme: Ativo (/usr/share/themes/InoveCloud-Glass)');
       newHistory.push('Serviço Local API: /opt/inovecloud/server.js [PORTA 3000 ATIVA]');
       setHistory(newHistory);
       setInput('');
@@ -132,7 +133,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({
       <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-800 text-[11px] text-zinc-400">
         <div className="flex items-center space-x-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-semibold text-zinc-300">Debian 12 Host Shell Connected</span>
+          <span className="font-semibold text-zinc-300">Debian 13 GNOME Shell Connected</span>
         </div>
         <div className="flex items-center space-x-3">
           <span className="text-zinc-500">TTY: /dev/pts/0</span>
