@@ -113,7 +113,7 @@ jobs:
 
       - name: Compilar Aplicação Web
         run: |
-          npm ci || npm install
+          npm install
           npm run build
 
       - name: Instalar Ferramentas ISO
