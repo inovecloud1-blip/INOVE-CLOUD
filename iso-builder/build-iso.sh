@@ -119,6 +119,8 @@ apt-get install -y --no-install-recommends \
   gnome-shell-extension-appindicator \
   gnome-terminal \
   nautilus \
+  gnome-software \
+  gnome-control-center \
   dconf-cli \
   dconf-gsettings-backend \
   gsettings-desktop-schemas \
@@ -425,7 +427,7 @@ picture-uri='file:///usr/share/backgrounds/inovecloud/cyber-red.jpg'
 
 [org/gnome/shell]
 enabled-extensions=['dash-to-dock@vswitch.org', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com']
-favorite-apps=['inovecloud-desktop.desktop', 'chromium.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Terminal.desktop', 'gnome-control-center.desktop']
+favorite-apps=['org.gnome.Nautilus.desktop', 'org.gnome.Terminal.desktop', 'chromium.desktop', 'org.gnome.Software.desktop', 'gnome-control-center.desktop', 'inovecloud-desktop.desktop']
 
 [org/gnome/shell/extensions/user-theme]
 name='InoveCloud-Glass'
@@ -448,6 +450,17 @@ DCONF_SETTINGS
 
 # Atualizar o banco dconf dentro do chroot
 chroot "${ROOTFS_DIR}" dconf update || true
+
+# 3.1 Instalar utilitários auxiliares do InoveCloud OS
+mkdir -p "${ROOTFS_DIR}/usr/local/bin"
+if [ -f "${SCRIPT_DIR}/setup-gnome-theme.sh" ]; then
+  cp "${SCRIPT_DIR}/setup-gnome-theme.sh" "${ROOTFS_DIR}/usr/local/bin/inovecloud-setup-theme"
+  chmod +x "${ROOTFS_DIR}/usr/local/bin/inovecloud-setup-theme"
+fi
+if [ -f "${SCRIPT_DIR}/post-install-flathub.sh" ]; then
+  cp "${SCRIPT_DIR}/post-install-flathub.sh" "${ROOTFS_DIR}/usr/local/bin/inovecloud-flathub-setup"
+  chmod +x "${ROOTFS_DIR}/usr/local/bin/inovecloud-flathub-setup"
+fi
 
 # 4. Copiar Web App e Servidor InoveCloud OS
 mkdir -p "${ROOTFS_DIR}/opt/inovecloud"
