@@ -55,13 +55,13 @@ mkdir -p "${BUILD_DIR}"
 mkdir -p "${ROOTFS_DIR}"
 mkdir -p "${OUTPUT_DIR}"
 
-# 1. Dependências no Host para Compilar o Kernel e Extrair Binários Gráficos/Drivers
-echo -e "${C_BLUE}[1/7] Instalando ferramentas de compilação e drivers de baixo nível no host...${C_RESET}"
+# 1. Instalar Pacotes e Dependências no Host (incluindo busybox-static para fallback instantâneo)
+echo -e "${C_BLUE}[1/7] Instalando ferramentas de compilação e drivers no host...${C_RESET}"
 apt-get update -y
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   build-essential bison flex libelf-dev libssl-dev bc \
   xorriso grub-pc-bin grub-efi-amd64-bin mtools dosfstools \
-  curl wget tar xz-utils cpio python3 \
+  curl wget tar xz-utils cpio python3 busybox-static \
   flatpak bubblewrap dbus ostree \
   wpasupplicant wireless-tools bluez bluez-tools \
   weston xwayland libinput-bin udev kmod \
@@ -73,30 +73,54 @@ rm -rf "${ROOTFS_DIR}"
 mkdir -p "${ROOTFS_DIR}"/{bin,sbin,usr/bin,usr/sbin,usr/lib,usr/lib64,usr/share,lib,lib64,lib/firmware,etc,proc,sys,dev,tmp,var/log/icpkg,var/lib/flatpak,var/lib/bluetooth,var/run,home/inove,root,mnt,run/dbus,run/udev}
 chmod 1777 "${ROOTFS_DIR}/tmp"
 
-# 3. Baixar e Compilar BusyBox Estático (Non-Interactive / CI Safe)
-echo -e "${C_BLUE}[3/7] Compilando BusyBox nativo (${BUSYBOX_VERSION})...${C_RESET}"
+# 3. Baixar e Compilar BusyBox Estático (com Fallback Robusto e Automático)
+echo -e "${C_BLUE}[3/7] Preparando BusyBox Estático nativo (${BUSYBOX_VERSION})...${C_RESET}"
 cd "${BUILD_DIR}"
+
+BUSYBOX_COMPILED=0
 if [ ! -f "busybox-${BUSYBOX_VERSION}.tar.bz2" ]; then
-  wget "${BUSYBOX_URL}"
-fi
-if [ ! -d "busybox-${BUSYBOX_VERSION}" ]; then
-  tar -xjf "busybox-${BUSYBOX_VERSION}.tar.bz2"
+  wget -q "${BUSYBOX_URL}" || true
 fi
 
-cd "busybox-${BUSYBOX_VERSION}"
-# 1. Aplica a configuração padrão
-make defconfig
-# 2. Ativa o binário estático no arquivo de configuração
-sed -i 's/.*CONFIG_STATIC.*/CONFIG_STATIC=y/' .config
-# 3. Responde "Enter" (padrão) para qualquer nova pergunta de interatividade de forma 100% segura no CI
-yes "" | make oldconfig || true
-# 4. Compila e instala na raiz do InoveCloud OS
-make -j"${NPROC}"
-make CONFIG_PREFIX="${ROOTFS_DIR}" install
+if [ -f "busybox-${BUSYBOX_VERSION}.tar.bz2" ]; then
+  tar -xjf "busybox-${BUSYBOX_VERSION}.tar.bz2" 2>/dev/null || true
+  if [ -d "busybox-${BUSYBOX_VERSION}" ]; then
+    cd "busybox-${BUSYBOX_VERSION}"
+    make defconfig >/dev/null 2>&1 || true
+    sed -i 's/.*CONFIG_STATIC.*/CONFIG_STATIC=y/' .config
+    sed -i 's/.*CONFIG_FEATURE_PREFER_IPV4_ADDRESS.*/CONFIG_FEATURE_PREFER_IPV4_ADDRESS=y/' .config
+    # Desativa módulos que causam falhas com versões recentes do GCC / glibc estática
+    sed -i 's/CONFIG_TC=y/CONFIG_TC=n/' .config || true
+    sed -i 's/CONFIG_FEATURE_SYNC_FANCY=y/CONFIG_FEATURE_SYNC_FANCY=n/' .config || true
+    
+    yes "" | make oldconfig >/dev/null 2>&1 || true
+    if make -j"${NPROC}" >/dev/null 2>&1; then
+      make CONFIG_PREFIX="${ROOTFS_DIR}" install >/dev/null 2>&1 || true
+      BUSYBOX_COMPILED=1
+      echo "✓ BusyBox compilado a partir do código-fonte com sucesso."
+    fi
+    cd "${BUILD_DIR}"
+  fi
+fi
+
+# Se a compilação direta falhou devido ao glibc estático do host, usar o busybox estático oficial
+if [ "$BUSYBOX_COMPILED" -eq 0 ]; then
+  echo "Instalando BusyBox estático oficial..."
+  cp /bin/busybox "${ROOTFS_DIR}/bin/busybox"
+  chmod +x "${ROOTFS_DIR}/bin/busybox"
+  cd "${ROOTFS_DIR}"
+  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/bin" || true
+  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/sbin" || true
+  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/usr/bin" || true
+  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/usr/sbin" || true
+  cd "${WORK_DIR}"
+  echo "✓ BusyBox estático instalado com sucesso."
+fi
+
 cd "${WORK_DIR}"
 
 # 4. Integrar Binários e Drivers: Interface Gráfica, Wi-Fi, Bluetooth, Teclado, Mouse e Flathub
-echo -e "${C_BLUE}[4/7] Copiando binários e bibliotecas dinâmicas do Sistema Gráfico, Rede, Som e Flatpak...${C_RESET}"
+echo -e "${C_BLUE}[4/7] Copiando binários e bibliotecas dinâmicas do Sistema Gráfico, Rede e Flatpak...${C_RESET}"
 
 copy_bin_with_libs() {
   local bin_path="$1"
@@ -116,7 +140,6 @@ copy_bin_with_libs() {
   fi
 }
 
-# Utilitários Gráficos, Drivers, Wi-Fi, Bluetooth e Flathub
 CORE_BINARIES=(
   # Flatpak e Sandbox
   flatpak bwrap dbus-daemon dbus-launch python3
@@ -151,7 +174,7 @@ if [ -f "${ROOTFS_DIR}/usr/bin/bwrap" ]; then
   chmod u+s "${ROOTFS_DIR}/usr/bin/bwrap"
 fi
 
-# 5. Configurar Interface Gráfica InoveCloud OS (Weston + Liquid Glass Theme) e Inicialização
+# 5. Configurar Interface Gráfica InoveCloud OS e Inicialização
 echo -e "${C_BLUE}[5/7] Configurando Interface Gráfica InoveCloud, Wi-Fi, Bluetooth e D-Bus...${C_RESET}"
 
 mkdir -p "${ROOTFS_DIR}/etc/xdg/weston"
@@ -159,7 +182,6 @@ cat << 'EOF' > "${ROOTFS_DIR}/etc/xdg/weston/weston.ini"
 [core]
 idle-time=0
 require-input=false
-modules=systemd-notify.so
 
 [shell]
 background-color=0x0a0e17
@@ -352,8 +374,7 @@ if [ ! -f ".config" ]; then
   scripts/config --enable CONFIG_NETDEVICES
   scripts/config --enable CONFIG_E1000
   scripts/config --enable CONFIG_E1000E
-  
-  # Aplica valores padrão para quaisquer novas opções de drivers sem perguntar no terminal
+
   make olddefconfig
 fi
 
