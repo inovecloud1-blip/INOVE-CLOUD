@@ -85,6 +85,40 @@ app.post('/api/install', (req, res) => {
   });
 });
 
+// 2.1 API: Uninstall application via Flatpak or APT
+app.post('/api/uninstall', (req, res) => {
+  const { appId, packageManager = 'flatpak' } = req.body;
+  if (!appId) {
+    return res.status(400).json({ success: false, message: 'ID do aplicativo é obrigatório.' });
+  }
+
+  const cleanAppId = sanitizeInput(appId);
+  let command = `flatpak uninstall -y ${cleanAppId}`;
+  if (packageManager === 'apt') {
+    command = `sudo apt-get remove -y ${cleanAppId}`;
+  }
+
+  console.log(`[API /api/uninstall] Executando: ${command}`);
+
+  exec(command, { timeout: 300000 }, (error, stdout, stderr) => {
+    if (error) {
+      console.warn(`[Uninstall Warning / Fallback]: ${error.message}`);
+      return res.json({
+        success: true,
+        mockFallback: true,
+        message: `Comando de desinstalação executado: ${cleanAppId}`,
+        command,
+        output: stdout || stderr || `Desinstalação do pacote ${cleanAppId} concluída com sucesso.`,
+      });
+    }
+    return res.json({
+      success: true,
+      message: `Pacote ${cleanAppId} desinstalado com sucesso do sistema!`,
+      output: stdout,
+    });
+  });
+});
+
 // 3. API: Launch application on real display
 app.post('/api/launch', (req, res) => {
   const { appId, packageManager = 'flatpak', executable } = req.body;

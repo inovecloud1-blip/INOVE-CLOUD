@@ -41,6 +41,10 @@ import { IsoBuilderApp } from './components/apps/IsoBuilderApp';
 import { LinuxPediaApp } from './components/apps/LinuxPediaApp';
 import { AppLauncher } from './components/desktop/AppLauncher';
 import { BootVideoSplash } from './components/desktop/BootVideoSplash';
+import { LockScreen } from './components/desktop/LockScreen';
+import { PowerOverlay } from './components/desktop/PowerOverlay';
+import { PowerDialog } from './components/desktop/PowerDialog';
+import { SystemSettingsProvider, useSystemSettings } from './context/SystemSettingsContext';
 import { DEFAULT_DESKTOP_PINNED, DEFAULT_DOCK_PINNED } from './data/launcherApps';
 
 import {
@@ -65,7 +69,7 @@ import {
   DEFAULT_DESKTOP_WIDGETS_CONFIG,
 } from './types';
 
-export default function App() {
+function DesktopOS() {
   // Wallpaper state (defaults to Gemini Generated Garden Prism wallpaper)
   const [wallpaper, setWallpaper] = useState<string>(() => {
     try {
@@ -94,6 +98,7 @@ export default function App() {
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
   const [isControlCenterOpen, setIsControlCenterOpen] = useState(false);
   const [isLauncherOpen, setIsLauncherOpen] = useState(false);
+  const [isPowerDialogOpen, setIsPowerDialogOpen] = useState(false);
   // Boot video animation state (plays on ISO boot or on manual preview)
   const [isBootVideoActive, setIsBootVideoActive] = useState<boolean>(() => {
     // Check if user has just booted or if requested via URL param ?boot=1
@@ -666,6 +671,7 @@ export default function App() {
         onToggleLauncher={() => setIsLauncherOpen(!isLauncherOpen)}
         isLauncherOpen={isLauncherOpen}
         onPlayBootVideo={() => setIsBootVideoActive(true)}
+        onOpenPowerModal={() => setIsPowerDialogOpen(true)}
       />
 
       {/* Desktop Canvas & Pinned Widgets (Matches UmbrelOS Style) */}
@@ -1030,6 +1036,26 @@ export default function App() {
           canSkip={true}
         />
       )}
+
+      {/* Power Options Modal Dialog */}
+      <PowerDialog
+        isOpen={isPowerDialogOpen}
+        onClose={() => setIsPowerDialogOpen(false)}
+      />
+
+      {/* Lock Screen UI (Showing Real-Time Clock, Date & PIN Auth) */}
+      <LockScreen wallpaper={wallpaper} />
+
+      {/* Power Overlay (Showing Sleep, Shut Down, and Restart Sequences) */}
+      <PowerOverlay />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <SystemSettingsProvider>
+      <DesktopOS />
+    </SystemSettingsProvider>
   );
 }

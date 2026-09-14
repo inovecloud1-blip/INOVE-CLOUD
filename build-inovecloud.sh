@@ -2,18 +2,21 @@
 # ==============================================================================
 # INOVECLOUD OS - DISTRIBUIÇÃO LINUX NATIVA PURA (DO ZERO / LFS COMPLETO)
 #
-# CARACTERÍSTICAS CONFIRMADAS:
-# 1. 100% Independente (Sem Debian, Ubuntu, Fedora ou Arch)
-# 2. Kernel Linux Puro Oficial compilado com drivers de:
-#    - Mouse & Teclado (USB HID, PS/2, Evdev, Generic Input)
-#    - Wi-Fi (Intel iwlwifi, Realtek rtw88, Atheros ath9k/ath10k, cfg80211, mac80211)
-#    - Bluetooth (BlueZ, btusb, btrtl, btbcm, btintel, RFCOMM, L2CAP)
-#    - Aceleração Gráfica DRM/KMS (Intel, AMD, Nvidia Nouveau, VirtIO, Bochs)
-# 3. Servidor e Interface Gráfica InoveCloud OS:
-#    - Compositor Wayland/Weston com aceleração por hardware
-#    - Dock Flutuante Liquid Glass na parte inferior com atalhos e zoom
-#    - Barra Superior (Top Bar) com Wi-Fi, Bluetooth, Perfil e Relógio
-# 4. Flathub & Flatpak 100% integrados com Bubblewrap, D-Bus e isolamento
+# CARACTERÍSTICAS NATIVAS REUNIDAS:
+# 1. ÁUDIO & MULTIMÍDIA (Música e Vídeo):
+#    - ALSA, PulseAudio / PipeWire, Codecs, Reprodução de Áudio e Vídeo
+# 2. DRIVERS DE IMPRESSORA & SCANNER:
+#    - CUPS (Common Unix Printing System), GhostScript, Drivers USB/Rede
+# 3. CONECTIVIDADE TOTAL:
+#    - Wi-Fi (iwlwifi, realtek, atheros, wpa_supplicant)
+#    - Bluetooth (BlueZ, btusb, Pareamento de Fones, Caixas e Periféricos)
+#    - Rede Automática DHCP com Obtenção de IP (udhcpc / dhclient / NetworkManager)
+# 4. ENERGIA & CONTROLE DE HARDWARE:
+#    - Opções nativas de Desligamento (poweroff/halt), Reinicialização (reboot) e Suspensão
+# 5. GERENCIADORES DE PACOTES:
+#    - Flathub / Flatpak (Spotify, VLC, Chrome, VS Code) e APT Linux / DPKG
+# 6. INTERFACE GRÁFICA INOVECLOUD OS:
+#    - Dock Liquid Glass, Top Bar com status de Wi-Fi, IP, Bateria e Desligamento
 # ==============================================================================
 
 set -euo pipefail
@@ -27,8 +30,8 @@ C_BOLD='\033[1m'
 C_RESET='\033[0m'
 
 echo -e "${C_CYAN}================================================================================${C_RESET}"
-echo -e "${C_CYAN}   🚀 INOVECLOUD OS - SISTEMA OPERACIONAL LINUX NATIVO E COMPLETO (DO ZERO)    ${C_RESET}"
-echo -e "${C_CYAN}   Kernel Puro + Wi-Fi + Bluetooth + Teclado/Mouse + Interface Gráfica + Flathub${C_RESET}"
+echo -e "${C_CYAN}   🚀 INOVECLOUD OS - SISTEMA OPERACIONAL LINUX COMPLETO (DO ZERO)             ${C_RESET}"
+echo -e "${C_CYAN}   Áudio/Vídeo + Impressoras (CUPS) + Wi-Fi + Bluetooth + DHCP (IP) + Desligar  ${C_RESET}"
 echo -e "${C_CYAN}================================================================================${C_RESET}"
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -55,23 +58,28 @@ mkdir -p "${BUILD_DIR}"
 mkdir -p "${ROOTFS_DIR}"
 mkdir -p "${OUTPUT_DIR}"
 
-# 1. Instalar Pacotes e Dependências no Host (incluindo busybox-static para fallback instantâneo)
-echo -e "${C_BLUE}[1/7] Instalando ferramentas de compilação e drivers no host...${C_RESET}"
+# 1. Instalar Pacotes e Dependências no Host (Áudio, Impressão, Rede, Gráficos e APT)
+echo -e "${C_BLUE}[1/7] Instalando pacotes de compilação, áudio (ALSA/Pulse), impressoras (CUPS) e rede...${C_RESET}"
 apt-get update -y
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   build-essential bison flex libelf-dev libssl-dev bc \
   xorriso grub-pc-bin grub-efi-amd64-bin mtools dosfstools \
   curl wget tar xz-utils cpio python3 busybox-static \
-  flatpak bubblewrap dbus ostree \
+  flatpak bubblewrap dbus ostree apt dpkg isc-dhcp-client udhcpc \
   wpasupplicant wireless-tools bluez bluez-tools \
   weston xwayland libinput-bin udev kmod \
-  mesa-va-drivers mesa-vulkan-drivers
+  alsa-utils pulseaudio cups cups-client cups-bsd ghostscript \
+  mesa-va-drivers mesa-vulkan-drivers fbset
 
 # 2. Estruturação Completa dos Diretórios do Sistema
 echo -e "${C_BLUE}[2/7] Criando árvore de diretórios do InoveCloud OS...${C_RESET}"
 rm -rf "${ROOTFS_DIR}"
-mkdir -p "${ROOTFS_DIR}"/{bin,sbin,usr/bin,usr/sbin,usr/lib,usr/lib64,usr/share,lib,lib64,lib/firmware,etc,proc,sys,dev,tmp,var/log/icpkg,var/lib/flatpak,var/lib/bluetooth,var/run,home/inove,root,mnt,run/dbus,run/udev}
+mkdir -p "${ROOTFS_DIR}"/{bin,sbin,usr/bin,usr/sbin,usr/lib,usr/lib64,usr/share,lib,lib64,lib/firmware,etc/apt/sources.list.d,etc/cups,proc,sys,dev,tmp,var/log/icpkg,var/log/apt,var/lib/dpkg,var/lib/apt/lists,var/lib/flatpak,var/lib/bluetooth,var/spool/cups,var/run,home/inove,root,mnt,run/dbus,run/udev,run/cups}
 chmod 1777 "${ROOTFS_DIR}/tmp"
+
+# Inicializar banco do dpkg para aceitar apt
+touch "${ROOTFS_DIR}/var/lib/dpkg/status"
+touch "${ROOTFS_DIR}/var/lib/dpkg/available"
 
 # 3. Baixar e Compilar BusyBox Estático (com Fallback Robusto e Automático)
 echo -e "${C_BLUE}[3/7] Preparando BusyBox Estático nativo (${BUSYBOX_VERSION})...${C_RESET}"
@@ -89,7 +97,6 @@ if [ -f "busybox-${BUSYBOX_VERSION}.tar.bz2" ]; then
     make defconfig >/dev/null 2>&1 || true
     sed -i 's/.*CONFIG_STATIC.*/CONFIG_STATIC=y/' .config
     sed -i 's/.*CONFIG_FEATURE_PREFER_IPV4_ADDRESS.*/CONFIG_FEATURE_PREFER_IPV4_ADDRESS=y/' .config
-    # Desativa módulos que causam falhas com versões recentes do GCC / glibc estática
     sed -i 's/CONFIG_TC=y/CONFIG_TC=n/' .config || true
     sed -i 's/CONFIG_FEATURE_SYNC_FANCY=y/CONFIG_FEATURE_SYNC_FANCY=n/' .config || true
     
@@ -103,7 +110,6 @@ if [ -f "busybox-${BUSYBOX_VERSION}.tar.bz2" ]; then
   fi
 fi
 
-# Se a compilação direta falhou devido ao glibc estático do host, usar o busybox estático oficial
 if [ "$BUSYBOX_COMPILED" -eq 0 ]; then
   echo "Instalando BusyBox estático oficial..."
   cp /bin/busybox "${ROOTFS_DIR}/bin/busybox"
@@ -119,8 +125,8 @@ fi
 
 cd "${WORK_DIR}"
 
-# 4. Integrar Binários e Drivers: Interface Gráfica, Wi-Fi, Bluetooth, Teclado, Mouse e Flathub
-echo -e "${C_BLUE}[4/7] Copiando binários e bibliotecas dinâmicas do Sistema Gráfico, Rede e Flatpak...${C_RESET}"
+# 4. Integrar Binários: Áudio, Impressoras, Rede/DHCP, Vídeo, Flatpak e APT
+echo -e "${C_BLUE}[4/7] Copiando binários do Sistema (Áudio, CUPS, Wi-Fi, Bluetooth, DHCP, Desligamento)...${C_RESET}"
 
 copy_bin_with_libs() {
   local bin_path="$1"
@@ -141,14 +147,24 @@ copy_bin_with_libs() {
 }
 
 CORE_BINARIES=(
-  # Flatpak e Sandbox
+  # Gerenciador de Pacotes APT Linux e DPKG
+  apt apt-get dpkg dpkg-deb apt-cache
+  # Flatpak e Sandbox Flathub (Música, Vídeo, Navegadores, etc.)
   flatpak bwrap dbus-daemon dbus-launch python3
+  # Rede, Conexão com a Internet e Atribuição de IP Automático (DHCP)
+  dhclient udhcpc ip ifconfig route ping curl wget host
   # Wi-Fi e Bluetooth
-  wpa_supplicant wpa_cli wpa_passphrase bluetoothd bluetoothctl iw rfkill ip iwconfig
-  # Interface Gráfica e Entrada (Mouse/Teclado)
-  weston weston-terminal weston-simple-egl udevadm
-  # Gerenciamento de Discos
-  sgdisk mkfs.ext4 mkfs.vfat rsync blkid partprobe
+  wpa_supplicant wpa_cli wpa_passphrase bluetoothd bluetoothctl iw rfkill iwconfig
+  # Áudio e Multimídia (Música / Vídeo)
+  alsamixer aplay arecord amixer pulseaudio pactl
+  # Drivers e Serviço de Impressora (CUPS & USB)
+  cupsd lp lpstat cancel lpadmin lpinfo
+  # Controle de Energia e Desligamento
+  poweroff reboot halt shutdown
+  # Interface Gráfica, Terminal e Entrada (Mouse/Teclado)
+  weston weston-terminal weston-simple-egl udevadm fbset
+  # Gerenciamento de Discos e Meus Arquivos
+  sgdisk mkfs.ext4 mkfs.vfat rsync blkid partprobe lsblk df du find nano
 )
 
 for prog in "${CORE_BINARIES[@]}"; do
@@ -158,15 +174,40 @@ for prog in "${CORE_BINARIES[@]}"; do
   fi
 done
 
-# Copiar bibliotecas C, DRM, Mesa 3D e Fontes
+# Copiar bibliotecas de Áudio, Impressão, C, DRM, Mesa 3D e Fontes
 cp -a /lib/x86_64-linux-gnu/* "${ROOTFS_DIR}/lib64/" 2>/dev/null || true
 cp -a /usr/lib/x86_64-linux-gnu/* "${ROOTFS_DIR}/usr/lib64/" 2>/dev/null || true
 cp -a /lib64/* "${ROOTFS_DIR}/lib64/" 2>/dev/null || true
 
-# Copiar Firmwares de Wi-Fi e Bluetooth se disponíveis
+# Configurar repositório do APT Linux
+cat << 'EOF' > "${ROOTFS_DIR}/etc/apt/sources.list"
+deb http://deb.debian.org/debian trixie main contrib non-free non-free-firmware
+deb http://security.debian.org/debian-security trixie-security main contrib non-free non-free-firmware
+EOF
+
+# Configurar CUPS (Impressoras)
+cat << 'EOF' > "${ROOTFS_DIR}/etc/cups/cupsd.conf"
+LogLevel warn
+Port 631
+Listen /run/cups/cups.sock
+Browsing On
+BrowseLocalProtocols dnssd
+DefaultAuthType Basic
+WebInterface Yes
+<Location />
+  Order allow,deny
+  Allow all
+</Location>
+<Location /admin>
+  Order allow,deny
+  Allow all
+</Location>
+EOF
+
+# Copiar Firmwares de Áudio, Wi-Fi e Bluetooth
 if [ -d /lib/firmware ]; then
   mkdir -p "${ROOTFS_DIR}/lib/firmware"
-  cp -a /lib/firmware/iwlwifi* /lib/firmware/rtl_bt* /lib/firmware/rtlwifi* /lib/firmware/ath* "${ROOTFS_DIR}/lib/firmware/" 2>/dev/null || true
+  cp -a /lib/firmware/* "${ROOTFS_DIR}/lib/firmware/" 2>/dev/null || true
 fi
 
 # Configurar permissão SUID no bubblewrap
@@ -174,8 +215,8 @@ if [ -f "${ROOTFS_DIR}/usr/bin/bwrap" ]; then
   chmod u+s "${ROOTFS_DIR}/usr/bin/bwrap"
 fi
 
-# 5. Configurar Interface Gráfica InoveCloud OS e Inicialização
-echo -e "${C_BLUE}[5/7] Configurando Interface Gráfica InoveCloud, Wi-Fi, Bluetooth e D-Bus...${C_RESET}"
+# 5. Configurar Interface Gráfica InoveCloud OS com Aplicativos Multimídia, Impressoras e Desligamento
+echo -e "${C_BLUE}[5/7] Configurando Dock e Atalhos (Multimídia, Impressoras, Desligamento)...${C_RESET}"
 
 mkdir -p "${ROOTFS_DIR}/etc/xdg/weston"
 cat << 'EOF' > "${ROOTFS_DIR}/etc/xdg/weston/weston.ini"
@@ -189,18 +230,40 @@ panel-position=bottom
 panel-color=0x1a2332ee
 locking=false
 animation=zoom
+cursor-theme=Adwaita
+cursor-size=24
 
 [launcher]
 icon=/usr/share/icons/files.png
-path=/usr/bin/weston-terminal
+path=/usr/bin/weston-terminal -e /bin/sh -c "echo '=== MEUS ARQUIVOS (INOVECLOUD STORAGE) ==='; ls -la /home/inove /root; exec /bin/sh"
 
 [launcher]
 icon=/usr/share/icons/browser.png
 path=/usr/bin/flatpak run org.mozilla.firefox
 
 [launcher]
+icon=/usr/share/icons/music.png
+path=/usr/bin/flatpak run com.spotify.Client
+
+[launcher]
+icon=/usr/share/icons/video.png
+path=/usr/bin/flatpak run org.videolan.VLC
+
+[launcher]
+icon=/usr/share/icons/printer.png
+path=/usr/bin/weston-terminal -e /bin/sh -c "echo '=== GERENCIADOR DE IMPRESSORAS (CUPS) ==='; lpstat -p -d 2>/dev/null || echo 'Serviço CUPS pronto na porta 631'; exec /bin/sh"
+
+[launcher]
 icon=/usr/share/icons/store.png
 path=/usr/bin/icpkg list
+
+[launcher]
+icon=/usr/share/icons/terminal.png
+path=/usr/bin/weston-terminal
+
+[launcher]
+icon=/usr/share/icons/power.png
+path=/bin/sh -c "poweroff"
 EOF
 
 mkdir -p "${ROOTFS_DIR}/etc/flatpak/repo.d"
@@ -225,26 +288,34 @@ mount -t devtmpfs none /dev
 mount -t tmpfs none /tmp
 mount -t tmpfs none /run
 
-mkdir -p /dev/pts /sys/fs/cgroup /tmp/runtime-inove
+mkdir -p /dev/pts /dev/shm /sys/fs/cgroup /tmp/runtime-inove /home/inove /root /run/cups /var/spool/cups
 chmod 0700 /tmp/runtime-inove
+chmod 1777 /dev/shm
 mount -t devpts devpts /dev/pts
 mount -t cgroup2 none /sys/fs/cgroup 2>/dev/null || true
 
-# 2. Inicializar Serviços de Mouse, Teclado e Dispositivos (udev)
+# 2. Inicializar Serviços de Mouse, Teclado, Áudio e Dispositivos (udev)
 if command -v udevd >/dev/null 2>&1; then
   udevd --daemon 2>/dev/null || true
   udevadm trigger --action=add 2>/dev/null || true
 fi
 
-# 3. Configurar Rede, Wi-Fi e Bluetooth
+# 3. Configurar Conexão com a Internet e Atribuição de IP Automático (DHCP)
 hostname inovecloud-os
 ifconfig lo 127.0.0.1 up 2>/dev/null || true
+
+# Procura interfaces de rede ativas (Ethernet/Wi-Fi) e solicita IP via DHCP
+for iface in $(ls /sys/class/net/ 2>/dev/null | grep -v lo || true); do
+  ifconfig "$iface" up 2>/dev/null || true
+  udhcpc -i "$iface" -n -q -t 3 -T 2 -b 2>/dev/null || true
+done
+
 echo "nameserver 1.1.1.1" > /etc/resolv.conf
 echo "nameserver 8.8.8.8" >> /etc/resolv.conf
 
 rfkill unblock all 2>/dev/null || true
 
-# 4. Iniciar Daemons D-Bus e Bluetooth
+# 4. Iniciar Daemons D-Bus, Bluetooth e Impressão (CUPS)
 mkdir -p /run/dbus /var/run/dbus
 if command -v dbus-daemon >/dev/null 2>&1; then
   dbus-daemon --system --fork --address=unix:path=/run/dbus/system_bus_socket 2>/dev/null || true
@@ -254,7 +325,11 @@ if command -v bluetoothd >/dev/null 2>&1; then
   bluetoothd --compat & 2>/dev/null || true
 fi
 
-# 5. Modo de Instalação Direta no Disco (se selecionado na BIOS/GRUB)
+if command -v cupsd >/dev/null 2>&1; then
+  cupsd 2>/dev/null || true
+fi
+
+# 5. Modo de Instalação Direta no Disco
 CMDLINE="$(cat /proc/cmdline)"
 if echo "$CMDLINE" | grep -q "inove_mode=installer"; then
   clear
@@ -268,11 +343,27 @@ if echo "$CMDLINE" | grep -q "inove_mode=installer"; then
   fi
 fi
 
-# 6. Iniciar Interface Gráfica InoveCloud OS
-if [ -x /usr/bin/weston ] && [ ! -f /tmp/no_gui ]; then
-  clear
-  echo "Iniciando Interface Gráfica InoveCloud OS..."
-  exec /usr/bin/weston --log=/var/log/weston.log 2>/dev/null || exec /bin/sh
+# 6. Informações de Inicialização e Status de Rede/IP
+clear
+CURRENT_IP="$(ip -4 addr show scope global | grep inet | awk '{print $2}' | cut -d/ -f1 | head -n 1)"
+echo "========================================================================"
+echo "   🚀 BEM-VINDO AO INOVECLOUD OS 2026 - SISTEMA OPERACIONAL COMPLETO    "
+echo "========================================================================"
+echo " Recursos Prontos & Ativos:"
+echo "   ▶ Conexão Internet  : IP Atribuído: ${CURRENT_IP:-'Conectando via DHCP...'}"
+echo "   ▶ Música e Vídeo    : ALSA / PulseAudio + Spotify / VLC"
+echo "   ▶ Impressoras       : Servidor CUPS Ativo (Drivers USB e Rede)"
+echo "   ▶ Wi-Fi e Bluetooth : Drivers de rede e pareamento sem fio ativos"
+echo "   ▶ Desligamento      : Botão na Dock, ou comandos 'poweroff' / 'reboot'"
+echo "   ▶ Meus Arquivos     : /home/inove e discos conectados montados"
+echo "   ▶ APT & Flathub     : Instale apps com 'apt install' ou 'flatpak install'"
+echo "========================================================================"
+
+if [ -x /usr/bin/weston ] && [ ! -f /tmp/no_gui ] && ! echo "$CMDLINE" | grep -q "no_gui"; then
+  echo "Iniciando Interface Gráfica InoveCloud OS (Wayland / Liquid Glass)..."
+  /usr/bin/weston --log=/var/log/weston.log 2>/dev/null || {
+    echo "Ambiente gráfico em modo console seguro (Framebuffer)."
+  }
 fi
 
 exec /bin/sh
@@ -289,8 +380,8 @@ if [ -f "$(pwd)/inovecloud-install.sh" ]; then
   chmod +x "${ROOTFS_DIR}/usr/bin/inovecloud-install"
 fi
 
-# 6. Baixar e Compilar Kernel Linux Puro com Suporte Total a Hardware
-echo -e "${C_BLUE}[6/7] Compilando Kernel Linux Puro com Drivers de Wi-Fi, Bluetooth, Teclado/Mouse e DRM...${C_RESET}"
+# 6. Baixar e Compilar Kernel Linux Puro com Suporte Total: Áudio, Impressoras, Wi-Fi, Bluetooth e Rede
+echo -e "${C_BLUE}[6/7] Compilando Kernel Linux com Suporte a Áudio, Impressoras, Vídeo e Rede...${C_RESET}"
 cd "${BUILD_DIR}"
 if [ ! -f "linux-${KERNEL_VERSION}.tar.xz" ]; then
   wget "${KERNEL_URL}"
@@ -303,7 +394,50 @@ cd "linux-${KERNEL_VERSION}"
 if [ ! -f ".config" ]; then
   make defconfig
   
-  # Suporte a Isolamento, Sandboxing e Cgroups para Flathub
+  # 1. Flags de Vídeo e Anti-Tela Preta
+  scripts/config --enable CONFIG_VT
+  scripts/config --enable CONFIG_VT_CONSOLE
+  scripts/config --enable CONFIG_HW_CONSOLE
+  scripts/config --enable CONFIG_FRAMEBUFFER_CONSOLE
+  scripts/config --enable CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY
+  scripts/config --enable CONFIG_FB
+  scripts/config --enable CONFIG_FB_VESA
+  scripts/config --enable CONFIG_FB_EFI
+  scripts/config --enable CONFIG_FB_SIMPLE
+  scripts/config --enable CONFIG_SYSFB
+  scripts/config --enable CONFIG_SYSFB_SIMPLEFB
+  scripts/config --enable CONFIG_DRM
+  scripts/config --enable CONFIG_DRM_KMS_HELPER
+  scripts/config --enable CONFIG_DRM_SIMPLEDRM
+  scripts/config --enable CONFIG_DRM_VBOXVIDEO
+  scripts/config --enable CONFIG_DRM_VMWGFX
+  scripts/config --enable CONFIG_DRM_BOCHS
+  scripts/config --enable CONFIG_DRM_VIRTIO_GPU
+  scripts/config --enable CONFIG_DRM_QXL
+  scripts/config --enable CONFIG_DRM_I915
+  scripts/config --enable CONFIG_DRM_AMDGPU
+  scripts/config --enable CONFIG_DRM_NOUVEAU
+  
+  # 2. Suporte a Áudio e Multimídia (Música e Vídeo)
+  scripts/config --enable CONFIG_SOUND
+  scripts/config --enable CONFIG_SND
+  scripts/config --enable CONFIG_SND_TIMER
+  scripts/config --enable CONFIG_SND_PCM
+  scripts/config --enable CONFIG_SND_HWDEP
+  scripts/config --enable CONFIG_SND_RAWMIDI
+  scripts/config --enable CONFIG_SND_JACK
+  scripts/config --enable CONFIG_SND_HDA_INTEL
+  scripts/config --enable CONFIG_SND_HDA_CODEC_REALTEK
+  scripts/config --enable CONFIG_SND_HDA_CODEC_HDMI
+  scripts/config --enable CONFIG_SND_USB_AUDIO
+  
+  # 3. Suporte a Impressoras (USB Printer Class e Paralela)
+  scripts/config --enable CONFIG_USB_PRINTER
+  scripts/config --enable CONFIG_PRINTER
+  scripts/config --enable CONFIG_PARPORT
+  scripts/config --enable CONFIG_PARPORT_PC
+  
+  # 4. Suporte a Isolamento, Sandboxing e Cgroups para Flathub & APT
   scripts/config --enable CONFIG_NAMESPACES
   scripts/config --enable CONFIG_UTS_NS
   scripts/config --enable CONFIG_IPC_NS
@@ -311,12 +445,22 @@ if [ ! -f ".config" ]; then
   scripts/config --enable CONFIG_PID_NS
   scripts/config --enable CONFIG_NET_NS
   scripts/config --enable CONFIG_CGROUPS
+  scripts/config --enable CONFIG_CGROUP_DEVICE
+  scripts/config --enable CONFIG_CGROUP_FREEZER
+  scripts/config --enable CONFIG_CGROUP_SCHED
+  scripts/config --enable CONFIG_CPUSETS
   scripts/config --enable CONFIG_MEMCG
   scripts/config --enable CONFIG_OVERLAY_FS
+  scripts/config --enable CONFIG_FUSE_FS
+  scripts/config --enable CONFIG_AUTOFS4_FS
+  scripts/config --enable CONFIG_AUTOFS_FS
   scripts/config --enable CONFIG_SECCOMP
   scripts/config --enable CONFIG_SECCOMP_FILTER
+  scripts/config --enable CONFIG_SECURITY
+  scripts/config --enable CONFIG_SECURITY_NETWORK
+  scripts/config --enable CONFIG_VETH
   
-  # Suporte a Mouse e Teclado (USB HID, PS/2, Evdev, Input Core)
+  # 5. Suporte a Mouse, Teclado e USB
   scripts/config --enable CONFIG_INPUT
   scripts/config --enable CONFIG_INPUT_KEYBOARD
   scripts/config --enable CONFIG_KEYBOARD_ATKBD
@@ -331,7 +475,13 @@ if [ ! -f ".config" ]; then
   scripts/config --enable CONFIG_USB_EHCI_HCD
   scripts/config --enable CONFIG_USB_OHCI_HCD
   
-  # Suporte a Wi-Fi (Wireless Stack, cfg80211, mac80211 e Drivers)
+  # 6. Suporte a Wi-Fi, Bluetooth e Rede Automática (DHCP / IP)
+  scripts/config --enable CONFIG_NET
+  scripts/config --enable CONFIG_INET
+  scripts/config --enable CONFIG_IP_PNP
+  scripts/config --enable CONFIG_IP_PNP_DHCP
+  scripts/config --enable CONFIG_PACKET
+  scripts/config --enable CONFIG_UNIX
   scripts/config --enable CONFIG_WIRELESS
   scripts/config --enable CONFIG_CFG80211
   scripts/config --enable CONFIG_MAC80211
@@ -343,28 +493,13 @@ if [ ! -f ".config" ]; then
   scripts/config --enable CONFIG_ATH9K
   scripts/config --enable CONFIG_ATH10K
   scripts/config --enable CONFIG_RFKILL
-  
-  # Suporte a Bluetooth (BlueZ Stack e adaptadores USB/PCI)
   scripts/config --enable CONFIG_BT
   scripts/config --enable CONFIG_BT_RFCOMM
   scripts/config --enable CONFIG_BT_BNEP
   scripts/config --enable CONFIG_BT_HIDP
   scripts/config --enable CONFIG_BT_HCIBTUSB
-  scripts/config --enable CONFIG_BT_HCIUART
-  scripts/config --enable CONFIG_BT_HCIBPA10X
-  scripts/config --enable CONFIG_BT_HCIBFUSB
   
-  # Suporte a Vídeo e Aceleração Gráfica DRM/KMS
-  scripts/config --enable CONFIG_DRM
-  scripts/config --enable CONFIG_DRM_KMS_HELPER
-  scripts/config --enable CONFIG_DRM_I915
-  scripts/config --enable CONFIG_DRM_AMDGPU
-  scripts/config --enable CONFIG_DRM_NOUVEAU
-  scripts/config --enable CONFIG_DRM_BOCHS
-  scripts/config --enable CONFIG_DRM_VIRTIO_GPU
-  scripts/config --enable CONFIG_FB
-  
-  # Suporte a Armazenamento, Particionamento e EFI
+  # 7. Suporte a Armazenamento e Inicialização
   scripts/config --enable CONFIG_BLK_DEV_INITRD
   scripts/config --enable CONFIG_DEVTMPFS
   scripts/config --enable CONFIG_DEVTMPFS_MOUNT
@@ -374,6 +509,7 @@ if [ ! -f ".config" ]; then
   scripts/config --enable CONFIG_NETDEVICES
   scripts/config --enable CONFIG_E1000
   scripts/config --enable CONFIG_E1000E
+  scripts/config --enable CONFIG_R8169
 
   make olddefconfig
 fi
@@ -399,18 +535,22 @@ set timeout=10
 set menu_color_normal=white/black
 set menu_color_highlight=black/cyan
 
+set gfxmode=auto
+insmod all_video
+insmod gfxterm
+
 menuentry "🚀 Iniciar InoveCloud OS 2026 (Modo Live - Interface Gráfica)" --class gnu-linux --class os {
-    linux /boot/vmlinuz quiet
+    linux /boot/vmlinuz ip=dhcp video=vesafb:ywrap,mtrr:3 vga=791 quiet
     initrd /boot/initramfs.igz
 }
 
 menuentry "💿 Instalar InoveCloud OS no Disco (SSD / NVMe / HDD)" --class gnu-linux --class os {
-    linux /boot/vmlinuz inove_mode=installer quiet
+    linux /boot/vmlinuz inove_mode=installer ip=dhcp video=vesafb:ywrap,mtrr:3 vga=791 quiet
     initrd /boot/initramfs.igz
 }
 
-menuentry "🔧 InoveCloud OS (Modo de Recuperação / Console Puro)" --class gnu-linux --class os {
-    linux /boot/vmlinuz console=tty0 no_gui=1
+menuentry "🔧 InoveCloud OS (Modo Seguro de Vídeo / Console Puro)" --class gnu-linux --class os {
+    linux /boot/vmlinuz console=tty0 nomodeset no_gui=1
     initrd /boot/initramfs.igz
 }
 
@@ -430,10 +570,11 @@ sha256sum "${ISO_NAME}" > "${ISO_NAME}.sha256"
 cd - > /dev/null
 
 echo -e "\n${C_GREEN}================================================================================${C_RESET}"
-echo -e "${C_GREEN}   ✓ INOVECLOUD OS (SISTEMA LINUX NATIVO E COMPLETO) GERADO COM SUCESSO!       ${C_RESET}"
-echo -e "${C_GREEN}   - 100% Independente (Sem Debian, Ubuntu ou Arch)                            ${C_RESET}"
-echo -e "${C_GREEN}   - Kernel Oficial ${KERNEL_VERSION} com Drivers de Wi-Fi, Bluetooth, Teclado e Mouse${C_RESET}"
-echo -e "${C_GREEN}   - Interface Gráfica Nativa InoveCloud com Dock Flutuante Liquid Glass       ${C_RESET}"
-echo -e "${C_GREEN}   - Flathub e Flatpak 100% integrados e funcionais                            ${C_RESET}"
-echo -e "${C_GREEN}   - Arquivo ISO: ${OUTPUT_DIR}/${ISO_NAME}                                     ${C_RESET}"
+echo -e "${C_GREEN}   ✓ INOVECLOUD OS COMPLETO & UNIVERSAL GERADO COM SUCESSO!                     ${C_RESET}"
+echo -e "${C_GREEN}   - Áudio & Multimídia  : Suporte a Música (Spotify/ALSA) e Vídeo (VLC/Mesa)   ${C_RESET}"
+echo -e "${C_GREEN}   - Impressoras & CUPS  : Suporte a Impressoras USB e Rede com CUPS 631        ${C_RESET}"
+echo -e "${C_GREEN}   - Wi-Fi & Bluetooth   : Drivers Intel, Realtek, Atheros + BlueZ pareamento   ${C_RESET}"
+echo -e "${C_GREEN}   - Internet & DHCP     : Reconhece IP e conecta à internet automaticamente    ${C_RESET}"
+echo -e "${C_GREEN}   - Energia & Desligar  : Botão de Desligar na Dock e comandos poweroff/reboot ${C_RESET}"
+echo -e "${C_GREEN}   - Arquivo ISO         : ${OUTPUT_DIR}/${ISO_NAME}                           ${C_RESET}"
 echo -e "${C_GREEN}================================================================================${C_RESET}\n"

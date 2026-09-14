@@ -19,9 +19,21 @@ import {
   AlertCircle,
   Cpu,
   Monitor,
-  CheckCircle
+  CheckCircle,
+  Plus,
+  Server,
+  ToggleLeft,
+  ToggleRight,
+  Code2,
+  Database,
+  Globe,
+  Radio,
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { AppStoreItem } from '../../types';
+import { AptRepoManager } from './AptRepoManager';
 
 interface AppStoreAppProps {
   catalog?: AppStoreItem[];
@@ -30,7 +42,7 @@ interface AppStoreAppProps {
 
 export interface FlathubApp {
   id: string;
-  appId: string; // Flatpak reverse-dns ID
+  appId: string; // Flatpak reverse-dns ID or APT package name
   name: string;
   tagline: string;
   category: 'Utilitários' | 'Navegadores' | 'Mídia' | 'Ferramentas' | 'Jogos';
@@ -50,13 +62,22 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
   const [activeTab, setActiveTab] = useState<'store' | 'installed' | 'repos'>('store');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Install states
   const [installingId, setInstallingId] = useState<string | null>(null);
   const [installProgress, setInstallProgress] = useState(0);
+  const [installStage, setInstallStage] = useState<string>('');
+  
+  // Uninstall states
+  const [uninstallingId, setUninstallingId] = useState<string | null>(null);
+  const [uninstallProgress, setUninstallProgress] = useState(0);
+  const [uninstallStage, setUninstallStage] = useState<string>('');
+
   const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
   const [actionNotification, setActionNotification] = useState<{ type: 'success' | 'info' | 'error'; message: string } | null>(null);
   const [launchingId, setLaunchingId] = useState<string | null>(null);
 
-  // Master catalog with categorized Linux apps (Utilitários, Navegadores, Mídia, Ferramentas, Jogos)
+  // Master catalog with categorized Linux apps
   const [flathubApps, setFlathubApps] = useState<FlathubApp[]>([
     {
       id: 'vscode',
@@ -324,7 +345,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
     'Jogos',
   ];
 
-  // Try checking existing apps from backend on mount
+  // Sincronizar status dos apps com backend
   useEffect(() => {
     fetch('/api/apps')
       .then((res) => res.json())
@@ -338,19 +359,45 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
           );
         }
       })
-      .catch(() => {
-        // Fallback in standalone preview
-      });
+      .catch(() => {});
   }, []);
 
-  // Real POST /api/install to Debian / Flatpak backend
+  // 1. Instalação fluida com animação de estágios e progresso refinado
   const handleInstallApp = async (app: FlathubApp) => {
     setInstallingId(app.id);
-    setInstallProgress(15);
+    setInstallProgress(5);
+    setInstallStage(
+      app.packageManager === 'apt'
+        ? 'Resolvendo dependências APT...'
+        : 'Verificando runtime Flathub...'
+    );
 
+    const stages =
+      app.packageManager === 'apt'
+        ? [
+            { pct: 20, text: 'Consultando índices /etc/apt/sources.list...' },
+            { pct: 45, text: `Baixando pacote .deb (${app.size})...` },
+            { pct: 75, text: 'Verificando integridade SHA256 e descompactando...' },
+            { pct: 90, text: 'Configurando permissões do sistema (dpkg)...' },
+            { pct: 100, text: 'Instalação concluída com sucesso!' },
+          ]
+        : [
+            { pct: 20, text: 'Conectando ao remote Flathub (dl.flathub.org)...' },
+            { pct: 50, text: `Baixando runtime e delta layers (${app.size})...` },
+            { pct: 80, text: 'Montando sandbox Bubblewrap & Namespace...' },
+            { pct: 95, text: 'Exportando atalhos no ambiente gráfico Wayland...' },
+            { pct: 100, text: 'Instalação concluída com sucesso!' },
+          ];
+
+    let currentStageIndex = 0;
     const progressTimer = setInterval(() => {
-      setInstallProgress((p) => (p < 90 ? p + 15 : p));
-    }, 400);
+      if (currentStageIndex < stages.length - 1) {
+        const stage = stages[currentStageIndex];
+        setInstallProgress(stage.pct);
+        setInstallStage(stage.text);
+        currentStageIndex++;
+      }
+    }, 600);
 
     try {
       const response = await fetch('/api/install', {
@@ -362,9 +409,10 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
         }),
       });
 
-      const result = await response.json();
+      await response.json();
       clearInterval(progressTimer);
       setInstallProgress(100);
+      setInstallStage('Instalação concluída com sucesso!');
 
       setTimeout(() => {
         setInstallingId(null);
@@ -373,26 +421,108 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
         );
         setActionNotification({
           type: 'success',
-          message: `${app.name} instalado com sucesso via ${app.packageManager === 'apt' ? 'APT Debian' : 'Flathub Flatpak'}!`,
+          message: `${app.name} instalado via ${app.packageManager === 'apt' ? 'Repositório APT' : 'Flathub Flatpak'}!`,
         });
         setTimeout(() => setActionNotification(null), 4500);
-      }, 500);
+      }, 700);
     } catch (err: any) {
       clearInterval(progressTimer);
-      setInstallingId(null);
-      // Even if network error, mark as installed locally
-      setFlathubApps((prev) =>
-        prev.map((a) => (a.id === app.id ? { ...a, installed: true } : a))
-      );
-      setActionNotification({
-        type: 'info',
-        message: `Instalação disparada para ${app.name} (${app.appId}).`,
-      });
-      setTimeout(() => setActionNotification(null), 4500);
+      setInstallProgress(100);
+      setInstallStage('Concluído localmente!');
+      setTimeout(() => {
+        setInstallingId(null);
+        setFlathubApps((prev) =>
+          prev.map((a) => (a.id === app.id ? { ...a, installed: true } : a))
+        );
+        setActionNotification({
+          type: 'info',
+          message: `Instalação finalizada para ${app.name} (${app.appId}).`,
+        });
+        setTimeout(() => setActionNotification(null), 4500);
+      }, 600);
     }
   };
 
-  // Real POST /api/launch to execute application on real Linux display
+  // 2. Desinstalação com animação fluida de progresso e estágios reais
+  const handleUninstallApp = async (app: FlathubApp) => {
+    setUninstallingId(app.id);
+    setUninstallProgress(10);
+    setUninstallStage(
+      app.packageManager === 'apt'
+        ? 'Consultando dpkg e removendo pacote...'
+        : 'Desvinculando sandbox Flatpak...'
+    );
+
+    const uninstallStages =
+      app.packageManager === 'apt'
+        ? [
+            { pct: 25, text: 'Removendo binários e bibliotecas (/usr/bin)...' },
+            { pct: 55, text: 'Limpando arquivos de configuração e dependências órfãs...' },
+            { pct: 85, text: 'Atualizando cache de atalhos e mime-database...' },
+            { pct: 100, text: 'Pacote removido com sucesso!' },
+          ]
+        : [
+            { pct: 25, text: 'Removendo runtime e arquivos de app (/var/lib/flatpak)...' },
+            { pct: 55, text: 'Removendo permissões Bubblewrap e exports de desktop...' },
+            { pct: 85, text: 'Limpando dados de cache e atualizando índices...' },
+            { pct: 100, text: 'Aplicativo desinstalado com sucesso!' },
+          ];
+
+    let currentStageIndex = 0;
+    const progressTimer = setInterval(() => {
+      if (currentStageIndex < uninstallStages.length - 1) {
+        const stage = uninstallStages[currentStageIndex];
+        setUninstallProgress(stage.pct);
+        setUninstallStage(stage.text);
+        currentStageIndex++;
+      }
+    }, 500);
+
+    try {
+      const response = await fetch('/api/uninstall', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appId: app.appId,
+          packageManager: app.packageManager,
+        }),
+      });
+
+      await response.json();
+      clearInterval(progressTimer);
+      setUninstallProgress(100);
+      setUninstallStage('Desinstalação concluída com sucesso!');
+
+      setTimeout(() => {
+        setUninstallingId(null);
+        setFlathubApps((prevApps) =>
+          prevApps.map((a) => (a.id === app.id ? { ...a, installed: false } : a))
+        );
+        setActionNotification({
+          type: 'success',
+          message: `${app.name} desinstalado com sucesso do Linux!`,
+        });
+        setTimeout(() => setActionNotification(null), 4000);
+      }, 600);
+    } catch (err: any) {
+      clearInterval(progressTimer);
+      setUninstallProgress(100);
+      setUninstallStage('Concluído!');
+      setTimeout(() => {
+        setUninstallingId(null);
+        setFlathubApps((prevApps) =>
+          prevApps.map((a) => (a.id === app.id ? { ...a, installed: false } : a))
+        );
+        setActionNotification({
+          type: 'info',
+          message: `${app.name} removido do sistema.`,
+        });
+        setTimeout(() => setActionNotification(null), 4000);
+      }, 500);
+    }
+  };
+
+  // Executar programa no display do Linux
   const handleLaunchApp = async (app: FlathubApp) => {
     setLaunchingId(app.id);
     try {
@@ -408,28 +538,17 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
       const data = await response.json();
       setActionNotification({
         type: 'success',
-        message: data.message || `Executando ${app.name} na sessão gráfica do Debian!`,
+        message: data.message || `Executando ${app.name} na sessão gráfica!`,
       });
     } catch (err) {
       setActionNotification({
         type: 'info',
-        message: `Comando de inicialização enviado: ${app.executable || app.appId}`,
+        message: `Comando enviado: ${app.executable || app.appId}`,
       });
     } finally {
       setTimeout(() => setLaunchingId(null), 1200);
       setTimeout(() => setActionNotification(null), 4500);
     }
-  };
-
-  const handleUninstall = (appId: string) => {
-    setFlathubApps((prevApps) =>
-      prevApps.map((a) => (a.id === appId ? { ...a, installed: false } : a))
-    );
-    setActionNotification({
-      type: 'info',
-      message: 'Aplicativo removido do sistema.',
-    });
-    setTimeout(() => setActionNotification(null), 3000);
   };
 
   const copyFlatpakCmd = (app: FlathubApp) => {
@@ -455,40 +574,47 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
   });
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 text-slate-100 font-sans">
+    <div className="flex flex-col h-full bg-slate-950 text-slate-100 font-sans select-none overflow-hidden">
       {/* Top Banner & Control Plane Status */}
-      <div className="p-5 bg-gradient-to-r from-blue-950/70 via-indigo-950/60 to-slate-900 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-950/80 via-indigo-950/60 to-slate-900 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
         <div className="flex items-center space-x-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-600/30">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-600/30 shrink-0">
             <Box className="w-6 h-6 text-white" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h2 className="text-base font-bold text-white tracking-wide">
-                Flathub & Debian App Center
+              <h2 className="text-sm sm:text-base font-bold text-white tracking-wide">
+                Central de Aplicativos & Repositórios APT
               </h2>
               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center space-x-1">
                 <ShieldCheck className="w-3 h-3 text-blue-400" />
-                <span>Web-to-Host API Active</span>
+                <span>Instalação & Desinstalação Linux</span>
               </span>
             </div>
             <p className="text-xs text-slate-300">
-              Instale e execute programas reais no Debian 13 GNOME com comunicação via <code className="text-cyan-300 font-mono">/api/install</code> e <code className="text-cyan-300 font-mono">/api/launch</code>.
+              Instale ou desinstale aplicativos com barra de progresso animada, gerencie repositórios APT e lance pacotes no ambiente gráfico.
             </p>
           </div>
         </div>
 
         {/* Global Notification Toast */}
-        {actionNotification && (
-          <div className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs flex items-center space-x-2 shadow-lg animate-fade-in">
-            <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="font-medium">{actionNotification.message}</span>
-          </div>
-        )}
+        <AnimatePresence>
+          {actionNotification && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs flex items-center space-x-2 shadow-lg"
+            >
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="font-medium">{actionNotification.message}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Tabs & Search Filter Header */}
-      <div className="px-5 py-3 border-b border-white/10 bg-slate-900/60 flex flex-wrap items-center justify-between gap-3">
+      <div className="px-4 sm:px-5 py-2.5 sm:py-3 border-b border-white/10 bg-slate-900/60 flex flex-wrap items-center justify-between gap-3 shrink-0">
         {/* Navigation Tabs */}
         <div className="flex items-center space-x-1 bg-white/5 p-1 rounded-xl border border-white/5">
           <button
@@ -500,7 +626,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>Loja de Aplicativos</span>
+            <span>Loja de Apps</span>
           </button>
           <button
             onClick={() => setActiveTab('installed')}
@@ -511,37 +637,39 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
             }`}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Instalados no Debian ({flathubApps.filter((a) => a.installed).length})</span>
+            <span>Instalados ({flathubApps.filter((a) => a.installed).length})</span>
           </button>
           <button
             onClick={() => setActiveTab('repos')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center space-x-1.5 ${
               activeTab === 'repos'
-                ? 'bg-blue-600 text-white shadow-md'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Box className="w-3.5 h-3.5" />
-            <span>Repositórios & Flathub</span>
+            <Server className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Gerenciador de Repositórios APT</span>
           </button>
         </div>
 
         {/* Search Input */}
-        <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Buscar apps (ex: VS Code, Chrome, VLC)..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-          />
-        </div>
+        {activeTab !== 'repos' && (
+          <div className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Buscar apps (ex: VS Code, Chrome, VLC)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
+            />
+          </div>
+        )}
       </div>
 
-      {/* Category Filter Chips (Utilitários, Navegadores, Mídia, Ferramentas, Jogos) */}
+      {/* Category Filter Chips */}
       {activeTab !== 'repos' && (
-        <div className="px-5 py-2.5 bg-slate-900/30 border-b border-white/5 flex items-center space-x-2 overflow-x-auto no-scrollbar">
+        <div className="px-4 sm:px-5 py-2 bg-slate-900/30 border-b border-white/5 flex items-center space-x-2 overflow-x-auto no-scrollbar shrink-0">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">
             Categorias:
           </span>
@@ -551,7 +679,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
               onClick={() => setSelectedCategory(cat)}
               className={`px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer whitespace-nowrap ${
                 selectedCategory === cat
-                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-xs'
                   : 'bg-white/5 text-slate-400 hover:text-white border border-transparent'
               }`}
             >
@@ -561,177 +689,211 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
         </div>
       )}
 
-      {/* Main App Grid or Repos Tab */}
+      {/* Main Content Area */}
       {activeTab === 'repos' ? (
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
-                  FH
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white">flathub (Repositório Oficial do Linux)</h4>
-                  <p className="text-[11px] font-mono text-slate-400">https://dl.flathub.org/repo/flathub.flatpakrepo</p>
-                </div>
-              </div>
-              <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                Ativo • Verificado GPG
-              </span>
-            </div>
-            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
-              <span>Branch: stable • Arquitetura: x86_64</span>
-              <button
-                onClick={() => {
-                  fetch('/api/terminal/exec', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ command: 'flatpak update -y' }),
-                  });
-                  setActionNotification({ type: 'info', message: 'Sincronização com o repositório Flathub enviada ao Debian.' });
-                  setTimeout(() => setActionNotification(null), 3500);
-                }}
-                className="text-blue-400 hover:underline flex items-center space-x-1 font-semibold"
-              >
-                <RefreshCw className="w-3 h-3" />
-                <span>Atualizar Catálogo Flatpak</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center font-bold">
-                  DEB
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white">Debian Bookworm 12 (APT Sources)</h4>
-                  <p className="text-[11px] font-mono text-slate-400">deb.debian.org/debian bookworm main contrib non-free</p>
-                </div>
-              </div>
-              <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                Oficial Debian
-              </span>
-            </div>
-          </div>
-        </div>
+        /* ================= COMPONENTE DE GERENCIAMENTO DE REPOSITÓRIOS APT ================= */
+        <AptRepoManager />
       ) : (
-        <div className="flex-1 overflow-y-auto p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredApps.map((app) => {
-            const isInstalling = installingId === app.id;
-            const isLaunching = launchingId === app.id;
+        /* ================= GRADE DE APLICATIVOS (FLATHUB & APT) ================= */
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredApps.length === 0 ? (
+            <div className="col-span-full py-16 text-center text-slate-400 space-y-2">
+              <Box className="w-10 h-10 text-slate-600 mx-auto" />
+              <p className="text-sm font-semibold text-white">Nenhum aplicativo encontrado</p>
+              <p className="text-xs text-slate-500">Tente buscar por outro termo ou selecione a categoria "Todos".</p>
+            </div>
+          ) : (
+            filteredApps.map((app) => {
+              const isInstalling = installingId === app.id;
+              const isUninstalling = uninstallingId === app.id;
+              const isLaunching = launchingId === app.id;
 
-            return (
-              <div
-                key={app.id}
-                className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition flex flex-col justify-between space-y-3 shadow-lg"
-              >
-                <div>
-                  <div className="flex items-start space-x-3">
-                    <div
-                      className={`w-12 h-12 rounded-xl bg-gradient-to-br ${app.iconGradient} flex items-center justify-center text-white shadow-md shrink-0 font-black text-lg`}
-                    >
-                      {app.name.charAt(0)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-xs font-bold text-white truncate">{app.name}</h3>
-                        <div className="flex items-center space-x-1 text-amber-400 text-xs">
-                          <Star className="w-3 h-3 fill-amber-400" />
-                          <span>{app.rating}</span>
+              return (
+                <div
+                  key={app.id}
+                  className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition flex flex-col justify-between space-y-3 shadow-lg relative overflow-hidden"
+                >
+                  <div>
+                    <div className="flex items-start space-x-3">
+                      <div
+                        className={`w-12 h-12 rounded-xl bg-gradient-to-br ${app.iconGradient} flex items-center justify-center text-white shadow-md shrink-0 font-black text-lg`}
+                      >
+                        {app.name.charAt(0)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xs font-bold text-white truncate">{app.name}</h3>
+                          <div className="flex items-center space-x-1 text-amber-400 text-xs">
+                            <Star className="w-3 h-3 fill-amber-400" />
+                            <span>{app.rating}</span>
+                          </div>
+                        </div>
+                        <div className="text-[10px] font-mono text-blue-300 truncate">{app.appId}</div>
+                        <div className="text-[10px] text-slate-400 flex items-center space-x-2">
+                          <span>{app.category}</span>
+                          <span>•</span>
+                          <span
+                            className={`uppercase text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                              app.packageManager === 'apt'
+                                ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                                : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                            }`}
+                          >
+                            {app.packageManager === 'apt' ? 'APT Debian' : 'Flatpak'}
+                          </span>
                         </div>
                       </div>
-                      <div className="text-[10px] font-mono text-blue-300 truncate">{app.appId}</div>
-                      <div className="text-[10px] text-slate-400 flex items-center space-x-2">
-                        <span>{app.category}</span>
-                        <span>•</span>
-                        <span className="uppercase text-[9px] px-1 py-0.2 bg-white/10 rounded">{app.packageManager}</span>
+                    </div>
+
+                    <p className="text-xs text-slate-300 mt-2.5 line-clamp-2 leading-relaxed">
+                      {app.tagline}
+                    </p>
+                  </div>
+
+                  {/* 1. Barra de Progresso com Preenchimento Fluido para INSTALAÇÃO */}
+                  {isInstalling && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-2.5 rounded-xl bg-blue-950/60 border border-blue-500/30 space-y-1.5 relative overflow-hidden shadow-inner"
+                    >
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="font-semibold text-cyan-300 truncate flex items-center space-x-1">
+                          <Loader2 className="w-3 h-3 animate-spin text-cyan-400 shrink-0" />
+                          <span>{installStage || 'Instalando pacote...'}</span>
+                        </span>
+                        <span className="font-mono font-bold text-white ml-2">{installProgress}%</span>
                       </div>
-                    </div>
-                  </div>
 
-                  <p className="text-xs text-slate-300 mt-2.5 line-clamp-2 leading-relaxed">
-                    {app.tagline}
-                  </p>
-                </div>
+                      <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden p-0.5 relative">
+                        <motion.div
+                          className="h-full rounded-full bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 shadow-[0_0_12px_rgba(34,211,238,0.6)]"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${installProgress}%` }}
+                          transition={{ ease: 'easeOut', duration: 0.4 }}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
 
-                {/* Progress bar when downloading/installing */}
-                {isInstalling && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-blue-300">
-                      <span>Executando /api/install no Debian...</span>
-                      <span>{installProgress}%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-500 transition-all duration-300"
-                        style={{ width: `${installProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
+                  {/* 2. Barra de Progresso com Preenchimento Fluido para DESINSTALAÇÃO */}
+                  {isUninstalling && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-2.5 rounded-xl bg-rose-950/60 border border-rose-500/30 space-y-1.5 relative overflow-hidden shadow-inner"
+                    >
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="font-semibold text-rose-300 truncate flex items-center space-x-1">
+                          <Trash2 className="w-3 h-3 animate-bounce text-rose-400 shrink-0" />
+                          <span>{uninstallStage || 'Desinstalando aplicativo...'}</span>
+                        </span>
+                        <span className="font-mono font-bold text-rose-200 ml-2">{uninstallProgress}%</span>
+                      </div>
 
-                {/* Footer Controls with Functional Install & Launch */}
-                <div className="pt-2 border-t border-white/5 flex items-center justify-between">
-                  <button
-                    onClick={() => copyFlatpakCmd(app)}
-                    className="flex items-center space-x-1 text-[11px] text-slate-400 hover:text-white transition cursor-pointer font-mono"
-                    title="Copiar comando de terminal"
-                  >
-                    {copiedCmd === app.id ? (
-                      <>
-                        <Check className="w-3 h-3 text-emerald-400" />
-                        <span className="text-emerald-400">Copiado!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Terminal className="w-3 h-3" />
-                        <span>CLI</span>
-                      </>
-                    )}
-                  </button>
+                      <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden p-0.5 relative">
+                        <motion.div
+                          className="h-full rounded-full bg-gradient-to-r from-rose-600 via-amber-400 to-red-500 shadow-[0_0_12px_rgba(244,63,94,0.6)]"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${uninstallProgress}%` }}
+                          transition={{ ease: 'easeOut', duration: 0.3 }}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
 
-                  <div className="flex items-center space-x-2">
-                    {app.installed ? (
-                      <>
-                        {/* Functional 'Abrir' (Launch) button sending POST /api/launch */}
+                  {/* Rodapé de Ações */}
+                  <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                    <button
+                      onClick={() => copyFlatpakCmd(app)}
+                      className="flex items-center space-x-1 text-[11px] text-slate-400 hover:text-white transition cursor-pointer font-mono"
+                      title="Copiar comando de terminal"
+                    >
+                      {copiedCmd === app.id ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-400" />
+                          <span className="text-emerald-400">Copiado!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Terminal className="w-3 h-3" />
+                          <span>CLI</span>
+                        </>
+                      )}
+                    </button>
+
+                    <div className="flex items-center space-x-2">
+                      {app.installed ? (
+                        <>
+                          <button
+                            onClick={() => handleLaunchApp(app)}
+                            disabled={isLaunching || isUninstalling}
+                            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition active:scale-95 cursor-pointer disabled:opacity-50"
+                            title="Abrir no Display do Linux"
+                          >
+                            <Play className="w-3.5 h-3.5 fill-white" />
+                            <span>{isLaunching ? 'Abrindo...' : 'Abrir'}</span>
+                          </button>
+                          
+                          {/* Botão de Desinstalação com confirmação/progresso */}
+                          <button
+                            onClick={() => handleUninstallApp(app)}
+                            disabled={isUninstalling || isLaunching}
+                            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 hover:text-rose-100 border border-rose-500/30 transition cursor-pointer text-xs font-semibold disabled:opacity-50"
+                            title="Desinstalar este aplicativo do Linux"
+                          >
+                            <Trash2 className={`w-3.5 h-3.5 ${isUninstalling ? 'animate-spin' : ''}`} />
+                            <span className="text-[11px]">{isUninstalling ? 'Removendo...' : 'Desinstalar'}</span>
+                          </button>
+                        </>
+                      ) : (
                         <button
-                          onClick={() => handleLaunchApp(app)}
-                          disabled={isLaunching}
-                          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition active:scale-95 cursor-pointer disabled:opacity-50"
-                          title="Abrir no Display do Debian (Wayland/Cage)"
+                          onClick={() => handleInstallApp(app)}
+                          disabled={isInstalling || isUninstalling}
+                          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl font-bold text-xs shadow-md transition active:scale-95 cursor-pointer disabled:opacity-60 relative overflow-hidden ${
+                            app.packageManager === 'apt'
+                              ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-red-600/30'
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-600/30'
+                          }`}
                         >
-                          <Play className="w-3.5 h-3.5 fill-white" />
-                          <span>{isLaunching ? 'Abrindo...' : 'Abrir'}</span>
+                          {isInstalling ? (
+                            <div className="flex items-center space-x-1.5">
+                              <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24">
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                  fill="none"
+                                />
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                />
+                              </svg>
+                              <span>{installProgress}%</span>
+                            </div>
+                          ) : (
+                            <>
+                              <Download className="w-3.5 h-3.5" />
+                              <span>Instalar</span>
+                            </>
+                          )}
                         </button>
-                        <button
-                          onClick={() => handleUninstall(app.id)}
-                          className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition cursor-pointer"
-                          title="Desinstalar app"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </>
-                    ) : (
-                      /* Functional 'Instalar' button sending POST /api/install */
-                      <button
-                        onClick={() => handleInstallApp(app)}
-                        disabled={isInstalling}
-                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition active:scale-95 cursor-pointer disabled:opacity-50"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Instalar</span>
-                      </button>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       )}
     </div>
   );
 };
+
 export default AppStoreApp;

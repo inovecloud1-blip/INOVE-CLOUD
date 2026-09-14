@@ -132,6 +132,7 @@ export interface StorageItem {
   previewUrl?: string;
   thumbnail?: string;
   synced?: boolean;
+  content?: string;
 }
 
 export interface CustomWebShortcut {

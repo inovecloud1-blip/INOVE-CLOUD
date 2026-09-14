@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Cloud,
   Wifi,
+  WifiOff,
   Bluetooth,
   ShieldCheck,
   Cpu,
@@ -22,9 +23,15 @@ import {
   User,
   LayoutGrid,
   Video,
-  Disc
+  Disc,
+  Lock,
+  Moon,
+  Volume2,
+  VolumeX,
+  Sun
 } from 'lucide-react';
 import { SystemStats, AppId } from '../types';
+import { useSystemSettings } from '../context/SystemSettingsContext';
 
 interface MenuBarProps {
   stats: SystemStats;
@@ -36,6 +43,7 @@ interface MenuBarProps {
   onToggleLauncher?: () => void;
   isLauncherOpen?: boolean;
   onPlayBootVideo?: () => void;
+  onOpenPowerModal?: () => void;
 }
 
 export const MenuBar: React.FC<MenuBarProps> = ({
@@ -48,7 +56,26 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   onToggleLauncher,
   isLauncherOpen,
   onPlayBootVideo,
+  onOpenPowerModal,
 }) => {
+  const {
+    wifiEnabled,
+    connectedSsid,
+    bluetoothEnabled,
+    pairedBtCount,
+    gpuTurboEnabled,
+    speakerVolume,
+    isMuted,
+    screenBrightness,
+    userName,
+    userEmail,
+    lockScreen,
+    requestShutdown,
+    requestRestart,
+    requestSleep,
+    playFeedbackTone,
+  } = useSystemSettings();
+
   const [time, setTime] = useState<string>('');
   const [date, setDate] = useState<string>('');
   const [appleMenuOpen, setAppleMenuOpen] = useState(false);
@@ -104,7 +131,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         <div className="relative">
           <button
             onClick={() => setAppleMenuOpen(!appleMenuOpen)}
-            className="flex items-center space-x-1.5 px-2 py-0.5 rounded hover:bg-white/10 transition active:scale-95"
+            className="flex items-center space-x-1.5 px-2 py-0.5 rounded hover:bg-white/10 transition active:scale-95 cursor-pointer"
             title="Menu InoveCloud OS"
           >
             <div className="w-4 h-4 rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-indigo-600 flex items-center justify-center shadow-sm">
@@ -120,10 +147,10 @@ export const MenuBar: React.FC<MenuBarProps> = ({
                 className="fixed inset-0 z-40"
                 onClick={() => setAppleMenuOpen(false)}
               />
-              <div className="absolute left-0 top-7 w-60 liquid-glass rounded-xl py-1.5 shadow-2xl z-50 border border-white/25 text-slate-200">
+              <div className="absolute left-0 top-7 w-64 liquid-glass rounded-xl py-1.5 shadow-2xl z-50 border border-white/25 text-slate-200">
                 <div className="px-3 py-2 border-b border-white/10">
                   <div className="font-semibold text-white text-xs">InoveCloud OS 2.4 Enterprise</div>
-                  <div className="text-[11px] text-slate-400">Node: cluster-alpha-sa-east1</div>
+                  <div className="text-[11px] text-slate-400">{userEmail}</div>
                 </div>
 
                 <div className="py-1">
@@ -149,14 +176,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
                     className="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex items-center space-x-2 text-xs text-cyan-300"
                   >
                     <User className="w-3.5 h-3.5" />
-                    <span>Conta: inovecloud1@gmail.com</span>
-                  </button>
-                  <button
-                    onClick={() => { onOpenApp('browser'); setAppleMenuOpen(false); }}
-                    className="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex items-center space-x-2 text-xs"
-                  >
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>Navegador Web Local...</span>
+                    <span>Conta: {userName}</span>
                   </button>
                   <button
                     onClick={() => { onOpenApp('settings'); setAppleMenuOpen(false); }}
@@ -164,13 +184,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({
                   >
                     <Settings className="w-3.5 h-3.5" />
                     <span>Ajustes do Sistema...</span>
-                  </button>
-                  <button
-                    onClick={() => { onOpenApp('appstore'); setAppleMenuOpen(false); }}
-                    className="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex items-center space-x-2 text-xs"
-                  >
-                    <Layers className="w-3.5 h-3.5" />
-                    <span>App Store Hub...</span>
                   </button>
                 </div>
 
@@ -185,24 +198,12 @@ export const MenuBar: React.FC<MenuBarProps> = ({
                     <span>Gerenciar VNs ({stats.vnsRunning} ativas)</span>
                   </button>
                   <button
-                    onClick={() => { onOpenApp('idaas'); setAppleMenuOpen(false); }}
-                    className="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex items-center space-x-2 text-xs"
-                  >
-                    <Users className="w-3.5 h-3.5" />
-                    <span>InoveCloud IDaaS & SSO</span>
-                  </button>
-                  <button
                     onClick={() => { onOpenApp('terminal'); setAppleMenuOpen(false); }}
                     className="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex items-center space-x-2 text-xs"
                   >
                     <Terminal className="w-3.5 h-3.5" />
                     <span>Cloud Shell Terminal</span>
                   </button>
-                </div>
-
-                <div className="my-1 border-t border-white/10" />
-
-                <div className="py-1">
                   {onPlayBootVideo && (
                     <button
                       onClick={() => { onPlayBootVideo(); setAppleMenuOpen(false); }}
@@ -212,19 +213,61 @@ export const MenuBar: React.FC<MenuBarProps> = ({
                       <span>Vídeo de Boot da ISO</span>
                     </button>
                   )}
+                </div>
+
+                <div className="my-1 border-t border-white/10" />
+
+                {/* Power & Lock Section */}
+                <div className="py-1">
+                  {/* Lock Screen */}
                   <button
-                    onClick={() => { window.location.reload(); }}
-                    className="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex items-center space-x-2 text-xs text-amber-300"
+                    onClick={() => {
+                      setAppleMenuOpen(false);
+                      lockScreen();
+                    }}
+                    className="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex items-center justify-between text-xs text-cyan-300 font-medium cursor-pointer"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Bloquear Tela</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono">⌘L</span>
+                  </button>
+
+                  {/* Sleep */}
+                  <button
+                    onClick={() => {
+                      setAppleMenuOpen(false);
+                      requestSleep();
+                    }}
+                    className="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex items-center space-x-2 text-xs text-indigo-300 cursor-pointer"
+                  >
+                    <Moon className="w-3.5 h-3.5" />
+                    <span>Suspender Sessão...</span>
+                  </button>
+
+                  {/* Restart */}
+                  <button
+                    onClick={() => {
+                      setAppleMenuOpen(false);
+                      requestRestart();
+                    }}
+                    className="w-full text-left px-3 py-1.5 hover:bg-amber-600 hover:text-white flex items-center space-x-2 text-xs text-amber-300 cursor-pointer"
                   >
                     <RotateCw className="w-3.5 h-3.5" />
-                    <span>Reiniciar Nó Cloud</span>
+                    <span>Reiniciar Nó / PC...</span>
                   </button>
+
+                  {/* Shutdown */}
                   <button
-                    onClick={() => { setAppleMenuOpen(false); }}
-                    className="w-full text-left px-3 py-1.5 hover:bg-red-600 hover:text-white flex items-center space-x-2 text-xs text-red-400"
+                    onClick={() => {
+                      setAppleMenuOpen(false);
+                      requestShutdown();
+                    }}
+                    className="w-full text-left px-3 py-1.5 hover:bg-red-600 hover:text-white flex items-center space-x-2 text-xs text-red-400 font-semibold cursor-pointer"
                   >
                     <Power className="w-3.5 h-3.5" />
-                    <span>Bloquear Sessão</span>
+                    <span>Desligar Computador...</span>
                   </button>
                 </div>
               </div>
@@ -257,25 +300,25 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         <div className="hidden md:flex items-center space-x-3 text-slate-300">
           <button
             onClick={() => onOpenApp('vn')}
-            className="hover:text-white transition px-1.5 py-0.5 rounded hover:bg-white/10"
+            className="hover:text-white transition px-1.5 py-0.5 rounded hover:bg-white/10 cursor-pointer"
           >
             Nós Virtuais
           </button>
           <button
             onClick={() => onOpenApp('webapps')}
-            className="hover:text-white transition px-1.5 py-0.5 rounded hover:bg-white/10"
+            className="hover:text-white transition px-1.5 py-0.5 rounded hover:bg-white/10 cursor-pointer"
           >
             Web Apps
           </button>
           <button
             onClick={() => onOpenApp('idaas')}
-            className="hover:text-white transition px-1.5 py-0.5 rounded hover:bg-white/10"
+            className="hover:text-white transition px-1.5 py-0.5 rounded hover:bg-white/10 cursor-pointer"
           >
             IDaaS
           </button>
           <button
             onClick={() => onOpenApp('aiagent')}
-            className="hover:text-white transition px-1.5 py-0.5 rounded hover:bg-white/10 flex items-center space-x-1"
+            className="hover:text-white transition px-1.5 py-0.5 rounded hover:bg-white/10 flex items-center space-x-1 cursor-pointer"
           >
             <Zap className="w-3 h-3 text-amber-400" />
             <span>Agente IA</span>
@@ -285,7 +328,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
 
       {/* Right Status Bar Section */}
       <div className="flex items-center space-x-2 sm:space-x-3">
-        {/* HTTPS ON Pill (Umbrel 2.0 inspired) */}
+        {/* HTTPS ON Pill */}
         <div
           onClick={() => onOpenApp('webapps')}
           className="cursor-pointer hidden lg:flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-medium hover:bg-emerald-500/30 transition"
@@ -298,10 +341,14 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         {/* GPU Acceleration Pill */}
         <div
           onClick={() => onOpenApp('settings')}
-          className="cursor-pointer hidden xl:flex items-center space-x-1 px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[11px] font-medium"
-          title="NVIDIA RTX A5000 Passthrough Ativado"
+          className={`cursor-pointer hidden xl:flex items-center space-x-1 px-2 py-0.5 rounded-full text-[11px] font-medium border transition ${
+            gpuTurboEnabled
+              ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+              : 'bg-slate-800/40 text-slate-400 border-slate-700/30'
+          }`}
+          title="GPU Acceleration Status"
         >
-          <Zap className="w-3 h-3 text-cyan-400" />
+          <Zap className={`w-3 h-3 ${gpuTurboEnabled ? 'text-cyan-400' : 'text-slate-500'}`} />
           <span>GPU Turbo</span>
         </div>
 
@@ -325,47 +372,70 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         {/* Spotlight Search Icon */}
         <button
           onClick={onToggleSpotlight}
-          className="p-1 rounded hover:bg-white/10 text-white/80 hover:text-white transition"
+          className="p-1 rounded hover:bg-white/10 text-white/80 hover:text-white transition cursor-pointer"
           title="Busca Rápida (Cmd+K)"
         >
           <Search className="w-3.5 h-3.5" />
         </button>
 
-        {/* Wi-Fi / Cloud VPC Icon */}
+        {/* Wi-Fi Icon */}
         <button
-          onClick={() => onOpenApp('settings')}
-          className="p-1 text-emerald-400 hover:bg-white/10 rounded transition cursor-pointer"
-          title="Wi-Fi: InoveCloud-5G-Ultra (Clique para Configurar)"
+          onClick={onToggleControlCenter}
+          className="p-1 hover:bg-white/10 rounded transition cursor-pointer"
+          title={wifiEnabled ? `Wi-Fi: ${connectedSsid}` : 'Wi-Fi Desativado'}
         >
-          <Wifi className="w-3.5 h-3.5" />
+          {wifiEnabled ? (
+            <Wifi className="w-3.5 h-3.5 text-cyan-400" />
+          ) : (
+            <WifiOff className="w-3.5 h-3.5 text-slate-500" />
+          )}
         </button>
 
         {/* Bluetooth Icon */}
         <button
-          onClick={() => onOpenApp('settings')}
-          className="p-1 text-indigo-400 hover:bg-white/10 rounded transition cursor-pointer"
-          title="Bluetooth: 3 Dispositivos Conectados (Clique para Configurar)"
+          onClick={onToggleControlCenter}
+          className="p-1 hover:bg-white/10 rounded transition cursor-pointer"
+          title={bluetoothEnabled ? `Bluetooth: ${pairedBtCount} dispositivos` : 'Bluetooth Desativado'}
         >
-          <Bluetooth className="w-3.5 h-3.5" />
+          <Bluetooth className={`w-3.5 h-3.5 ${bluetoothEnabled ? 'text-indigo-400' : 'text-slate-500'}`} />
         </button>
 
-        {/* User Profile Quick Access */}
+        {/* Volume Icon */}
         <button
-          onClick={() => onOpenApp('user')}
-          className="flex items-center space-x-1.5 px-1.5 py-0.5 rounded hover:bg-white/10 text-white/80 hover:text-white transition cursor-pointer"
-          title="Perfil do Usuário: inovecloud1@gmail.com"
+          onClick={onToggleControlCenter}
+          className="p-1 hover:bg-white/10 rounded transition cursor-pointer"
+          title={`Volume: ${isMuted ? 'Mudo' : `${speakerVolume}%`}`}
         >
-          <div className="w-4 h-4 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-600 flex items-center justify-center text-[9px] font-bold text-white shadow-sm">
-            U
-          </div>
-          <span className="hidden lg:inline text-[11px] font-medium text-slate-200">Admin</span>
+          {isMuted || speakerVolume === 0 ? (
+            <VolumeX className="w-3.5 h-3.5 text-red-400" />
+          ) : (
+            <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+          )}
+        </button>
+
+        {/* Battery Status */}
+        <div className="hidden sm:flex items-center space-x-1 text-slate-300" title="Bateria: 100% Carregada (AC Conectado)">
+          <BatteryCharging className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="text-[10px]">100%</span>
+        </div>
+
+        {/* Quick Lock Button */}
+        <button
+          onClick={() => {
+            playFeedbackTone();
+            lockScreen();
+          }}
+          className="p-1 text-cyan-300 hover:bg-cyan-500/20 rounded transition cursor-pointer"
+          title="Bloquear Tela (⌘L)"
+        >
+          <Lock className="w-3.5 h-3.5" />
         </button>
 
         {/* Control Center Toggle */}
         <button
           onClick={onToggleControlCenter}
-          className={`p-1 rounded transition ${
-            isControlCenterOpen ? 'bg-blue-600 text-white' : 'hover:bg-white/10 text-white/80 hover:text-white'
+          className={`p-1 rounded transition cursor-pointer ${
+            isControlCenterOpen ? 'bg-blue-600 text-white shadow' : 'hover:bg-white/10 text-white/80 hover:text-white'
           }`}
           title="Central de Controle"
         >
@@ -373,7 +443,11 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         </button>
 
         {/* Date & Time */}
-        <div className="pl-1 text-white/95 font-medium flex items-center space-x-1.5 cursor-default">
+        <div
+          onClick={onToggleControlCenter}
+          className="pl-1 text-white/95 font-medium flex items-center space-x-1.5 cursor-pointer hover:text-cyan-300 transition"
+          title="Clique para abrir Central de Controle"
+        >
           <span className="hidden sm:inline-block text-slate-300">{date}</span>
           <span className="font-semibold">{time}</span>
         </div>
@@ -381,3 +455,4 @@ export const MenuBar: React.FC<MenuBarProps> = ({
     </header>
   );
 };
+export default MenuBar;
