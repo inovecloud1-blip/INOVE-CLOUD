@@ -73,7 +73,7 @@ rm -rf "${ROOTFS_DIR}"
 mkdir -p "${ROOTFS_DIR}"/{bin,sbin,usr/bin,usr/sbin,usr/lib,usr/lib64,usr/share,lib,lib64,lib/firmware,etc,proc,sys,dev,tmp,var/log/icpkg,var/lib/flatpak,var/lib/bluetooth,var/run,home/inove,root,mnt,run/dbus,run/udev}
 chmod 1777 "${ROOTFS_DIR}/tmp"
 
-# 3. Baixar e Compilar BusyBox Estático
+# 3. Baixar e Compilar BusyBox Estático (Non-Interactive / CI Safe)
 echo -e "${C_BLUE}[3/7] Compilando BusyBox nativo (${BUSYBOX_VERSION})...${C_RESET}"
 cd "${BUILD_DIR}"
 if [ ! -f "busybox-${BUSYBOX_VERSION}.tar.bz2" ]; then
@@ -84,8 +84,13 @@ if [ ! -d "busybox-${BUSYBOX_VERSION}" ]; then
 fi
 
 cd "busybox-${BUSYBOX_VERSION}"
+# 1. Gera a configuração padrão
 make defconfig
+# 2. Ativa o binário estático no arquivo de configuração
 sed -i 's/.*CONFIG_STATIC.*/CONFIG_STATIC=y/' .config
+# 3. Aplica valores padrão para novas flags dependentes sem abrir prompt interativo
+make olddefconfig
+# 4. Compila usando todos os núcleos da CPU
 make -j"${NPROC}"
 make CONFIG_PREFIX="${ROOTFS_DIR}" install
 cd "${WORK_DIR}"
@@ -347,6 +352,9 @@ if [ ! -f ".config" ]; then
   scripts/config --enable CONFIG_NETDEVICES
   scripts/config --enable CONFIG_E1000
   scripts/config --enable CONFIG_E1000E
+  
+  # Aplica valores padrão para quaisquer novas opções de drivers sem perguntar no terminal
+  make olddefconfig
 fi
 
 make -j"${NPROC}" bzImage
