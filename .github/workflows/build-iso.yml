@@ -1,4 +1,4 @@
-name: Build InoveCloud OS Fast Edition (ArchISO + Plank Dark)
+name: Build InoveCloud OS - Pure Kernel from Scratch
 
 on:
   push:
@@ -6,38 +6,37 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Tag de versão para o Release (ex: v2026.1-fast)'
+        description: 'Tag de versão para o Release (ex: v2026.1-pure)'
         required: false
-        default: 'v2026.1-fast'
+        default: 'v2026.1-pure'
 
 permissions:
   contents: write
 
 jobs:
-  build-fast-iso:
-    name: Compilar InoveCloud OS Fast ISO (~3-5 min)
+  build-pure-iso:
+    name: Compilar InoveCloud OS Puro (Kernel Oficial + BusyBox)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
 
     steps:
       - name: 📥 Clonar Repositório
         uses: actions/checkout@v4
 
-      - name: 🚀 Compilar ISO Ultrarrápida via Archiso Container
+      - name: 🛠️ Instalar Dependências de Compilação do Kernel
         run: |
-          mkdir -p dist-iso
-          docker run --privileged --rm \
-            -v $(pwd):/workspace \
-            -w /workspace \
-            archlinux:latest bash -c "
-              pacman -Sy --noconfirm archlinux-keyring && \
-              pacman -Syu --noconfirm && \
-              pacman -S --noconfirm archiso zstd xorriso git sudo && \
-              chmod +x build-inovecloud.sh && \
-              ./build-inovecloud.sh
-            "
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential bison flex libelf-dev libssl-dev bc \
+            xorriso grub-pc-bin grub-efi-amd64-bin mtools dosfstools \
+            curl wget tar xz-utils cpio python3
 
-      - name: 🔒 Verificar Integridade da ISO e Checksum
+      - name: 🚀 Executar Compilação do Sistema Puro (Kernel Oficial + BusyBox)
+        run: |
+          chmod +x build-inovecloud.sh icpkg.py inovecloud-install.sh
+          sudo ./build-inovecloud.sh
+
+      - name: 🔒 Verificar Integridade da ISO e Checksum SHA256
         run: |
           ls -lh dist-iso/
           cat dist-iso/*.sha256
@@ -45,7 +44,7 @@ jobs:
       - name: 📤 Fazer Upload do Artefato da ISO (.iso & .sha256)
         uses: actions/upload-artifact@v4
         with:
-          name: inovecloud-os-fast-amd64
+          name: inovecloud-os-pure-kernel-amd64
           path: |
             dist-iso/*.iso
             dist-iso/*.sha256
@@ -56,18 +55,19 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
-          name: "InoveCloud OS 2026 Fast Edition (Arch Base + Plank Dark Dock)"
+          name: "InoveCloud OS 2026 - Pure Kernel Edition (Zero Base)"
           body: |
-            ## ⚡ InoveCloud OS 2026 - Fast Live ISO
+            ## 🚀 InoveCloud OS 2026 - Distribuição Linux Pura e Independente
             
-            Versão ultrarrápida do InoveCloud OS construída em **~3 a 5 minutos** utilizando **Arch Linux + XFCE Modern Dark + Plank Dock flutuante**, com suporte nativo a Flathub e drivers de vídeo.
+            Sistema Operacional Linux criado **do zero**, sem depender de Debian, Ubuntu ou Arch:
             
-            ### ✨ Características:
-            - **Tempo de Inicialização**: Inicializa em menos de 5 segundos
-            - **Consumo de Memória**: Apenas **~350 MB de RAM** em repouso
-            - **Dock**: Plank centralizada e flutuante na parte inferior com zoom suave
-            - **Visual**: Tema Dark translúcido e ícones Papirus Dark
-            - **Apps**: Firefox, Thunar (Arquivos), Terminal XFCE, Flathub e Pacman
+            ### 🛠️ Arquitetura do Sistema:
+            - **Kernel Linux Puro**: Kernel Oficial compilado a partir do código-fonte (kernel.org)
+            - **Userland Nativo**: BusyBox estático com utilitários essenciais
+            - **Gerenciador de Pacotes Próprio**: `icpkg` nativo em Python
+            - **Instalador de Disco**: `inovecloud-install` integrado
+            - **Init System**: `/init` nativo do InoveCloud OS
+            - **Bootloader**: GRUB 2 híbrido com suporte a UEFI 64-bit e BIOS Legacy
           files: |
             dist-iso/*.iso
             dist-iso/*.sha256
