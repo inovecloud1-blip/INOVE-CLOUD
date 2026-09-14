@@ -30,6 +30,7 @@ jobs:
             -v $(pwd):/workspace \
             -w /workspace \
             archlinux:latest bash -c "
+              pacman -Sy --noconfirm archlinux-keyring && \
               pacman -Syu --noconfirm && \
               pacman -S --noconfirm archiso zstd xorriso git sudo && \
               chmod +x build-inovecloud.sh && \
@@ -59,7 +60,7 @@ jobs:
           body: |
             ## ⚡ InoveCloud OS 2026 - Fast Live ISO
             
-            Versão ultrarrápida do InoveCloud OS construída em **~3 minutos** utilizando **Arch Linux + XFCE Modern Dark + Plank Dock flutuante**, com suporte nativo a Flathub e drivers de vídeo.
+            Versão ultrarrápida do InoveCloud OS construída em **~3 a 5 minutos** utilizando **Arch Linux + XFCE Modern Dark + Plank Dock flutuante**, com suporte nativo a Flathub e drivers de vídeo.
             
             ### ✨ Características:
             - **Tempo de Inicialização**: Inicializa em menos de 5 segundos
