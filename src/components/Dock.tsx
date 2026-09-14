@@ -333,23 +333,33 @@ export const Dock: React.FC<DockProps> = ({
     });
   }
 
-  // Calculate magnification scale for an item based on mouse distance
-  const getScale = (id: AppId) => {
-    if (mouseX === null) return 1;
-    const el = itemRefs.current.get(id);
-    if (!el) return 1;
+  // Calculate magnification scale and lift for an element based on mouse distance
+  const calculateMagnification = (element: HTMLElement | null) => {
+    if (mouseX === null || !element) {
+      return { scale: 1, translateY: 0, zIndex: 1, margin: 4 };
+    }
 
-    const rect = el.getBoundingClientRect();
+    const rect = element.getBoundingClientRect();
     const itemCenter = rect.left + rect.width / 2;
     const distance = Math.abs(mouseX - itemCenter);
-    const maxDistance = 140; // Magnification radius in px
+    const maxDistance = 150; // Fisheye radius in pixels
 
-    if (distance >= maxDistance) return 1;
+    if (distance >= maxDistance) {
+      return { scale: 1, translateY: 0, zIndex: 1, margin: 4 };
+    }
 
-    // Smooth Cosine easing curve: max 1.52x magnification
+    // Smooth Cosine curve (macOS fisheye wave formula)
     const factor = Math.cos((distance / maxDistance) * (Math.PI / 2));
-    return 1 + factor * 0.52;
+    const scale = 1 + factor * 0.58; // Max 1.58x magnification
+    const translateY = -(scale - 1) * 34; // Lift icon up to stay anchored to dock base
+    const zIndex = Math.round(scale * 20); // Higher scale = front layer
+    const margin = 4 + factor * 8; // Gentle horizontal expansion between icons
+
+    return { scale, translateY, zIndex, margin };
   };
+
+  const launcherRef = useRef<HTMLDivElement>(null);
+  const launcherMag = calculateMagnification(launcherRef.current);
 
   const handleAppClick = (id: AppId) => {
     // Trigger macOS bounce
@@ -395,29 +405,49 @@ export const Dock: React.FC<DockProps> = ({
         {/* Launchpad / Launcher Button */}
         {onToggleLauncher && (
           <>
-            <div className="relative flex flex-col items-center group mx-1 origin-bottom">
+            <div
+              ref={launcherRef}
+              className="relative flex flex-col items-center group origin-bottom select-none"
+              style={{
+                margin: `0 ${launcherMag.margin}px`,
+                zIndex: launcherMag.zIndex,
+                transition: 'margin 100ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+              }}
+              onMouseEnter={() => setHoveredApp('settings' as AppId)}
+              onMouseLeave={() => setHoveredApp(null)}
+            >
               {/* Tooltip for Launcher */}
               {isOnlyLauncher && hoveredApp === null && (
-                <div className="absolute -top-12 px-3 py-1.5 bg-purple-900/95 text-white rounded-xl shadow-2xl backdrop-blur-xl border border-purple-400/30 whitespace-nowrap animate-fade-in pointer-events-none z-50 flex flex-col items-center">
+                <div className="absolute -top-14 px-3 py-1.5 bg-purple-950/95 text-white rounded-xl shadow-2xl backdrop-blur-xl border border-purple-400/30 whitespace-nowrap animate-fade-in pointer-events-none z-50 flex flex-col items-center">
                   <span className="text-xs font-bold leading-tight tracking-wide">
                     Launcher de Apps (Dock Minimalista)
                   </span>
                   <span className="text-[10px] text-purple-200">Clique para abrir todos os aplicativos</span>
-                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-purple-900/95 rotate-45 border-r border-b border-purple-400/30" />
+                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-purple-950/95 rotate-45 border-r border-b border-purple-400/30" />
                 </div>
               )}
 
-              <button
-                onClick={onToggleLauncher}
-                className="relative flex items-center justify-center rounded-2xl p-2.5 transition-all duration-200 cursor-pointer shadow-lg active:scale-95 bg-gradient-to-tr from-fuchsia-600 via-purple-600 to-indigo-700 border border-white/25 hover:shadow-purple-500/50 hover:scale-110"
+              {/* Launcher Magnified Container */}
+              <div
                 style={{
-                  width: '46px',
-                  height: '46px',
+                  transform: `scale(${launcherMag.scale}) translateY(${launcherMag.translateY}px)`,
+                  transformOrigin: 'bottom center',
+                  transition: 'transform 90ms cubic-bezier(0.2, 0.8, 0.2, 1)',
                 }}
-                title="Launcher de Aplicativos (Organizar & Fixar na Tela Inicial / Dock)"
               >
-                <LayoutGrid className="w-6 h-6 text-white drop-shadow-md" />
-              </button>
+                <button
+                  onClick={onToggleLauncher}
+                  className="relative flex items-center justify-center rounded-2xl p-2.5 cursor-pointer shadow-lg active:scale-95 bg-gradient-to-tr from-fuchsia-600 via-purple-600 to-indigo-700 border border-white/30 hover:shadow-purple-500/50"
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    filter: 'drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35))',
+                  }}
+                  title="Launcher de Aplicativos (Organizar & Fixar na Tela Inicial / Dock)"
+                >
+                  <LayoutGrid className="w-6 h-6 text-white drop-shadow-md" />
+                </button>
+              </div>
 
               {/* Dot indicator if launcher is open */}
               <div className="h-1.5 flex items-center justify-center mt-1">
@@ -431,19 +461,19 @@ export const Dock: React.FC<DockProps> = ({
 
             {/* Separator if there are other items */}
             {renderedDockItems.length > 0 && (
-              <div className="w-px h-8 bg-white/20 mx-1 self-center rounded-full shrink-0" />
+              <div className="w-px h-8 bg-white/20 mx-1.5 self-center rounded-full shrink-0" />
             )}
           </>
         )}
 
         {/* Rendered Dock Apps */}
-        {renderedDockItems.map((item, index) => {
+        {renderedDockItems.map((item) => {
           const isOpen = openAppIds.includes(item.id);
           const isActive = activeAppId === item.id;
           const isHovered = hoveredApp === item.id;
           const isBouncing = bouncingAppId === item.id;
-          const isPinned = dockPinnedApps.includes(item.id);
-          const scale = getScale(item.id);
+          const element = itemRefs.current.get(item.id) || null;
+          const { scale, translateY, zIndex, margin } = calculateMagnification(element);
 
           return (
             <React.Fragment key={item.id}>
@@ -452,34 +482,45 @@ export const Dock: React.FC<DockProps> = ({
                   if (node) itemRefs.current.set(item.id, node);
                   else itemRefs.current.delete(item.id);
                 }}
-                className="relative flex flex-col items-center group mx-1 origin-bottom"
+                className="relative flex flex-col items-center group origin-bottom select-none"
+                style={{
+                  margin: `0 ${margin}px`,
+                  zIndex: zIndex,
+                  transition: 'margin 100ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+                }}
                 onMouseEnter={() => setHoveredApp(item.id)}
                 onMouseLeave={() => setHoveredApp(null)}
               >
                 {/* macOS Magnified Tooltip with subLabel */}
                 {isHovered && !contextMenu && (
-                  <div className="absolute -top-12 px-3 py-1.5 bg-slate-900/95 text-white rounded-xl shadow-2xl backdrop-blur-xl border border-white/15 whitespace-nowrap animate-fade-in pointer-events-none z-50 flex flex-col items-center">
+                  <div
+                    className="absolute px-3 py-1.5 bg-slate-900/95 text-white rounded-xl shadow-2xl backdrop-blur-xl border border-white/20 whitespace-nowrap animate-fade-in pointer-events-none z-50 flex flex-col items-center"
+                    style={{
+                      top: `${translateY - 48}px`,
+                      transition: 'top 90ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+                    }}
+                  >
                     <span className="text-xs font-bold leading-tight tracking-wide">{item.label}</span>
                     {item.subLabel && (
                       <span className="text-[10px] text-slate-400 font-medium">{item.subLabel}</span>
                     )}
-                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-900/95 rotate-45 border-r border-b border-white/15" />
+                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-900/95 rotate-45 border-r border-b border-white/20" />
                   </div>
                 )}
 
-                {/* Squircle App Icon Container */}
+                {/* Squircle App Icon Container with Magnification & Bounce */}
                 <div
                   className={`relative ${isBouncing ? 'animate-dock-bounce' : ''}`}
                   style={{
-                    transform: `scale(${scale}) translateY(${scale > 1.05 ? -(scale - 1) * 26 : 0}px)`,
+                    transform: `scale(${scale}) translateY(${translateY}px)`,
                     transformOrigin: 'bottom center',
-                    transition: 'transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+                    transition: 'transform 90ms cubic-bezier(0.2, 0.8, 0.2, 1)',
                   }}
                 >
                   <button
                     onClick={() => handleAppClick(item.id)}
                     onContextMenu={(e) => handleContextMenu(e, item.id)}
-                    className="relative cursor-pointer active:scale-95 transition-transform duration-200"
+                    className="relative cursor-pointer active:scale-95 transition-transform duration-150 block"
                   >
                     <AppIcon appId={item.id} size="md" className="w-12 h-12" />
 

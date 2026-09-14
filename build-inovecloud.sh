@@ -280,24 +280,31 @@ cat << 'EOF' > "${ROOTFS_DIR}/init"
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 export LD_LIBRARY_PATH=/lib:/lib64:/usr/lib:/usr/lib64
 export XDG_RUNTIME_DIR=/tmp/runtime-inove
+export WAYLAND_DISPLAY=wayland-0
+export WESTON_DISABLE_DRM_MASTER=1
+
+# 0. Redirecionar I/O para console visível (evita tela preta)
+exec 0</dev/console 1>/dev/console 2>/dev/console
 
 # 1. Montar sistemas de arquivos essenciais do Kernel
 mount -t proc none /proc
 mount -t sysfs none /sys
-mount -t devtmpfs none /dev
+mount -t devtmpfs none /dev 2>/dev/null || true
 mount -t tmpfs none /tmp
 mount -t tmpfs none /run
 
-mkdir -p /dev/pts /dev/shm /sys/fs/cgroup /tmp/runtime-inove /home/inove /root /run/cups /var/spool/cups
+mkdir -p /dev/pts /dev/shm /sys/fs/cgroup /tmp/runtime-inove /home/inove /root /run/cups /var/spool/cups /var/run/dbus
 chmod 0700 /tmp/runtime-inove
+chmod 1777 /tmp
 chmod 1777 /dev/shm
-mount -t devpts devpts /dev/pts
+mount -t devpts devpts /dev/pts 2>/dev/null || true
 mount -t cgroup2 none /sys/fs/cgroup 2>/dev/null || true
 
 # 2. Inicializar Serviços de Mouse, Teclado, Áudio e Dispositivos (udev)
 if command -v udevd >/dev/null 2>&1; then
   udevd --daemon 2>/dev/null || true
   udevadm trigger --action=add 2>/dev/null || true
+  udevadm settle 2>/dev/null || true
 fi
 
 # 3. Configurar Conexão com a Internet e Atribuição de IP Automático (DHCP)
@@ -330,7 +337,7 @@ if command -v cupsd >/dev/null 2>&1; then
 fi
 
 # 5. Modo de Instalação Direta no Disco
-CMDLINE="$(cat /proc/cmdline)"
+CMDLINE="$(cat /proc/cmdline 2>/dev/null || echo '')"
 if echo "$CMDLINE" | grep -q "inove_mode=installer"; then
   clear
   echo "========================================================================"
@@ -345,7 +352,7 @@ fi
 
 # 6. Informações de Inicialização e Status de Rede/IP
 clear
-CURRENT_IP="$(ip -4 addr show scope global | grep inet | awk '{print $2}' | cut -d/ -f1 | head -n 1)"
+CURRENT_IP="$(ip -4 addr show scope global 2>/dev/null | grep inet | awk '{print $2}' | cut -d/ -f1 | head -n 1 || echo '')"
 echo "========================================================================"
 echo "   🚀 BEM-VINDO AO INOVECLOUD OS 2026 - SISTEMA OPERACIONAL COMPLETO    "
 echo "========================================================================"
@@ -361,12 +368,27 @@ echo "========================================================================"
 
 if [ -x /usr/bin/weston ] && [ ! -f /tmp/no_gui ] && ! echo "$CMDLINE" | grep -q "no_gui"; then
   echo "Iniciando Interface Gráfica InoveCloud OS (Wayland / Liquid Glass)..."
-  /usr/bin/weston --log=/var/log/weston.log 2>/dev/null || {
-    echo "Ambiente gráfico em modo console seguro (Framebuffer)."
-  }
+  if [ -e /dev/dri/card0 ]; then
+    /usr/bin/weston --continue-without-input --backend=drm-backend.so --log=/var/log/weston.log 2>/dev/null || \
+    /usr/bin/weston --continue-without-input --backend=fbdev-backend.so --log=/var/log/weston.log 2>/dev/null || \
+    /usr/bin/weston --continue-without-input --log=/var/log/weston.log 2>/dev/null || true
+  else
+    /usr/bin/weston --continue-without-input --backend=fbdev-backend.so --log=/var/log/weston.log 2>/dev/null || \
+    /usr/bin/weston --continue-without-input --log=/var/log/weston.log 2>/dev/null || true
+  fi
 fi
 
-exec /bin/sh
+echo ""
+echo "========================================================================"
+echo "   [ Console Interativo InoveCloud OS Pronto ]                         "
+echo "   ▶ Digite 'weston' para tentar iniciar o ambiente gráfico             "
+echo "   ▶ Digite 'poweroff' para desligar ou 'reboot' para reiniciar         "
+echo "========================================================================"
+echo ""
+
+while true; do
+  /bin/sh
+done
 EOF
 chmod +x "${ROOTFS_DIR}/init"
 
@@ -394,12 +416,15 @@ cd "linux-${KERNEL_VERSION}"
 if [ ! -f ".config" ]; then
   make defconfig
   
-  # 1. Flags de Vídeo e Anti-Tela Preta
+  # 1. Flags de Vídeo e Anti-Tela Preta (VirtualBox VBoxSVGA/VMSVGA/QEMU/PC Real)
   scripts/config --enable CONFIG_VT
   scripts/config --enable CONFIG_VT_CONSOLE
   scripts/config --enable CONFIG_HW_CONSOLE
   scripts/config --enable CONFIG_FRAMEBUFFER_CONSOLE
   scripts/config --enable CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY
+  scripts/config --enable CONFIG_FRAMEBUFFER_CONSOLE_ROTATION
+  scripts/config --enable CONFIG_FONTS
+  scripts/config --enable CONFIG_FONT_8x16
   scripts/config --enable CONFIG_FB
   scripts/config --enable CONFIG_FB_VESA
   scripts/config --enable CONFIG_FB_EFI
@@ -408,6 +433,8 @@ if [ ! -f ".config" ]; then
   scripts/config --enable CONFIG_SYSFB_SIMPLEFB
   scripts/config --enable CONFIG_DRM
   scripts/config --enable CONFIG_DRM_KMS_HELPER
+  scripts/config --enable CONFIG_DRM_FBDEV_EMULATION
+  scripts/config --set-val CONFIG_DRM_FBDEV_OVERALLOC 100
   scripts/config --enable CONFIG_DRM_SIMPLEDRM
   scripts/config --enable CONFIG_DRM_VBOXVIDEO
   scripts/config --enable CONFIG_DRM_VMWGFX
@@ -530,27 +557,33 @@ cp "${BUILD_DIR}/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage" "${LIVE_DIR}/boo
 
 cat << 'EOF' > "${LIVE_DIR}/boot/grub/grub.cfg"
 set default="0"
-set timeout=10
+set timeout=5
 
 set menu_color_normal=white/black
 set menu_color_highlight=black/cyan
 
 set gfxmode=auto
+set gfxpayload=keep
 insmod all_video
 insmod gfxterm
 
-menuentry "🚀 Iniciar InoveCloud OS 2026 (Modo Live - Interface Gráfica)" --class gnu-linux --class os {
-    linux /boot/vmlinuz ip=dhcp video=vesafb:ywrap,mtrr:3 vga=791 quiet
+menuentry "🚀 Iniciar InoveCloud OS 2026 (Modo Padrão - VirtualBox / PC Real)" --class gnu-linux --class os {
+    linux /boot/vmlinuz ip=dhcp console=tty1 loglevel=3
+    initrd /boot/initramfs.igz
+}
+
+menuentry "🖥️ Iniciar InoveCloud OS (VirtualBox / VMSVGA / DRM Aceleração)" --class gnu-linux --class os {
+    linux /boot/vmlinuz ip=dhcp console=tty1 drm.debug=0
+    initrd /boot/initramfs.igz
+}
+
+menuentry "🛡️ Iniciar InoveCloud OS (Modo Seguro de Vídeo / Framebuffer / VESA)" --class gnu-linux --class os {
+    linux /boot/vmlinuz nomodeset ip=dhcp console=tty1
     initrd /boot/initramfs.igz
 }
 
 menuentry "💿 Instalar InoveCloud OS no Disco (SSD / NVMe / HDD)" --class gnu-linux --class os {
-    linux /boot/vmlinuz inove_mode=installer ip=dhcp video=vesafb:ywrap,mtrr:3 vga=791 quiet
-    initrd /boot/initramfs.igz
-}
-
-menuentry "🔧 InoveCloud OS (Modo Seguro de Vídeo / Console Puro)" --class gnu-linux --class os {
-    linux /boot/vmlinuz console=tty0 nomodeset no_gui=1
+    linux /boot/vmlinuz inove_mode=installer ip=dhcp console=tty1
     initrd /boot/initramfs.igz
 }
 
