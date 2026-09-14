@@ -84,13 +84,13 @@ if [ ! -d "busybox-${BUSYBOX_VERSION}" ]; then
 fi
 
 cd "busybox-${BUSYBOX_VERSION}"
-# 1. Gera a configuração padrão
+# 1. Aplica a configuração padrão
 make defconfig
 # 2. Ativa o binário estático no arquivo de configuração
 sed -i 's/.*CONFIG_STATIC.*/CONFIG_STATIC=y/' .config
-# 3. Aplica valores padrão para novas flags dependentes sem abrir prompt interativo
-make olddefconfig
-# 4. Compila usando todos os núcleos da CPU
+# 3. Responde "Enter" (padrão) para qualquer nova pergunta de interatividade de forma 100% segura no CI
+yes "" | make oldconfig || true
+# 4. Compila e instala na raiz do InoveCloud OS
 make -j"${NPROC}"
 make CONFIG_PREFIX="${ROOTFS_DIR}" install
 cd "${WORK_DIR}"
