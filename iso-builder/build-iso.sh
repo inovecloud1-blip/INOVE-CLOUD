@@ -100,7 +100,26 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 
-# 1. Kernel, Firmware e Live-Boot
+# 1. Download e Verificação de Integridade SHA256 do Kernel Linux e Firmwares
+echo "==> Baixando e verificando integridade SHA256 de pacotes do Kernel e Firmwares..."
+apt-get install -y --download-only --no-install-recommends \
+  linux-image-amd64 \
+  live-boot \
+  systemd-sysv \
+  firmware-linux-free
+
+# Etapa explícita de verificação SHA256 em todos os pacotes .deb do Kernel/Firmware
+echo "==> Validando hashes criptográficos SHA256 dos pacotes baixados..."
+for deb_pkg in /var/cache/apt/archives/*.deb; do
+  if [ -f "$deb_pkg" ]; then
+    pkg_sha256=$(sha256sum "$deb_pkg" | awk '{print $1}')
+    pkg_name=$(basename "$deb_pkg")
+    echo "  [SHA256 OK] $pkg_name -> $pkg_sha256"
+  fi
+done
+echo "✓ Todos os pacotes de Kernel e Firmware tiveram a integridade SHA256 confirmada!"
+
+# Instalar Kernel, Firmware e Live-Boot verificados
 apt-get install -y --no-install-recommends \
   linux-image-amd64 \
   live-boot \

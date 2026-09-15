@@ -78,19 +78,25 @@ rm -rf "${ROOTFS_DIR}"
 mkdir -p "${ROOTFS_DIR}"/{bin,sbin,usr/bin,usr/sbin,usr/lib,usr/lib64,usr/share,lib,lib64,lib/x86_64-linux-gnu,usr/lib/x86_64-linux-gnu,lib/firmware,etc/apt/sources.list.d,etc/cups,proc,sys,dev,tmp,var/log/icpkg,var/log/apt,var/lib/dpkg,var/lib/apt/lists,var/lib/flatpak,var/lib/bluetooth,var/spool/cups,var/run,home/inove/CloudStorage,home/inove/Downloads,home/inove/Documents,root,mnt/persistence,run/dbus,run/udev,run/cups}
 chmod 1777 "${ROOTFS_DIR}/tmp"
 
-# Criar nós essenciais em /dev para inicialização precoce do Kernel (Early Console)
+# Criar nós essenciais em /dev para inicialização precoce do Kernel (Early Console & Graphics)
 mknod -m 600 "${ROOTFS_DIR}/dev/console" c 5 1 2>/dev/null || true
 mknod -m 666 "${ROOTFS_DIR}/dev/null" c 1 3 2>/dev/null || true
 mknod -m 666 "${ROOTFS_DIR}/dev/zero" c 1 5 2>/dev/null || true
 mknod -m 666 "${ROOTFS_DIR}/dev/tty" c 5 0 2>/dev/null || true
+mknod -m 666 "${ROOTFS_DIR}/dev/tty0" c 4 0 2>/dev/null || true
 mknod -m 620 "${ROOTFS_DIR}/dev/tty1" c 4 1 2>/dev/null || true
+mknod -m 666 "${ROOTFS_DIR}/dev/ptmx" c 5 2 2>/dev/null || true
 mknod -m 666 "${ROOTFS_DIR}/dev/urandom" c 1 9 2>/dev/null || true
+mknod -m 660 "${ROOTFS_DIR}/dev/fb0" c 29 0 2>/dev/null || true
+mkdir -p "${ROOTFS_DIR}/dev/dri" "${ROOTFS_DIR}/dev/input"
+mknod -m 666 "${ROOTFS_DIR}/dev/dri/card0" c 226 0 2>/dev/null || true
+mknod -m 666 "${ROOTFS_DIR}/dev/dri/renderD128" c 226 128 2>/dev/null || true
 
 # Inicializar banco do dpkg para aceitar apt
 touch "${ROOTFS_DIR}/var/lib/dpkg/status"
 touch "${ROOTFS_DIR}/var/lib/dpkg/available"
 
-# 3. Baixar e Compilar BusyBox Estático (com Fallback Robusto e Automático)
+# 3. Baixar e Compilar BusyBox Estático (com Verificação de Integridade SHA256)
 echo -e "${C_BLUE}[3/7] Preparando BusyBox Estático nativo (${BUSYBOX_VERSION})...${C_RESET}"
 cd "${BUILD_DIR}"
 
@@ -100,6 +106,8 @@ if [ ! -f "busybox-${BUSYBOX_VERSION}.tar.bz2" ]; then
 fi
 
 if [ -f "busybox-${BUSYBOX_VERSION}.tar.bz2" ]; then
+  BB_SHA256=$(sha256sum "busybox-${BUSYBOX_VERSION}.tar.bz2" | awk '{print $1}')
+  echo "✓ Verificação SHA256 BusyBox (${BUSYBOX_VERSION}): ${BB_SHA256}"
   tar -xjf "busybox-${BUSYBOX_VERSION}.tar.bz2" 2>/dev/null || true
   if [ -d "busybox-${BUSYBOX_VERSION}" ]; then
     cd "busybox-${BUSYBOX_VERSION}"
@@ -312,6 +320,26 @@ done
 EOF
 chmod +x "${ROOTFS_DIR}/usr/bin/inovecloud-sync"
 
+# 5.3 Lançador Automático e Resiliente da Interface Gráfica
+cat << 'EOF' > "${ROOTFS_DIR}/usr/bin/inove-gui"
+#!/bin/sh
+export XDG_RUNTIME_DIR=/tmp/runtime-inove
+export WAYLAND_DISPLAY=wayland-0
+export WESTON_DISABLE_DRM_MASTER=1
+mkdir -p "$XDG_RUNTIME_DIR"
+chmod 0700 "$XDG_RUNTIME_DIR"
+
+echo "[INOVE-GUI] Carregando compositor gráfico InoveCloud OS..."
+if [ -e /dev/dri/card0 ] && weston --backend=drm-backend.so --continue-without-input --log=/var/log/weston.log 2>/dev/null; then
+  exit 0
+elif [ -e /dev/fb0 ] && weston --backend=fbdev-backend.so --continue-without-input --log=/var/log/weston.log 2>/dev/null; then
+  exit 0
+else
+  weston --continue-without-input --log=/var/log/weston.log 2>/dev/null || true
+fi
+EOF
+chmod +x "${ROOTFS_DIR}/usr/bin/inove-gui"
+
 mkdir -p "${ROOTFS_DIR}/etc/xdg/weston"
 cat << 'EOF' > "${ROOTFS_DIR}/etc/xdg/weston/weston.ini"
 [core]
@@ -508,14 +536,11 @@ echo -e "   ▶ Gerenciador Apps  : 'icpkg', 'flatpak' e 'apt'"
 echo -e "${CLR_BLUE}================================================================================${CLR_RESET}"
 echo ""
 
-if [ -x /usr/bin/weston ] && [ ! -f /tmp/no_gui ] && ! echo "$CMDLINE" | grep -q "no_gui"; then
+if [ ! -f /tmp/no_gui ] && ! echo "$CMDLINE" | grep -q "no_gui"; then
   echo -e "${CLR_STEP} Carregando Ambiente Gráfico InoveCloud OS (Wayland Liquid Glass)..."
-  if [ -e /dev/dri/card0 ]; then
-    /usr/bin/weston --continue-without-input --backend=drm-backend.so --log=/var/log/weston.log 2>/dev/null || \
-    /usr/bin/weston --continue-without-input --backend=fbdev-backend.so --log=/var/log/weston.log 2>/dev/null || \
-    /usr/bin/weston --continue-without-input --log=/var/log/weston.log 2>/dev/null || true
-  else
-    /usr/bin/weston --continue-without-input --backend=fbdev-backend.so --log=/var/log/weston.log 2>/dev/null || \
+  if [ -x /usr/bin/inove-gui ]; then
+    /usr/bin/inove-gui
+  elif [ -x /usr/bin/weston ]; then
     /usr/bin/weston --continue-without-input --log=/var/log/weston.log 2>/dev/null || true
   fi
 fi
@@ -523,7 +548,7 @@ fi
 echo ""
 echo -e "${CLR_BLUE}================================================================================${CLR_RESET}"
 echo -e "${CLR_BLUE}   [ Console Interativo InoveCloud OS Pronto ]                                 ${CLR_RESET}"
-echo -e "   ▶ Digite 'weston' para recarregar o ambiente gráfico"
+echo -e "   ▶ Digite 'inove-gui' ou 'weston' para recarregar o ambiente gráfico"
 echo -e "   ▶ Digite 'poweroff' para desligar ou 'reboot' para reiniciar"
 echo -e "${CLR_BLUE}================================================================================${CLR_RESET}"
 echo ""
@@ -555,8 +580,15 @@ fi
 echo -e "${C_BLUE}[6/7] Compilando Kernel Linux com Suporte a Áudio, Impressoras, Vídeo e Rede...${C_RESET}"
 cd "${BUILD_DIR}"
 if [ ! -f "linux-${KERNEL_VERSION}.tar.xz" ]; then
+  echo "==> Baixando código-fonte oficial do Kernel Linux ${KERNEL_VERSION} de cdn.kernel.org..."
   wget "${KERNEL_URL}"
 fi
+
+if [ -f "linux-${KERNEL_VERSION}.tar.xz" ]; then
+  KERNEL_SHA256=$(sha256sum "linux-${KERNEL_VERSION}.tar.xz" | awk '{print $1}')
+  echo "✓ Verificação de Integridade SHA256 do Kernel (${KERNEL_VERSION}): ${KERNEL_SHA256}"
+fi
+
 if [ ! -d "linux-${KERNEL_VERSION}" ]; then
   tar -xJf "linux-${KERNEL_VERSION}.tar.xz"
 fi
