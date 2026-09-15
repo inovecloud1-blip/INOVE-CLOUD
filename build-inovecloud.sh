@@ -668,13 +668,17 @@ if [ ! -f ".config" ]; then
   scripts/config --enable CONFIG_SECURITY_NETWORK
   scripts/config --enable CONFIG_VETH
   
-  # 5. Suporte a Mouse, Teclado e USB
+  # 5. Suporte a Mouse, Teclado, Touchpad e USB (Linux Core Input API)
   scripts/config --enable CONFIG_INPUT
   scripts/config --enable CONFIG_INPUT_KEYBOARD
   scripts/config --enable CONFIG_KEYBOARD_ATKBD
   scripts/config --enable CONFIG_INPUT_MOUSE
   scripts/config --enable CONFIG_MOUSE_PS2
+  scripts/config --enable CONFIG_INPUT_MOUSEDEV
   scripts/config --enable CONFIG_INPUT_EVDEV
+  scripts/config --enable CONFIG_INPUT_TOUCHSCREEN
+  scripts/config --enable CONFIG_INPUT_MISC
+  scripts/config --enable CONFIG_INPUT_UINPUT
   scripts/config --enable CONFIG_HID
   scripts/config --enable CONFIG_HID_GENERIC
   scripts/config --enable CONFIG_USB_HID
@@ -682,6 +686,7 @@ if [ ! -f ".config" ]; then
   scripts/config --enable CONFIG_USB_XHCI_HCD
   scripts/config --enable CONFIG_USB_EHCI_HCD
   scripts/config --enable CONFIG_USB_OHCI_HCD
+  scripts/config --enable CONFIG_USB_STORAGE
   
   # 6. Suporte a Wi-Fi, Bluetooth e Rede Automática (DHCP / IP)
   scripts/config --enable CONFIG_NET
@@ -739,9 +744,20 @@ if [ ! -f ".config" ]; then
   scripts/config --enable CONFIG_DECOMPRESS_ZSTD
   scripts/config --enable CONFIG_DEVTMPFS
   scripts/config --enable CONFIG_DEVTMPFS_MOUNT
+  scripts/config --enable CONFIG_PCI
+  scripts/config --enable CONFIG_PCI_MSI
+  scripts/config --enable CONFIG_BLK_DEV_NVME
+  scripts/config --enable CONFIG_ATA
+  scripts/config --enable CONFIG_SATA_AHCI
+  scripts/config --enable CONFIG_VIRTIO
+  scripts/config --enable CONFIG_VIRTIO_PCI
+  scripts/config --enable CONFIG_VIRTIO_BLK
+  scripts/config --enable CONFIG_VIRTIO_NET
+  scripts/config --enable CONFIG_ISO9660_FS
   scripts/config --enable CONFIG_EXT4_FS
   scripts/config --enable CONFIG_VFAT_FS
   scripts/config --enable CONFIG_EFI_STUB
+  scripts/config --enable CONFIG_MAGIC_SYSRQ
   scripts/config --enable CONFIG_NETDEVICES
   scripts/config --enable CONFIG_E1000
   scripts/config --enable CONFIG_E1000E
