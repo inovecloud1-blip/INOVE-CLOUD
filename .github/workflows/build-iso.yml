@@ -23,13 +23,13 @@ jobs:
       - name: 📥 Clonar Repositório
         uses: actions/checkout@v4
 
-      - name: 🛠️ Instalar Dependências de Compilação do Kernel
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential bison flex libelf-dev libssl-dev bc \
-            xorriso grub-pc-bin grub-efi-amd64-bin mtools dosfstools \
-            curl wget tar xz-utils cpio python3
+      - name: 💾 Restaurar cache das fontes
+        uses: actions/cache@v4
+        with:
+          path: inovecloud-pure-build/src
+          key: sources-${{ runner.os }}-${{ hashFiles('build-inovecloud.sh') }}
+          restore-keys: |
+            sources-${{ runner.os }}-
 
       - name: 🚀 Executar Compilação do Sistema Puro (Kernel Oficial + BusyBox)
         run: |
@@ -49,6 +49,7 @@ jobs:
             dist-iso/*.iso
             dist-iso/*.sha256
           retention-days: 30
+          compression-level: 0
 
       - name: 🏷️ Publicar Release Automático no GitHub
         if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
