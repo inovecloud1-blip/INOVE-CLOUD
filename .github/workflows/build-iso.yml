@@ -1,37 +1,44 @@
-name: Build InoveCloud OS - Pure Kernel from Scratch
+name: Build InoveCloud OS - Desktop & Pure Kernel ISO
 
 on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
     inputs:
+      edition:
+        description: 'Selecione a Edição para Compilar'
+        required: true
+        default: 'desktop'
+        type: choice
+        options:
+          - 'desktop'
+          - 'pure-kernel'
       release_tag:
-        description: 'Tag de versão para o Release (ex: v2026.1-pure)'
+        description: 'Tag de versão para o Release (ex: v2026.1-desktop)'
         required: false
-        default: 'v2026.1-pure'
+        default: 'v2026.1-desktop'
 
 permissions:
   contents: write
 
 jobs:
-  build-pure-iso:
-    name: Compilar InoveCloud OS Puro (Kernel Oficial + BusyBox)
+  build-iso:
+    name: Compilar InoveCloud OS (${{ github.event.inputs.edition || 'desktop' }})
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: 📥 Clonar Repositório
         uses: actions/checkout@v4
 
-      - name: 💾 Restaurar cache das fontes
-        uses: actions/cache@v4
-        with:
-          path: inovecloud-pure-build/src
-          key: sources-${{ runner.os }}-${{ hashFiles('build-inovecloud.sh') }}
-          restore-keys: |
-            sources-${{ runner.os }}-
+      - name: 🚀 Executar Compilação da ISO Completa (Desktop GNOME Glass ~1.5GB)
+        if: ${{ github.event.inputs.edition == 'desktop' || github.event.inputs.edition == '' || github.event_name == 'push' }}
+        run: |
+          chmod +x iso-builder/build-iso.sh icpkg.py inovecloud-install.sh
+          sudo ./iso-builder/build-iso.sh
 
-      - name: 🚀 Executar Compilação do Sistema Puro (Kernel Oficial + BusyBox)
+      - name: ⚡ Executar Compilação da ISO Pure Kernel (~82MB)
+        if: ${{ github.event.inputs.edition == 'pure-kernel' }}
         run: |
           chmod +x build-inovecloud.sh icpkg.py inovecloud-install.sh
           sudo ./build-inovecloud.sh
@@ -44,7 +51,7 @@ jobs:
       - name: 📤 Fazer Upload do Artefato da ISO (.iso & .sha256)
         uses: actions/upload-artifact@v4
         with:
-          name: inovecloud-os-pure-kernel-amd64
+          name: inovecloud-os-${{ github.event.inputs.edition || 'desktop' }}-amd64
           path: |
             dist-iso/*.iso
             dist-iso/*.sha256
@@ -56,23 +63,24 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.release_tag || 'latest' }}
-          name: "InoveCloud OS 2026 - Pure Kernel Edition (Download Rápido)"
+          name: "InoveCloud OS 2026 - Desktop Edition (Download Oficial)"
           draft: false
           prerelease: false
           body: |
             ## 🚀 InoveCloud OS 2026 - Imagem ISO Oficial (Download de Alta Velocidade)
             
-            Distribuição Linux desenvolvida do zero, otimizada para computadores reais e máquinas virtuais (VirtualBox, VMware, QEMU).
+            Distribuição Linux Desktop completa desenvolvida para computadores reais (Intel/AMD/NVIDIA) e máquinas virtuais (VirtualBox, VMware, QEMU).
             
             ### ⚡ Links Diretos de Download (CDN Global):
             - Baixe a imagem `.iso` abaixo com suporte a aceleradores de download, retomada de conexão e velocidade máxima.
             
-            ### 🛠️ Características do Sistema:
-            - **Kernel Oficial**: Linux 6.6 LTS com suporte a UEFI & BIOS Legacy
-            - **Drivers de Vídeo & Gráficos**: Suporte a aceleração 3D, DRM e Framebuffer
-            - **Rede & Wi-Fi**: Conexão automática DHCP, Intel iwlwifi, Realtek e Atheros
-            - **Terminal & Shell**: Shell Unix completo integrado
-            - **Modo Seguro**: Fallback para compatibilidade total em hardware fraco
+            ### 🛠️ Recursos Incluídos:
+            - **Desktop Environment**: GNOME 46+ com tema Liquid Glass, Blur e animações fluidas
+            - **Kernel Linux Oficial**: 6.x LTS com suporte a UEFI & BIOS Legacy
+            - **App Store & Flathub**: Firefox, Spotify, VLC, VS Code e gerenciador nativo `icpkg`
+            - **Drivers & Hardware**: Suporte out-of-the-box para NVIDIA, AMD, Intel HD, Realtek e Broadcom Wi-Fi
+            - **Áudio & Impressão**: Pipewire/PulseAudio de baixa latência e servidor CUPS integrado
+            - **Nuvem & Persistência**: Suporte a Live USB com persistência e sincronização de nuvem `/home/inove/CloudStorage`
           files: |
             dist-iso/*.iso
             dist-iso/*.sha256
