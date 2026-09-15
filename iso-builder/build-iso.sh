@@ -796,22 +796,27 @@ if loadfont /boot/grub/fonts/unicode.pf2; then
   terminal_output gfxterm
 fi
 
-menuentry "F1  Startup: InoveCloud OS 2026 - Debian 13 (Trixie) GNOME Glass" {
-  linux /live/vmlinuz boot=live components
+menuentry "🚀 InoveCloud OS 2026 (Live Desktop - Plymouth Splash Silencioso)" {
+  linux /live/vmlinuz boot=live components quiet splash loglevel=3 rd.udev.log_priority=3 vt.global_cursor_default=0
   initrd /live/initrd
 }
 
-menuentry "F2  System Diagnostics & Hardware Verification (Verbose Boot)" {
-  linux /live/vmlinuz boot=live debug earlyprintk=vga components
+menuentry "💾 InoveCloud OS (Modo Live USB com Persistência de Dados)" {
+  linux /live/vmlinuz boot=live persistence components quiet splash loglevel=3
   initrd /live/initrd
 }
 
-menuentry "F10 BIOS Setup: Instalação no Disco (SSD / NVMe / HDD)" {
+menuentry "🛠️ InoveCloud OS (Modo Instalação no Disco SSD/NVMe)" {
   linux /live/vmlinuz boot=live inove_mode=installer components
   initrd /live/initrd
 }
 
-menuentry "F11 System Recovery (Modo Seguro / Fallback VESA Framebuffer)" {
+menuentry "🔍 InoveCloud OS (Diagnóstico e Hardware Verbose Boot)" {
+  linux /live/vmlinuz boot=live debug earlyprintk=vga components
+  initrd /live/initrd
+}
+
+menuentry "🛡️ InoveCloud OS (Modo Seguro / Fallback VESA Framebuffer)" {
   linux /live/vmlinuz boot=live nomodeset components
   initrd /live/initrd
 }

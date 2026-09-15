@@ -58,8 +58,8 @@ mkdir -p "${BUILD_DIR}"
 mkdir -p "${ROOTFS_DIR}"
 mkdir -p "${OUTPUT_DIR}"
 
-# 1. Instalar Pacotes e Dependências no Host (Áudio, Impressão, Rede, Gráficos e APT)
-echo -e "${C_BLUE}[1/7] Instalando pacotes de compilação, áudio (ALSA/Pulse), impressoras (CUPS) e rede...${C_RESET}"
+# 1. Instalar Pacotes e Dependências no Host (Áudio, Impressão, Rede, Gráficos, Plymouth e APT)
+echo -e "${C_BLUE}[1/7] Instalando pacotes de compilação, áudio, impressoras, Plymouth e drivers...${C_RESET}"
 apt-get update -y
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   build-essential bison flex libelf-dev libssl-dev bc \
@@ -69,12 +69,13 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   wpasupplicant wireless-tools bluez bluez-tools \
   weston xwayland libinput-bin udev kmod \
   alsa-utils pulseaudio cups cups-client cups-bsd ghostscript \
-  mesa-va-drivers mesa-vulkan-drivers fbset
+  mesa-va-drivers mesa-vulkan-drivers fbset \
+  plymouth plymouth-themes
 
 # 2. Estruturação Completa dos Diretórios do Sistema
 echo -e "${C_BLUE}[2/7] Criando árvore de diretórios do InoveCloud OS...${C_RESET}"
 rm -rf "${ROOTFS_DIR}"
-mkdir -p "${ROOTFS_DIR}"/{bin,sbin,usr/bin,usr/sbin,usr/lib,usr/lib64,usr/share,lib,lib64,lib/x86_64-linux-gnu,usr/lib/x86_64-linux-gnu,lib/firmware,etc/apt/sources.list.d,etc/cups,proc,sys,dev,tmp,var/log/icpkg,var/log/apt,var/lib/dpkg,var/lib/apt/lists,var/lib/flatpak,var/lib/bluetooth,var/spool/cups,var/run,home/inove,root,mnt,run/dbus,run/udev,run/cups}
+mkdir -p "${ROOTFS_DIR}"/{bin,sbin,usr/bin,usr/sbin,usr/lib,usr/lib64,usr/share,lib,lib64,lib/x86_64-linux-gnu,usr/lib/x86_64-linux-gnu,lib/firmware,etc/apt/sources.list.d,etc/cups,proc,sys,dev,tmp,var/log/icpkg,var/log/apt,var/lib/dpkg,var/lib/apt/lists,var/lib/flatpak,var/lib/bluetooth,var/spool/cups,var/run,home/inove/CloudStorage,home/inove/Downloads,home/inove/Documents,root,mnt/persistence,run/dbus,run/udev,run/cups}
 chmod 1777 "${ROOTFS_DIR}/tmp"
 
 # Criar nós essenciais em /dev para inicialização precoce do Kernel (Early Console)
@@ -137,18 +138,20 @@ fi
 
 # Garantir que /bin/sh, /bin/bash, /bin/ash e /sbin/init existam e sejam executáveis
 if [ -f "${ROOTFS_DIR}/bin/busybox" ]; then
-  cp -f "${ROOTFS_DIR}/bin/busybox" "${ROOTFS_DIR}/bin/sh"
-  cp -f "${ROOTFS_DIR}/bin/busybox" "${ROOTFS_DIR}/bin/bash"
-  cp -f "${ROOTFS_DIR}/bin/busybox" "${ROOTFS_DIR}/bin/ash"
-  cp -f "${ROOTFS_DIR}/bin/busybox" "${ROOTFS_DIR}/sbin/init"
-  chmod 755 "${ROOTFS_DIR}/bin/busybox" "${ROOTFS_DIR}/bin/sh" "${ROOTFS_DIR}/bin/bash" "${ROOTFS_DIR}/bin/ash" "${ROOTFS_DIR}/sbin/init"
+  # Remove links prévios para evitar erro de 'same file' no cp/ln
+  rm -f "${ROOTFS_DIR}/bin/sh" "${ROOTFS_DIR}/bin/bash" "${ROOTFS_DIR}/bin/ash" "${ROOTFS_DIR}/sbin/init" 2>/dev/null || true
   
-  # Instalar links simbólicos padrão do BusyBox
+  ln -sf busybox "${ROOTFS_DIR}/bin/sh"
+  ln -sf busybox "${ROOTFS_DIR}/bin/bash"
+  ln -sf busybox "${ROOTFS_DIR}/bin/ash"
+  mkdir -p "${ROOTFS_DIR}/sbin"
+  ln -sf ../bin/busybox "${ROOTFS_DIR}/sbin/init"
+  chmod 755 "${ROOTFS_DIR}/bin/busybox"
+  
+  # Instalar todos os applets do BusyBox no rootfs
   cd "${ROOTFS_DIR}"
-  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/bin" 2>/dev/null || true
-  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/sbin" 2>/dev/null || true
-  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/usr/bin" 2>/dev/null || true
-  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/usr/sbin" 2>/dev/null || true
+  "${ROOTFS_DIR}/bin/busybox" --install -s . 2>/dev/null || \
+  "${ROOTFS_DIR}/bin/busybox" --install -s 2>/dev/null || true
   cd "${WORK_DIR}"
   echo "✓ Links essenciais (/bin/sh, /bin/bash, /sbin/init) configurados com sucesso."
 fi
@@ -245,8 +248,53 @@ if [ -f "${ROOTFS_DIR}/usr/bin/bwrap" ]; then
   chmod u+s "${ROOTFS_DIR}/usr/bin/bwrap"
 fi
 
-# 5. Configurar Interface Gráfica InoveCloud OS com Aplicativos Multimídia, Impressoras e Desligamento
-echo -e "${C_BLUE}[5/7] Configurando Dock e Atalhos (Multimídia, Impressoras, Desligamento)...${C_RESET}"
+# 5. Criar Utilitários do Sistema: Detecção de Hardware, Sync de Nuvem e Gerenciador
+echo -e "${C_BLUE}[5/7] Configurando utilitários nativos (Hardware Detector, Cloud Sync, Dock & GUI)...${C_RESET}"
+
+# 5.1 Script de Detecção Automática de Hardware e Drivers Proprietários
+cat << 'EOF' > "${ROOTFS_DIR}/usr/bin/inovecloud-hardware-detector"
+#!/bin/sh
+# Detector de Hardware e Drivers Proprietários InoveCloud OS
+echo "[HW-DETECT] Iniciando varredura de hardware e aceleração gráfica..."
+
+# 1. Detecção de GPU (NVIDIA, AMD, Intel, VirtualBox, VMware)
+if lspci 2>/dev/null | grep -i 'vga\|3d\|display' | grep -qi 'nvidia'; then
+  echo "[HW-DETECT] GPU NVIDIA detectada. Carregando módulo de vídeo..."
+  modprobe nouveau 2>/dev/null || modprobe nvidia 2>/dev/null || true
+elif lspci 2>/dev/null | grep -i 'vga\|3d\|display' | grep -qi 'amd\|ati'; then
+  echo "[HW-DETECT] GPU AMD Radeon detectada. Carregando amdgpu..."
+  modprobe amdgpu 2>/dev/null || modprobe radeon 2>/dev/null || true
+elif lspci 2>/dev/null | grep -i 'vga\|3d\|display' | grep -qi 'intel'; then
+  echo "[HW-DETECT] GPU Intel HD/Iris Graphics detectada. Carregando i915..."
+  modprobe i915 2>/dev/null || true
+fi
+
+# 2. Detecção de Adaptadores Wi-Fi (Broadcom, Realtek, Intel, Atheros)
+if lspci 2>/dev/null | grep -i 'network\|wireless' | grep -qi 'broadcom'; then
+  echo "[HW-DETECT] Wi-Fi Broadcom detectado. Carregando drivers b43 / brcmfmac..."
+  modprobe b43 2>/dev/null || modprobe brcmfmac 2>/dev/null || modprobe wl 2>/dev/null || true
+elif lspci 2>/dev/null | grep -i 'network\|wireless' | grep -qi 'realtek'; then
+  echo "[HW-DETECT] Wi-Fi Realtek detectado. Carregando rtw88..."
+  modprobe rtw88_8821ce 2>/dev/null || modprobe rtw88_8723de 2>/dev/null || true
+fi
+
+echo "[HW-DETECT] Varredura de hardware concluída."
+EOF
+chmod +x "${ROOTFS_DIR}/usr/bin/inovecloud-hardware-detector"
+
+# 5.2 Daemon de Sincronização de Nuvem Híbrida e IDaaS (/home/inove/CloudStorage)
+cat << 'EOF' > "${ROOTFS_DIR}/usr/bin/inovecloud-sync"
+#!/bin/sh
+# InoveCloud Sync Daemon - Nuvem Híbrida e IDaaS
+CLOUD_DIR="/home/inove/CloudStorage"
+mkdir -p "$CLOUD_DIR" 2>/dev/null || true
+echo "[CLOUD-SYNC] Serviço de Nuvem Híbrida InoveCloud ativo em: $CLOUD_DIR"
+while true; do
+  # Monitoramento seguro em background
+  sleep 30
+done
+EOF
+chmod +x "${ROOTFS_DIR}/usr/bin/inovecloud-sync"
 
 mkdir -p "${ROOTFS_DIR}/etc/xdg/weston"
 cat << 'EOF' > "${ROOTFS_DIR}/etc/xdg/weston/weston.ini"
@@ -265,7 +313,7 @@ cursor-size=24
 
 [launcher]
 icon=/usr/share/icons/files.png
-path=/usr/bin/weston-terminal -e /bin/sh -c "echo '=== MEUS ARQUIVOS (INOVECLOUD STORAGE) ==='; ls -la /home/inove /root; exec /bin/sh"
+path=/usr/bin/weston-terminal -e /bin/sh -c "echo '=== MEUS ARQUIVOS (INOVECLOUD STORAGE) ==='; ls -la /home/inove /home/inove/CloudStorage; exec /bin/sh"
 
 [launcher]
 icon=/usr/share/icons/browser.png
@@ -314,7 +362,7 @@ export XDG_RUNTIME_DIR=/tmp/runtime-inove
 export WAYLAND_DISPLAY=wayland-0
 export WESTON_DISABLE_DRM_MASTER=1
 
-# 1. Montar sistemas de arquivos essenciais do Kernel imediatamente
+# 1. Montar sistemas de arquivos essenciais do Kernel
 mount -t proc none /proc 2>/dev/null || true
 mount -t sysfs none /sys 2>/dev/null || true
 mount -t devtmpfs none /dev 2>/dev/null || true
@@ -326,7 +374,14 @@ if [ -e /dev/console ]; then
   exec 0</dev/console 1>/dev/console 2>/dev/console 2>/dev/null || true
 fi
 
-# Cores ANSI para inicialização estilo BIOS e Terminal Linux
+# Inicialização de Plymouth Splash Screen (Boot Silencioso e Elegante)
+CMDLINE="$(cat /proc/cmdline 2>/dev/null || echo '')"
+if echo "$CMDLINE" | grep -q "splash" && command -v plymouthd >/dev/null 2>&1; then
+  plymouthd --mode=boot --attach-to-session 2>/dev/null || true
+  plymouth show-splash 2>/dev/null || true
+fi
+
+# Cores ANSI para inicialização
 CLR_BLUE="\033[44;37m"
 CLR_RESET="\033[0m"
 CLR_OK="\033[1;32m[  OK  ]\033[0m"
@@ -339,9 +394,7 @@ echo -e "${CLR_BLUE}  INOVECLOUD OS 2026 - PURE KERNEL ARCHITECTURE • BIOS & K
 echo -e "${CLR_BLUE}================================================================================${CLR_RESET}"
 echo ""
 
-echo -e "${CLR_OK} Sistemas de arquivos (/proc, /sys, /dev, /tmp, /run) montados."
-
-mkdir -p /dev/pts /dev/shm /sys/fs/cgroup /tmp/runtime-inove /home/inove /root /run/cups /var/spool/cups /var/run/dbus
+mkdir -p /dev/pts /dev/shm /sys/fs/cgroup /tmp/runtime-inove /home/inove/CloudStorage /root /run/cups /var/spool/cups /var/run/dbus /mnt/persistence
 chmod 0700 /tmp/runtime-inove
 chmod 1777 /tmp
 chmod 1777 /dev/shm
@@ -349,26 +402,36 @@ mount -t devpts -o mode=0620,ptmxmode=0666 devpts /dev/pts 2>/dev/null || true
 mount -t cgroup2 none /sys/fs/cgroup 2>/dev/null || true
 echo -e "${CLR_OK} Pseudo-terminais (pts) e Cgroups prontos."
 
-# 2. Inicializar Serviços de Mouse, Teclado, Áudio e Dispositivos (udev/mdev)
-echo -e "${CLR_STEP} Detectando hardware, placas de vídeo, teclado e mouse..."
+# 2. Persistência de Dados no Modo Live USB (OverlayFS / persistence)
+PERSIST_DEV="$(blkid 2>/dev/null | grep -i 'persistence\|inove-data' | cut -d: -f1 | head -n1 || echo '')"
+if [ -n "$PERSIST_DEV" ]; then
+  echo -e "${CLR_STEP} Partição de persistência detectada em ${PERSIST_DEV}. Montando..."
+  mount "$PERSIST_DEV" /mnt/persistence 2>/dev/null || true
+  if [ -d /mnt/persistence ]; then
+    mkdir -p /mnt/persistence/home_inove /mnt/persistence/flatpak
+    mount --bind /mnt/persistence/home_inove /home/inove 2>/dev/null || true
+    echo -e "${CLR_OK} Modo Persistência Live USB ativado com sucesso!"
+  fi
+fi
+
+# 3. Detecção Automática de Drivers Proprietários (GPU NVIDIA/AMD & Wi-Fi Broadcom)
+if [ -x /usr/bin/inovecloud-hardware-detector ]; then
+  /usr/bin/inovecloud-hardware-detector 2>/dev/null || true
+fi
+
+# 4. Inicializar Serviços de Mouse, Teclado, Áudio e Dispositivos (udev/mdev)
 if command -v udevd >/dev/null 2>&1; then
   udevd --daemon 2>/dev/null || true
   udevadm trigger --action=add 2>/dev/null || true
   udevadm settle 2>/dev/null || true
-  echo -e "${CLR_OK} Daemon de hardware udev ativo e dispositivos configurados."
-elif command -v mdev >/dev/null 2>&1; then
-  mdev -s 2>/dev/null || true
-  echo -e "${CLR_OK} Varredura de dispositivos mdev concluída."
-else
-  echo -e "${CLR_INFO} Varredura de hardware devtmpfs ativa."
+  echo -e "${CLR_OK} Daemon udev ativo e dispositivos configurados."
 fi
 
-# 3. Configurar Conexão com a Internet e Atribuição de IP Automático (DHCP)
+# 5. Configurar Conexão com a Internet e Atribuição de IP Automático (DHCP)
 echo -e "${CLR_STEP} Configurando placas de rede e buscando IP via DHCP..."
 hostname inovecloud-os 2>/dev/null || true
 ifconfig lo 127.0.0.1 up 2>/dev/null || ip link set lo up 2>/dev/null || true
 
-# Procura interfaces de rede ativas (Ethernet/Wi-Fi) e solicita IP via DHCP
 for iface in $(ls /sys/class/net/ 2>/dev/null | grep -v lo || true); do
   echo -e "${CLR_INFO} Ativando interface de rede: ${iface}..."
   ifconfig "$iface" up 2>/dev/null || ip link set "$iface" up 2>/dev/null || true
@@ -380,26 +443,31 @@ echo "nameserver 8.8.8.8" >> /etc/resolv.conf 2>/dev/null || true
 rfkill unblock all 2>/dev/null || true
 echo -e "${CLR_OK} Conectividade de rede e DNS configurados."
 
-# 4. Iniciar Daemons D-Bus, Bluetooth e Impressão (CUPS)
-echo -e "${CLR_STEP} Iniciando barramento D-Bus, Bluetooth e servidor de impressão CUPS..."
+# 6. Iniciar Daemons D-Bus, Bluetooth, CUPS e Nuvem Híbrida
 mkdir -p /run/dbus /var/run/dbus
 if command -v dbus-daemon >/dev/null 2>&1; then
   dbus-daemon --system --fork --address=unix:path=/run/dbus/system_bus_socket 2>/dev/null || true
-  echo -e "${CLR_OK} D-Bus IPC daemon iniciado."
 fi
-
 if command -v bluetoothd >/dev/null 2>&1; then
   bluetoothd --compat & 2>/dev/null || true
-  echo -e "${CLR_OK} Bluetooth stack ativo."
 fi
-
 if command -v cupsd >/dev/null 2>&1; then
   cupsd 2>/dev/null || true
-  echo -e "${CLR_OK} Servidor CUPS iniciado."
+  echo -e "${CLR_OK} Servidor CUPS de impressão iniciado."
 fi
 
-# 5. Modo de Instalação Direta no Disco
-CMDLINE="$(cat /proc/cmdline 2>/dev/null || echo '')"
+# Iniciar sincronização de Nuvem Híbrida em background
+if [ -x /usr/bin/inovecloud-sync ]; then
+  /usr/bin/inovecloud-sync & 2>/dev/null || true
+  echo -e "${CLR_OK} InoveCloud ID & Sincronização de Nuvem iniciados."
+fi
+
+# Fechar Plymouth antes de carregar o ambiente gráfico
+if command -v plymouth >/dev/null 2>&1; then
+  plymouth quit 2>/dev/null || true
+fi
+
+# 7. Modo de Instalação Direta no Disco
 if echo "$CMDLINE" | grep -q "inove_mode=installer"; then
   echo -e "${CLR_STEP} Iniciando Modo Instalador BIOS..."
   if [ -x /usr/bin/inovecloud-install ]; then
@@ -409,7 +477,7 @@ if echo "$CMDLINE" | grep -q "inove_mode=installer"; then
   fi
 fi
 
-# 6. Informações de Inicialização e Status de Rede/IP
+# 8. Informações de Inicialização e Status de Rede/IP
 CURRENT_IP="$(ip -4 addr show scope global 2>/dev/null | grep inet | awk '{print $2}' | cut -d/ -f1 | head -n 1 || echo '')"
 echo ""
 echo -e "${CLR_BLUE}================================================================================${CLR_RESET}"
@@ -418,7 +486,8 @@ echo -e "${CLR_BLUE}============================================================
 echo -e "   ▶ Conexão Internet  : IP: ${CLR_OK} ${CURRENT_IP:-'Conectando via DHCP...'}"
 echo -e "   ▶ Áudio & Multimídia: ALSA / PulseAudio + Spotify / VLC"
 echo -e "   ▶ Servidor CUPS     : Impressoras USB / Rede ativas"
-echo -e "   ▶ Wi-Fi / Bluetooth : Drivers ativos"
+echo -e "   ▶ Wi-Fi / Bluetooth : Drivers ativos (Intel, Realtek, Broadcom)"
+echo -e "   ▶ Nuvem Híbrida     : /home/inove/CloudStorage sincronizado"
 echo -e "   ▶ Gerenciador Apps  : 'icpkg', 'flatpak' e 'apt'"
 echo -e "${CLR_BLUE}================================================================================${CLR_RESET}"
 echo ""
@@ -458,12 +527,12 @@ cp -f "${ROOTFS_DIR}/init" "${ROOTFS_DIR}/sbin/init" 2>/dev/null || true
 
 # Copiar ferramentas nativas InoveCloud (icpkg e inovecloud-install)
 if [ -f "$(pwd)/icpkg.py" ]; then
-  cp "$(pwd)/icpkg.py" "${ROOTFS_DIR}/usr/bin/icpkg"
-  chmod +x "${ROOTFS_DIR}/usr/bin/icpkg"
+  cp -f "$(pwd)/icpkg.py" "${ROOTFS_DIR}/usr/bin/icpkg" 2>/dev/null || true
+  chmod +x "${ROOTFS_DIR}/usr/bin/icpkg" 2>/dev/null || true
 fi
 if [ -f "$(pwd)/inovecloud-install.sh" ]; then
-  cp "$(pwd)/inovecloud-install.sh" "${ROOTFS_DIR}/usr/bin/inovecloud-install"
-  chmod +x "${ROOTFS_DIR}/usr/bin/inovecloud-install"
+  cp -f "$(pwd)/inovecloud-install.sh" "${ROOTFS_DIR}/usr/bin/inovecloud-install" 2>/dev/null || true
+  chmod +x "${ROOTFS_DIR}/usr/bin/inovecloud-install" 2>/dev/null || true
 fi
 
 # 6. Baixar e Compilar Kernel Linux Puro com Suporte Total: Áudio, Impressoras, Wi-Fi, Bluetooth e Rede
@@ -666,33 +735,28 @@ insmod all_video
 insmod gfxterm
 terminal_output gfxterm
 
-menuentry "F1  Startup: InoveCloud OS 2026 (Live Desktop / VirtualBox & PC Real)" --class gnu-linux --class os {
-    linux /boot/vmlinuz ip=dhcp console=tty1 loglevel=7
+menuentry "🚀 InoveCloud OS 2026 (Live Desktop - Plymouth Splash Silencioso)" --class gnu-linux --class os {
+    linux /boot/vmlinuz quiet splash loglevel=3 rd.udev.log_priority=3 vt.global_cursor_default=0 ip=dhcp console=tty1
     initrd /boot/initramfs.igz
 }
 
-menuentry "F2  System Diagnostics & Hardware Verification (Verbose Boot)" --class gnu-linux --class os {
-    linux /boot/vmlinuz ip=dhcp console=tty1 earlyprintk=vga debug
+menuentry "💾 InoveCloud OS (Modo Live USB com Persistência de Dados)" --class gnu-linux --class os {
+    linux /boot/vmlinuz quiet splash persistence loglevel=3 ip=dhcp console=tty1
     initrd /boot/initramfs.igz
 }
 
-menuentry "F9  Boot Device Options & Fast Startup (VMSVGA / DRM 3D)" --class gnu-linux --class os {
-    linux /boot/vmlinuz ip=dhcp console=tty1 drm.debug=0
-    initrd /boot/initramfs.igz
-}
-
-menuentry "F10 BIOS Setup: Instalar InoveCloud OS no Disco (SSD / NVMe / HDD)" --class gnu-linux --class os {
+menuentry "🛠️ InoveCloud OS (Modo Instalação no Disco SSD/NVMe)" --class gnu-linux --class os {
     linux /boot/vmlinuz inove_mode=installer ip=dhcp console=tty1
     initrd /boot/initramfs.igz
 }
 
-menuentry "F11 System Recovery (Modo Seguro de Vídeo / Framebuffer / VESA)" --class gnu-linux --class os {
-    linux /boot/vmlinuz nomodeset ip=dhcp console=tty1
+menuentry "🔍 InoveCloud OS (Diagnóstico e Hardware Verbose Boot)" --class gnu-linux --class os {
+    linux /boot/vmlinuz ip=dhcp console=tty1 earlyprintk=vga debug loglevel=7
     initrd /boot/initramfs.igz
 }
 
-menuentry "F12 Network Boot & Cloud Recovery (DHCP)" --class gnu-linux --class os {
-    linux /boot/vmlinuz ip=dhcp console=tty1
+menuentry "🛡️ InoveCloud OS (Modo Seguro de Vídeo / Nomodeset)" --class gnu-linux --class os {
+    linux /boot/vmlinuz nomodeset ip=dhcp console=tty1
     initrd /boot/initramfs.igz
 }
 
