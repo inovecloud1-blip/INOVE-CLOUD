@@ -159,7 +159,18 @@ fi
 cd "${WORK_DIR}"
 
 # 4. Integrar Binários: Áudio, Impressoras, Rede/DHCP, Vídeo, Flatpak e APT
-echo -e "${C_BLUE}[4/7] Copiando binários do Sistema (Áudio, CUPS, Wi-Fi, Bluetooth, DHCP, Desligamento)...${C_RESET}"
+echo -e "${C_BLUE}[4/7] Copiando binários do Sistema e bibliotecas compartilhadas essenciais...${C_RESET}"
+
+# Garantir carregador dinâmico ELF de 64-bit
+mkdir -p "${ROOTFS_DIR}/lib64" "${ROOTFS_DIR}/lib" "${ROOTFS_DIR}/lib/x86_64-linux-gnu"
+for ld in /lib64/ld-linux-x86-64.so.2 /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /usr/lib64/ld-linux-x86-64.so.2; do
+  if [ -f "$ld" ]; then
+    cp -L "$ld" "${ROOTFS_DIR}/lib64/ld-linux-x86-64.so.2" 2>/dev/null || true
+    cp -L "$ld" "${ROOTFS_DIR}/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2" 2>/dev/null || true
+    ln -sf /lib64/ld-linux-x86-64.so.2 "${ROOTFS_DIR}/lib/ld-linux-x86-64.so.2" 2>/dev/null || true
+    break
+  fi
+done
 
 copy_bin_with_libs() {
   local bin_path="$1"
@@ -169,11 +180,21 @@ copy_bin_with_libs() {
     cp -L "$bin_path" "$target_bin" 2>/dev/null || true
     chmod +x "$target_bin" 2>/dev/null || true
     
-    for lib in $(ldd "$bin_path" 2>/dev/null | grep -o '/lib[^ ]*' || true); do
+    # Copiar recursivamente todas as bibliotecas das quais o binário depende
+    local libs
+    libs=$(ldd "$bin_path" 2>/dev/null | grep -o '/lib[^ ]*' || true)
+    for lib in $libs; do
       if [ -f "$lib" ]; then
         local target_lib="${ROOTFS_DIR}${lib}"
         mkdir -p "$(dirname "$target_lib")"
         cp -L "$lib" "$target_lib" 2>/dev/null || true
+        # Também copiar dependências secundárias de cada biblioteca
+        for sublib in $(ldd "$lib" 2>/dev/null | grep -o '/lib[^ ]*' || true); do
+          if [ -f "$sublib" ] && [ ! -f "${ROOTFS_DIR}${sublib}" ]; then
+            mkdir -p "$(dirname "${ROOTFS_DIR}${sublib}")"
+            cp -L "$sublib" "${ROOTFS_DIR}${sublib}" 2>/dev/null || true
+          fi
+        done
       fi
     done
   fi
@@ -197,7 +218,7 @@ CORE_BINARIES=(
   # Interface Gráfica, Terminal e Entrada (Mouse/Teclado)
   weston weston-terminal weston-simple-egl udevadm fbset
   # Gerenciamento de Discos e Meus Arquivos
-  sgdisk mkfs.ext4 mkfs.vfat rsync blkid partprobe lsblk df du find nano
+  sgdisk mkfs.ext4 mkfs.vfat rsync blkid partprobe lsblk df du find nano lspci lsusb modprobe
 )
 
 for prog in "${CORE_BINARIES[@]}"; do
@@ -206,11 +227,6 @@ for prog in "${CORE_BINARIES[@]}"; do
     copy_bin_with_libs "$PROG_PATH"
   fi
 done
-
-# Copiar bibliotecas de Áudio, Impressão, C, DRM, Mesa 3D e Fontes
-cp -a /lib/x86_64-linux-gnu/* "${ROOTFS_DIR}/lib64/" 2>/dev/null || true
-cp -a /usr/lib/x86_64-linux-gnu/* "${ROOTFS_DIR}/usr/lib64/" 2>/dev/null || true
-cp -a /lib64/* "${ROOTFS_DIR}/lib64/" 2>/dev/null || true
 
 # Configurar repositório do APT Linux
 cat << 'EOF' > "${ROOTFS_DIR}/etc/apt/sources.list"
@@ -711,10 +727,12 @@ rm -rf "${LIVE_DIR}"
 mkdir -p "${LIVE_DIR}"/boot/grub
 
 cd "${ROOTFS_DIR}"
-# Limpar diretórios dinâmicos e temporários para evitar corrupção no CPIO
-rm -rf tmp/* run/* var/log/* 2>/dev/null || true
-mkdir -p dev proc sys tmp run mnt etc root home/inove
-find . -mindepth 1 | cpio -o -H newc --quiet | gzip -9 -n > "${LIVE_DIR}/boot/initramfs.igz"
+# Limpar diretórios dinâmicos, logs e sockets para evitar corrupção no CPIO
+rm -rf tmp/* run/* var/log/* var/run/* 2>/dev/null || true
+mkdir -p dev proc sys tmp run mnt etc root home/inove home/inove/CloudStorage
+
+# CPIO padrão SVR4 newc com permissões normalizadas para o kernel
+find . -mindepth 1 -print0 | cpio --null -R 0:0 -H newc -o 2>/dev/null | gzip -9 -c > "${LIVE_DIR}/boot/initramfs.igz"
 cd "${WORK_DIR}"
 
 cp "${BUILD_DIR}/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage" "${LIVE_DIR}/boot/vmlinuz"
