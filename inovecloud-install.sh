@@ -6,18 +6,23 @@
 
 set -euo pipefail
 
-C_CYAN='\033[0;36m'
-C_GREEN='\033[0;32m'
-C_BLUE='\033[0;34m'
+# Cores e Estilos Oficiais estilo BIOS (Fundo Azul com Texto Branco e Destaques em Ciano/Amarelo)
+C_BIOS_BG='\033[44;37m'
+C_CYAN='\033[1;36m'
+C_GREEN='\033[1;32m'
+C_BLUE='\033[1;34m'
 C_YELLOW='\033[1;33m'
-C_RED='\033[0;31m'
+C_RED='\033[1;31m'
+C_WHITE='\033[1;37m'
 C_BOLD='\033[1m'
 C_RESET='\033[0m'
 
 clear
-echo -e "${C_CYAN}========================================================================${C_RESET}"
-echo -e "${C_CYAN}   🚀 INOVECLOUD OS - ASSISTENTE DE INSTALAÇÃO NO DISCO (SSD / HD)       ${C_RESET}"
-echo -e "${C_CYAN}========================================================================${C_RESET}"
+echo -e "${C_BIOS_BG}"
+echo "================================================================================"
+echo "   INOVECLOUD OS 2026 - BIOS SETUP & ASSISTENTE DE INSTALAÇÃO NO DISCO          "
+echo "================================================================================"
+echo -e "${C_RESET}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo -e "${C_RED}[ERRO] O instalador precisa ser executado com privilégios de root (sudo).${C_RESET}"
@@ -27,25 +32,27 @@ fi
 # ------------------------------------------------------------------------------
 # ETAPA 1: TELA DE BOAS-VINDAS
 # ------------------------------------------------------------------------------
-echo -e "\n${C_BOLD}${C_GREEN}Bem-vindo ao Assistente de Instalação do InoveCloud OS 2026!${C_RESET}"
-echo "Este assistente irá guiá-lo na instalação do sistema no seu computador ou VM."
-echo "Tudo será configurado automaticamente: Drivers, Wi-Fi, Bluetooth, Áudio e Flatpak."
+echo -e "\n${C_BOLD}${C_CYAN}  ▶ BEM-VINDO AO ASSISTENTE DE INSTALAÇÃO INOVECLOUD OS (BIOS SETUP)${C_RESET}"
+echo "  Este assistente irá guiá-lo na instalação do sistema no seu computador ou VM."
+echo "  Tudo será configurado automaticamente: Drivers, Wi-Fi, Bluetooth, Áudio e Flatpak."
 echo ""
-read -rp "Pressione [ENTER] para começar a configuração..." _
+read -rp "  Pressione [ENTER] para começar a configuração..." _
 
 # ------------------------------------------------------------------------------
 # ETAPA 2: SELEÇÃO DE IDIOMA E TECLADO
 # ------------------------------------------------------------------------------
 clear
-echo -e "${C_CYAN}========================================================================${C_RESET}"
-echo -e "${C_CYAN}   🌐 ETAPA 1/5: SELEÇÃO DE IDIOMA E TECLADO                           ${C_RESET}"
-echo -e "${C_CYAN}========================================================================${C_RESET}"
-echo "Escolha o idioma do sistema:"
-echo "  [1] Português do Brasil (pt_BR.UTF-8) - Teclado ABNT2"
-echo "  [2] English (US) (en_US.UTF-8) - US International Keyboard"
-echo "  [3] Español (es_ES.UTF-8) - Teclado Español"
+echo -e "${C_BIOS_BG}"
+echo "================================================================================"
+echo "   🌐 ETAPA 1/5: SELEÇÃO DE IDIOMA E TECLADO                                    "
+echo "================================================================================"
+echo -e "${C_RESET}"
+echo "  Escolha o idioma do sistema:"
+echo "    [1] Português do Brasil (pt_BR.UTF-8) - Teclado ABNT2"
+echo "    [2] English (US) (en_US.UTF-8) - US International Keyboard"
+echo "    [3] Español (es_ES.UTF-8) - Teclado Español"
 echo ""
-read -rp "Digite o número da sua opção (Padrão [1]): " LANG_OPT
+read -rp "  Digite o número da sua opção (Padrão [1]): " LANG_OPT
 LANG_OPT=${LANG_OPT:-1}
 
 case "$LANG_OPT" in

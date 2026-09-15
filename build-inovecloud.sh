@@ -283,15 +283,29 @@ export XDG_RUNTIME_DIR=/tmp/runtime-inove
 export WAYLAND_DISPLAY=wayland-0
 export WESTON_DISABLE_DRM_MASTER=1
 
-# 0. Redirecionar I/O para console visível (evita tela preta)
+# 0. Redirecionar I/O para console visível
 exec 0</dev/console 1>/dev/console 2>/dev/console
 
+# Cores ANSI para inicialização estilo BIOS e Terminal Linux
+CLR_BLUE="\033[44;37m"
+CLR_RESET="\033[0m"
+CLR_OK="\033[1;32m[  OK  ]\033[0m"
+CLR_INFO="\033[1;36m[ INFO ]\033[0m"
+CLR_STEP="\033[1;33m[ INIT ]\033[0m"
+
+echo ""
+echo -e "${CLR_BLUE}================================================================================${CLR_RESET}"
+echo -e "${CLR_BLUE}  INOVECLOUD OS 2026 - PURE KERNEL ARCHITECTURE • BIOS & KERNEL INITIALIZATION  ${CLR_RESET}"
+echo -e "${CLR_BLUE}================================================================================${CLR_RESET}"
+echo ""
+
 # 1. Montar sistemas de arquivos essenciais do Kernel
-mount -t proc none /proc
-mount -t sysfs none /sys
-mount -t devtmpfs none /dev 2>/dev/null || true
-mount -t tmpfs none /tmp
-mount -t tmpfs none /run
+echo -e "${CLR_STEP} Montando sistemas de arquivos do Kernel (/proc, /sys, /dev)..."
+mount -t proc none /proc && echo -e "${CLR_OK} Sistema de arquivos /proc montado."
+mount -t sysfs none /sys && echo -e "${CLR_OK} Sistema de arquivos /sys montado."
+mount -t devtmpfs none /dev 2>/dev/null || true && echo -e "${CLR_OK} Gerenciador de dispositivos /dev montado."
+mount -t tmpfs none /tmp && echo -e "${CLR_OK} Memória temporária /tmp montada."
+mount -t tmpfs none /run && echo -e "${CLR_OK} Runtime /run montado."
 
 mkdir -p /dev/pts /dev/shm /sys/fs/cgroup /tmp/runtime-inove /home/inove /root /run/cups /var/spool/cups /var/run/dbus
 chmod 0700 /tmp/runtime-inove
@@ -299,50 +313,58 @@ chmod 1777 /tmp
 chmod 1777 /dev/shm
 mount -t devpts devpts /dev/pts 2>/dev/null || true
 mount -t cgroup2 none /sys/fs/cgroup 2>/dev/null || true
+echo -e "${CLR_OK} Pseudo-terminais (pts) e Cgroups prontos."
 
 # 2. Inicializar Serviços de Mouse, Teclado, Áudio e Dispositivos (udev)
+echo -e "${CLR_STEP} Detectando hardware, placas de vídeo, teclado e mouse..."
 if command -v udevd >/dev/null 2>&1; then
   udevd --daemon 2>/dev/null || true
   udevadm trigger --action=add 2>/dev/null || true
   udevadm settle 2>/dev/null || true
+  echo -e "${CLR_OK} Daemon de hardware udev ativo e dispositivos configurados."
+else
+  echo -e "${CLR_INFO} Varredura de hardware mdev/devtmpfs concluída."
 fi
 
 # 3. Configurar Conexão com a Internet e Atribuição de IP Automático (DHCP)
+echo -e "${CLR_STEP} Configurando placas de rede e buscando IP via DHCP..."
 hostname inovecloud-os
 ifconfig lo 127.0.0.1 up 2>/dev/null || true
 
 # Procura interfaces de rede ativas (Ethernet/Wi-Fi) e solicita IP via DHCP
 for iface in $(ls /sys/class/net/ 2>/dev/null | grep -v lo || true); do
+  echo -e "${CLR_INFO} Ativando interface de rede: ${iface}..."
   ifconfig "$iface" up 2>/dev/null || true
   udhcpc -i "$iface" -n -q -t 3 -T 2 -b 2>/dev/null || true
 done
 
 echo "nameserver 1.1.1.1" > /etc/resolv.conf
 echo "nameserver 8.8.8.8" >> /etc/resolv.conf
-
 rfkill unblock all 2>/dev/null || true
+echo -e "${CLR_OK} Conectividade de rede e DNS configurados."
 
 # 4. Iniciar Daemons D-Bus, Bluetooth e Impressão (CUPS)
+echo -e "${CLR_STEP} Iniciando barramento D-Bus, Bluetooth e servidor de impressão CUPS..."
 mkdir -p /run/dbus /var/run/dbus
 if command -v dbus-daemon >/dev/null 2>&1; then
   dbus-daemon --system --fork --address=unix:path=/run/dbus/system_bus_socket 2>/dev/null || true
+  echo -e "${CLR_OK} D-Bus IPC daemon iniciado."
 fi
 
 if command -v bluetoothd >/dev/null 2>&1; then
   bluetoothd --compat & 2>/dev/null || true
+  echo -e "${CLR_OK} Bluetooth stack ativo."
 fi
 
 if command -v cupsd >/dev/null 2>&1; then
   cupsd 2>/dev/null || true
+  echo -e "${CLR_OK} Servidor CUPS iniciado."
 fi
 
 # 5. Modo de Instalação Direta no Disco
 CMDLINE="$(cat /proc/cmdline 2>/dev/null || echo '')"
 if echo "$CMDLINE" | grep -q "inove_mode=installer"; then
-  clear
-  echo "========================================================================"
-  echo "        🚀 INICIANDO INSTALADOR AUTOMÁTICO DO INOVECLOUD OS...          "
-  echo "========================================================================"
+  echo -e "${CLR_STEP} Iniciando Modo Instalador BIOS..."
   if [ -x /usr/bin/inovecloud-install ]; then
     /usr/bin/inovecloud-install
     echo "Pressione ENTER para continuar..."
@@ -351,23 +373,21 @@ if echo "$CMDLINE" | grep -q "inove_mode=installer"; then
 fi
 
 # 6. Informações de Inicialização e Status de Rede/IP
-clear
 CURRENT_IP="$(ip -4 addr show scope global 2>/dev/null | grep inet | awk '{print $2}' | cut -d/ -f1 | head -n 1 || echo '')"
-echo "========================================================================"
-echo "   🚀 BEM-VINDO AO INOVECLOUD OS 2026 - SISTEMA OPERACIONAL COMPLETO    "
-echo "========================================================================"
-echo " Recursos Prontos & Ativos:"
-echo "   ▶ Conexão Internet  : IP Atribuído: ${CURRENT_IP:-'Conectando via DHCP...'}"
-echo "   ▶ Música e Vídeo    : ALSA / PulseAudio + Spotify / VLC"
-echo "   ▶ Impressoras       : Servidor CUPS Ativo (Drivers USB e Rede)"
-echo "   ▶ Wi-Fi e Bluetooth : Drivers de rede e pareamento sem fio ativos"
-echo "   ▶ Desligamento      : Botão na Dock, ou comandos 'poweroff' / 'reboot'"
-echo "   ▶ Meus Arquivos     : /home/inove e discos conectados montados"
-echo "   ▶ APT & Flathub     : Instale apps com 'apt install' ou 'flatpak install'"
-echo "========================================================================"
+echo ""
+echo -e "${CLR_BLUE}================================================================================${CLR_RESET}"
+echo -e "${CLR_BLUE}   🚀 INOVECLOUD OS 2026 - AMBIENTE PRONTO & PRONTO PARA USO                     ${CLR_RESET}"
+echo -e "${CLR_BLUE}================================================================================${CLR_RESET}"
+echo -e "   ▶ Conexão Internet  : IP: ${CLR_OK} ${CURRENT_IP:-'Conectando via DHCP...'}"
+echo -e "   ▶ Áudio & Multimídia: ALSA / PulseAudio + Spotify / VLC"
+echo -e "   ▶ Servidor CUPS     : Impressoras USB / Rede ativas"
+echo -e "   ▶ Wi-Fi / Bluetooth : Drivers ativos"
+echo -e "   ▶ Gerenciador Apps  : 'icpkg', 'flatpak' e 'apt'"
+echo -e "${CLR_BLUE}================================================================================${CLR_RESET}"
+echo ""
 
 if [ -x /usr/bin/weston ] && [ ! -f /tmp/no_gui ] && ! echo "$CMDLINE" | grep -q "no_gui"; then
-  echo "Iniciando Interface Gráfica InoveCloud OS (Wayland / Liquid Glass)..."
+  echo -e "${CLR_STEP} Carregando Ambiente Gráfico InoveCloud OS (Wayland Liquid Glass)..."
   if [ -e /dev/dri/card0 ]; then
     /usr/bin/weston --continue-without-input --backend=drm-backend.so --log=/var/log/weston.log 2>/dev/null || \
     /usr/bin/weston --continue-without-input --backend=fbdev-backend.so --log=/var/log/weston.log 2>/dev/null || \
@@ -379,11 +399,11 @@ if [ -x /usr/bin/weston ] && [ ! -f /tmp/no_gui ] && ! echo "$CMDLINE" | grep -q
 fi
 
 echo ""
-echo "========================================================================"
-echo "   [ Console Interativo InoveCloud OS Pronto ]                         "
-echo "   ▶ Digite 'weston' para tentar iniciar o ambiente gráfico             "
-echo "   ▶ Digite 'poweroff' para desligar ou 'reboot' para reiniciar         "
-echo "========================================================================"
+echo -e "${CLR_BLUE}================================================================================${CLR_RESET}"
+echo -e "${CLR_BLUE}   [ Console Interativo InoveCloud OS Pronto ]                                 ${CLR_RESET}"
+echo -e "   ▶ Digite 'weston' para recarregar o ambiente gráfico"
+echo -e "   ▶ Digite 'poweroff' para desligar ou 'reboot' para reiniciar"
+echo -e "${CLR_BLUE}================================================================================${CLR_RESET}"
 echo ""
 
 while true; do
@@ -526,8 +546,22 @@ if [ ! -f ".config" ]; then
   scripts/config --enable CONFIG_BT_HIDP
   scripts/config --enable CONFIG_BT_HCIBTUSB
   
-  # 7. Suporte a Armazenamento e Inicialização
+  # 7. Suporte a Armazenamento e Inicialização (Decompressão de Initramfs)
   scripts/config --enable CONFIG_BLK_DEV_INITRD
+  scripts/config --enable CONFIG_RD_GZIP
+  scripts/config --enable CONFIG_RD_BZIP2
+  scripts/config --enable CONFIG_RD_LZMA
+  scripts/config --enable CONFIG_RD_XZ
+  scripts/config --enable CONFIG_RD_LZO
+  scripts/config --enable CONFIG_RD_LZ4
+  scripts/config --enable CONFIG_RD_ZSTD
+  scripts/config --enable CONFIG_DECOMPRESS_GZIP
+  scripts/config --enable CONFIG_DECOMPRESS_BZIP2
+  scripts/config --enable CONFIG_DECOMPRESS_LZMA
+  scripts/config --enable CONFIG_DECOMPRESS_XZ
+  scripts/config --enable CONFIG_DECOMPRESS_LZO
+  scripts/config --enable CONFIG_DECOMPRESS_LZ4
+  scripts/config --enable CONFIG_DECOMPRESS_ZSTD
   scripts/config --enable CONFIG_DEVTMPFS
   scripts/config --enable CONFIG_DEVTMPFS_MOUNT
   scripts/config --enable CONFIG_EXT4_FS
@@ -550,7 +584,10 @@ rm -rf "${LIVE_DIR}"
 mkdir -p "${LIVE_DIR}"/boot/grub
 
 cd "${ROOTFS_DIR}"
-find . | cpio -o -H newc | gzip -9 > "${LIVE_DIR}/boot/initramfs.igz"
+# Limpar diretórios dinâmicos e temporários para evitar corrupção no CPIO
+rm -rf tmp/* run/* var/log/* 2>/dev/null || true
+mkdir -p dev proc sys tmp run mnt etc root home/inove
+find . -mindepth 1 | cpio -o -H newc --quiet | gzip -9 -n > "${LIVE_DIR}/boot/initramfs.igz"
 cd "${WORK_DIR}"
 
 cp "${BUILD_DIR}/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage" "${LIVE_DIR}/boot/vmlinuz"
@@ -559,39 +596,53 @@ cat << 'EOF' > "${LIVE_DIR}/boot/grub/grub.cfg"
 set default="0"
 set timeout=5
 
-set menu_color_normal=white/black
-set menu_color_highlight=black/cyan
+# Cores oficiais da BIOS (Fundo Azul clássico com texto Branco e seleção Ciano)
+set color_normal=white/blue
+set color_highlight=black/light-cyan
+set menu_color_normal=white/blue
+set menu_color_highlight=light-cyan/blue
 
 set gfxmode=auto
 set gfxpayload=keep
 insmod all_video
 insmod gfxterm
+terminal_output gfxterm
 
-menuentry "🚀 Iniciar InoveCloud OS 2026 (Modo Padrão - VirtualBox / PC Real)" --class gnu-linux --class os {
-    linux /boot/vmlinuz ip=dhcp console=tty1 loglevel=3
+menuentry "F1  Startup: InoveCloud OS 2026 (Live Desktop / VirtualBox & PC Real)" --class gnu-linux --class os {
+    linux /boot/vmlinuz ip=dhcp console=tty1 loglevel=7
     initrd /boot/initramfs.igz
 }
 
-menuentry "🖥️ Iniciar InoveCloud OS (VirtualBox / VMSVGA / DRM Aceleração)" --class gnu-linux --class os {
+menuentry "F2  System Diagnostics & Hardware Verification (Verbose Boot)" --class gnu-linux --class os {
+    linux /boot/vmlinuz ip=dhcp console=tty1 earlyprintk=vga debug
+    initrd /boot/initramfs.igz
+}
+
+menuentry "F9  Boot Device Options & Fast Startup (VMSVGA / DRM 3D)" --class gnu-linux --class os {
     linux /boot/vmlinuz ip=dhcp console=tty1 drm.debug=0
     initrd /boot/initramfs.igz
 }
 
-menuentry "🛡️ Iniciar InoveCloud OS (Modo Seguro de Vídeo / Framebuffer / VESA)" --class gnu-linux --class os {
-    linux /boot/vmlinuz nomodeset ip=dhcp console=tty1
-    initrd /boot/initramfs.igz
-}
-
-menuentry "💿 Instalar InoveCloud OS no Disco (SSD / NVMe / HDD)" --class gnu-linux --class os {
+menuentry "F10 BIOS Setup: Instalar InoveCloud OS no Disco (SSD / NVMe / HDD)" --class gnu-linux --class os {
     linux /boot/vmlinuz inove_mode=installer ip=dhcp console=tty1
     initrd /boot/initramfs.igz
 }
 
-menuentry "🔄 Reiniciar Computador" {
+menuentry "F11 System Recovery (Modo Seguro de Vídeo / Framebuffer / VESA)" --class gnu-linux --class os {
+    linux /boot/vmlinuz nomodeset ip=dhcp console=tty1
+    initrd /boot/initramfs.igz
+}
+
+menuentry "F12 Network Boot & Cloud Recovery (DHCP)" --class gnu-linux --class os {
+    linux /boot/vmlinuz ip=dhcp console=tty1
+    initrd /boot/initramfs.igz
+}
+
+menuentry "🔄 Reiniciar Computador (Reboot)" {
     reboot
 }
 
-menuentry "⏻ Desligar Computador" {
+menuentry "⏻ Desligar Computador (Power Off)" {
     halt
 }
 EOF

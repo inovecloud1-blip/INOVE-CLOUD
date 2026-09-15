@@ -22,13 +22,14 @@ import {
   Palette,
   Image as ImageIcon
 } from 'lucide-react';
+import { InstallerApp } from './InstallerApp';
 
 interface IsoBuilderAppProps {
   onPreviewBootVideo?: () => void;
 }
 
 export const IsoBuilderApp: React.FC<IsoBuilderAppProps> = ({ onPreviewBootVideo }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'bootvideo' | 'glass-theme' | 'download' | 'script' | 'docker' | 'github' | 'guide'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'installer' | 'bootvideo' | 'glass-theme' | 'download' | 'script' | 'docker' | 'github' | 'guide'>('overview');
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [isSimulatingBuild, setIsSimulatingBuild] = useState(false);
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
@@ -206,6 +207,7 @@ jobs:
       <div className="px-5 pt-3 border-b border-white/10 bg-slate-900/60 flex space-x-2 overflow-x-auto text-xs font-semibold">
         {[
           { id: 'overview', label: 'Visão Geral & Arquitetura', icon: Layers },
+          { id: 'installer', label: '💻 Console Instalador (xterm.js)', icon: Terminal },
           { id: 'glass-theme', label: '✨ Tema Liquid Glass & GNOME', icon: Palette },
           { id: 'bootvideo', label: '🎬 Vídeo de Inicialização', icon: Video },
           { id: 'download', label: 'Cadê a ISO? / Como Baixar', icon: Download },
@@ -235,6 +237,13 @@ jobs:
 
       {/* Main Tab Content Area */}
       <div className="flex-1 p-5 overflow-y-auto space-y-6">
+        {/* INSTALLER TAB */}
+        {activeTab === 'installer' && (
+          <div className="h-[620px] rounded-2xl overflow-hidden border border-cyan-500/30 shadow-2xl bg-slate-950 max-w-5xl mx-auto">
+            <InstallerApp standaloneInModal={false} />
+          </div>
+        )}
+
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div className="space-y-6 max-w-5xl mx-auto">

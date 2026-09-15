@@ -51,24 +51,28 @@ jobs:
           retention-days: 30
           compression-level: 0
 
-      - name: 🏷️ Publicar Release Automático no GitHub
-        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+      - name: 🏷️ Publicar Release de Alta Velocidade no GitHub (CDN Global)
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
-          name: "InoveCloud OS 2026 - Pure Kernel Edition (Zero Base)"
+          tag_name: ${{ github.event.inputs.release_tag || 'latest' }}
+          name: "InoveCloud OS 2026 - Pure Kernel Edition (Download Rápido)"
+          draft: false
+          prerelease: false
           body: |
-            ## 🚀 InoveCloud OS 2026 - Distribuição Linux Pura e Independente
+            ## 🚀 InoveCloud OS 2026 - Imagem ISO Oficial (Download de Alta Velocidade)
             
-            Sistema Operacional Linux criado **do zero**, sem depender de Debian, Ubuntu ou Arch:
+            Distribuição Linux desenvolvida do zero, otimizada para computadores reais e máquinas virtuais (VirtualBox, VMware, QEMU).
             
-            ### 🛠️ Arquitetura do Sistema:
-            - **Kernel Linux Puro**: Kernel Oficial compilado a partir do código-fonte (kernel.org)
-            - **Userland Nativo**: BusyBox estático com utilitários essenciais
-            - **Gerenciador de Pacotes Próprio**: `icpkg` nativo em Python
-            - **Instalador de Disco**: `inovecloud-install` integrado
-            - **Init System**: `/init` nativo do InoveCloud OS
-            - **Bootloader**: GRUB 2 híbrido com suporte a UEFI 64-bit e BIOS Legacy
+            ### ⚡ Links Diretos de Download (CDN Global):
+            - Baixe a imagem `.iso` abaixo com suporte a aceleradores de download, retomada de conexão e velocidade máxima.
+            
+            ### 🛠️ Características do Sistema:
+            - **Kernel Oficial**: Linux 6.6 LTS com suporte a UEFI & BIOS Legacy
+            - **Drivers de Vídeo & Gráficos**: Suporte a aceleração 3D, DRM e Framebuffer
+            - **Rede & Wi-Fi**: Conexão automática DHCP, Intel iwlwifi, Realtek e Atheros
+            - **Terminal & Shell**: Shell Unix completo integrado
+            - **Modo Seguro**: Fallback para compatibilidade total em hardware fraco
           files: |
             dist-iso/*.iso
             dist-iso/*.sha256

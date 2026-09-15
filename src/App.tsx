@@ -39,6 +39,7 @@ import { BrowserApp } from './components/apps/BrowserApp';
 import { UserApp } from './components/apps/UserApp';
 import { IsoBuilderApp } from './components/apps/IsoBuilderApp';
 import { LinuxPediaApp } from './components/apps/LinuxPediaApp';
+import { InstallerApp } from './components/apps/InstallerApp';
 import { AppLauncher } from './components/desktop/AppLauncher';
 import { BootVideoSplash } from './components/desktop/BootVideoSplash';
 import { LockScreen } from './components/desktop/LockScreen';
@@ -417,6 +418,16 @@ function DesktopOS() {
       zIndex: 15,
       position: { x: 130, y: 65 },
       size: { width: 940, height: 600 },
+    },
+    installer: {
+      id: 'installer',
+      title: 'Console de Instalação no Disco — debootstrap & apt-get (xterm.js)',
+      isOpen: false,
+      isMinimized: false,
+      isMaximized: false,
+      zIndex: 16,
+      position: { x: 110, y: 60 },
+      size: { width: 920, height: 580 },
     },
   });
 
@@ -975,6 +986,21 @@ function DesktopOS() {
             onMove={(pos) => moveWindow('linuxpedia', pos)}
           >
             <LinuxPediaApp />
+          </WindowFrame>
+        </div>
+
+        {/* InoveCloud OS Installation Terminal App (xterm.js style) */}
+        <div className="pointer-events-auto">
+          <WindowFrame
+            window={windows.installer}
+            icon={<Terminal className="w-3.5 h-3.5 text-emerald-400" />}
+            onClose={() => closeWindow('installer')}
+            onMinimize={() => minimizeWindow('installer')}
+            onToggleMaximize={() => toggleMaximize('installer')}
+            onFocus={() => focusWindow('installer')}
+            onMove={(pos) => moveWindow('installer', pos)}
+          >
+            <InstallerApp onInstallationFinished={() => closeWindow('installer')} />
           </WindowFrame>
         </div>
       </main>

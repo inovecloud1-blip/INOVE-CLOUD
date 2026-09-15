@@ -141,6 +141,16 @@ export const LAUNCHER_APPS: LauncherAppInfo[] = [
     gradient: 'from-red-600 via-rose-600 to-slate-900',
   },
   {
+    id: 'installer',
+    name: 'Instalador InoveCloud OS',
+    category: 'Infraestrutura & KVM',
+    description: 'Console de instalação no disco SSD/NVMe com debootstrap, particionamento e apt-get em tempo real.',
+    badge: 'Console xterm',
+    badgeColor: 'bg-emerald-600',
+    iconName: 'Terminal',
+    gradient: 'from-emerald-600 via-teal-600 to-cyan-700',
+  },
+  {
     id: 'isobuilder',
     name: 'Gerador de ISO & Live OS',
     category: 'Infraestrutura & KVM',

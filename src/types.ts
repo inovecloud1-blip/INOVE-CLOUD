@@ -13,7 +13,8 @@ export type AppId =
   | 'browser'
   | 'user'
   | 'isobuilder'
-  | 'linuxpedia';
+  | 'linuxpedia'
+  | 'installer';
 
 export type AppCategory =
   | 'Infraestrutura & KVM'

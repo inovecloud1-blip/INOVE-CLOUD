@@ -782,6 +782,12 @@ cat << 'GRUB_CFG' > "${IMAGE_DIR}/boot/grub/grub.cfg"
 set default="0"
 set timeout=5
 
+# Cores oficiais da BIOS (Fundo Azul clássico com texto Branco e seleção Ciano)
+set color_normal=white/blue
+set color_highlight=black/light-cyan
+set menu_color_normal=white/blue
+set menu_color_highlight=light-cyan/blue
+
 insmod font
 if loadfont /boot/grub/fonts/unicode.pf2; then
   insmod gfxterm
@@ -790,12 +796,22 @@ if loadfont /boot/grub/fonts/unicode.pf2; then
   terminal_output gfxterm
 fi
 
-menuentry "InoveCloud OS 2026 - Debian 13 (Trixie) GNOME Glass" {
-  linux /live/vmlinuz boot=live quiet splash components
+menuentry "F1  Startup: InoveCloud OS 2026 - Debian 13 (Trixie) GNOME Glass" {
+  linux /live/vmlinuz boot=live components
   initrd /live/initrd
 }
 
-menuentry "InoveCloud OS (Modo Seguro / Fallback VESA)" {
+menuentry "F2  System Diagnostics & Hardware Verification (Verbose Boot)" {
+  linux /live/vmlinuz boot=live debug earlyprintk=vga components
+  initrd /live/initrd
+}
+
+menuentry "F10 BIOS Setup: Instalação no Disco (SSD / NVMe / HDD)" {
+  linux /live/vmlinuz boot=live inove_mode=installer components
+  initrd /live/initrd
+}
+
+menuentry "F11 System Recovery (Modo Seguro / Fallback VESA Framebuffer)" {
   linux /live/vmlinuz boot=live nomodeset components
   initrd /live/initrd
 }
