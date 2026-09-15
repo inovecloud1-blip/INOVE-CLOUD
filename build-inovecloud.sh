@@ -74,8 +74,16 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 # 2. Estruturação Completa dos Diretórios do Sistema
 echo -e "${C_BLUE}[2/7] Criando árvore de diretórios do InoveCloud OS...${C_RESET}"
 rm -rf "${ROOTFS_DIR}"
-mkdir -p "${ROOTFS_DIR}"/{bin,sbin,usr/bin,usr/sbin,usr/lib,usr/lib64,usr/share,lib,lib64,lib/firmware,etc/apt/sources.list.d,etc/cups,proc,sys,dev,tmp,var/log/icpkg,var/log/apt,var/lib/dpkg,var/lib/apt/lists,var/lib/flatpak,var/lib/bluetooth,var/spool/cups,var/run,home/inove,root,mnt,run/dbus,run/udev,run/cups}
+mkdir -p "${ROOTFS_DIR}"/{bin,sbin,usr/bin,usr/sbin,usr/lib,usr/lib64,usr/share,lib,lib64,lib/x86_64-linux-gnu,usr/lib/x86_64-linux-gnu,lib/firmware,etc/apt/sources.list.d,etc/cups,proc,sys,dev,tmp,var/log/icpkg,var/log/apt,var/lib/dpkg,var/lib/apt/lists,var/lib/flatpak,var/lib/bluetooth,var/spool/cups,var/run,home/inove,root,mnt,run/dbus,run/udev,run/cups}
 chmod 1777 "${ROOTFS_DIR}/tmp"
+
+# Criar nós essenciais em /dev para inicialização precoce do Kernel (Early Console)
+mknod -m 600 "${ROOTFS_DIR}/dev/console" c 5 1 2>/dev/null || true
+mknod -m 666 "${ROOTFS_DIR}/dev/null" c 1 3 2>/dev/null || true
+mknod -m 666 "${ROOTFS_DIR}/dev/zero" c 1 5 2>/dev/null || true
+mknod -m 666 "${ROOTFS_DIR}/dev/tty" c 5 0 2>/dev/null || true
+mknod -m 620 "${ROOTFS_DIR}/dev/tty1" c 4 1 2>/dev/null || true
+mknod -m 666 "${ROOTFS_DIR}/dev/urandom" c 1 9 2>/dev/null || true
 
 # Inicializar banco do dpkg para aceitar apt
 touch "${ROOTFS_DIR}/var/lib/dpkg/status"
@@ -110,17 +118,39 @@ if [ -f "busybox-${BUSYBOX_VERSION}.tar.bz2" ]; then
   fi
 fi
 
+# Fallback para binário do sistema se compilação falhar
 if [ "$BUSYBOX_COMPILED" -eq 0 ]; then
   echo "Instalando BusyBox estático oficial..."
-  cp /bin/busybox "${ROOTFS_DIR}/bin/busybox"
-  chmod +x "${ROOTFS_DIR}/bin/busybox"
+  BB_BIN=""
+  for b in /bin/busybox /usr/bin/busybox /bin/busybox.static /usr/bin/busybox.static /sbin/busybox; do
+    if [ -x "$b" ]; then
+      BB_BIN="$b"
+      break
+    fi
+  done
+
+  if [ -n "$BB_BIN" ]; then
+    cp -f "$BB_BIN" "${ROOTFS_DIR}/bin/busybox"
+    chmod 755 "${ROOTFS_DIR}/bin/busybox"
+  fi
+fi
+
+# Garantir que /bin/sh, /bin/bash, /bin/ash e /sbin/init existam e sejam executáveis
+if [ -f "${ROOTFS_DIR}/bin/busybox" ]; then
+  cp -f "${ROOTFS_DIR}/bin/busybox" "${ROOTFS_DIR}/bin/sh"
+  cp -f "${ROOTFS_DIR}/bin/busybox" "${ROOTFS_DIR}/bin/bash"
+  cp -f "${ROOTFS_DIR}/bin/busybox" "${ROOTFS_DIR}/bin/ash"
+  cp -f "${ROOTFS_DIR}/bin/busybox" "${ROOTFS_DIR}/sbin/init"
+  chmod 755 "${ROOTFS_DIR}/bin/busybox" "${ROOTFS_DIR}/bin/sh" "${ROOTFS_DIR}/bin/bash" "${ROOTFS_DIR}/bin/ash" "${ROOTFS_DIR}/sbin/init"
+  
+  # Instalar links simbólicos padrão do BusyBox
   cd "${ROOTFS_DIR}"
-  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/bin" || true
-  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/sbin" || true
-  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/usr/bin" || true
-  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/usr/sbin" || true
+  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/bin" 2>/dev/null || true
+  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/sbin" 2>/dev/null || true
+  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/usr/bin" 2>/dev/null || true
+  "${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/usr/sbin" 2>/dev/null || true
   cd "${WORK_DIR}"
-  echo "✓ BusyBox estático instalado com sucesso."
+  echo "✓ Links essenciais (/bin/sh, /bin/bash, /sbin/init) configurados com sucesso."
 fi
 
 cd "${WORK_DIR}"
@@ -133,8 +163,8 @@ copy_bin_with_libs() {
   if [ -f "$bin_path" ]; then
     local target_bin="${ROOTFS_DIR}${bin_path}"
     mkdir -p "$(dirname "$target_bin")"
-    cp -L "$bin_path" "$target_bin"
-    chmod +x "$target_bin"
+    cp -L "$bin_path" "$target_bin" 2>/dev/null || true
+    chmod +x "$target_bin" 2>/dev/null || true
     
     for lib in $(ldd "$bin_path" 2>/dev/null | grep -o '/lib[^ ]*' || true); do
       if [ -f "$lib" ]; then
@@ -277,14 +307,24 @@ EOF
 
 cat << 'EOF' > "${ROOTFS_DIR}/init"
 #!/bin/sh
+set +e
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 export LD_LIBRARY_PATH=/lib:/lib64:/usr/lib:/usr/lib64
 export XDG_RUNTIME_DIR=/tmp/runtime-inove
 export WAYLAND_DISPLAY=wayland-0
 export WESTON_DISABLE_DRM_MASTER=1
 
-# 0. Redirecionar I/O para console visível
-exec 0</dev/console 1>/dev/console 2>/dev/console
+# 1. Montar sistemas de arquivos essenciais do Kernel imediatamente
+mount -t proc none /proc 2>/dev/null || true
+mount -t sysfs none /sys 2>/dev/null || true
+mount -t devtmpfs none /dev 2>/dev/null || true
+mount -t tmpfs none /tmp 2>/dev/null || true
+mount -t tmpfs none /run 2>/dev/null || true
+
+# Redirecionar I/O para console visível caso disponível
+if [ -e /dev/console ]; then
+  exec 0</dev/console 1>/dev/console 2>/dev/console 2>/dev/null || true
+fi
 
 # Cores ANSI para inicialização estilo BIOS e Terminal Linux
 CLR_BLUE="\033[44;37m"
@@ -299,47 +339,44 @@ echo -e "${CLR_BLUE}  INOVECLOUD OS 2026 - PURE KERNEL ARCHITECTURE • BIOS & K
 echo -e "${CLR_BLUE}================================================================================${CLR_RESET}"
 echo ""
 
-# 1. Montar sistemas de arquivos essenciais do Kernel
-echo -e "${CLR_STEP} Montando sistemas de arquivos do Kernel (/proc, /sys, /dev)..."
-mount -t proc none /proc && echo -e "${CLR_OK} Sistema de arquivos /proc montado."
-mount -t sysfs none /sys && echo -e "${CLR_OK} Sistema de arquivos /sys montado."
-mount -t devtmpfs none /dev 2>/dev/null || true && echo -e "${CLR_OK} Gerenciador de dispositivos /dev montado."
-mount -t tmpfs none /tmp && echo -e "${CLR_OK} Memória temporária /tmp montada."
-mount -t tmpfs none /run && echo -e "${CLR_OK} Runtime /run montado."
+echo -e "${CLR_OK} Sistemas de arquivos (/proc, /sys, /dev, /tmp, /run) montados."
 
 mkdir -p /dev/pts /dev/shm /sys/fs/cgroup /tmp/runtime-inove /home/inove /root /run/cups /var/spool/cups /var/run/dbus
 chmod 0700 /tmp/runtime-inove
 chmod 1777 /tmp
 chmod 1777 /dev/shm
-mount -t devpts devpts /dev/pts 2>/dev/null || true
+mount -t devpts -o mode=0620,ptmxmode=0666 devpts /dev/pts 2>/dev/null || true
 mount -t cgroup2 none /sys/fs/cgroup 2>/dev/null || true
 echo -e "${CLR_OK} Pseudo-terminais (pts) e Cgroups prontos."
 
-# 2. Inicializar Serviços de Mouse, Teclado, Áudio e Dispositivos (udev)
+# 2. Inicializar Serviços de Mouse, Teclado, Áudio e Dispositivos (udev/mdev)
 echo -e "${CLR_STEP} Detectando hardware, placas de vídeo, teclado e mouse..."
 if command -v udevd >/dev/null 2>&1; then
   udevd --daemon 2>/dev/null || true
   udevadm trigger --action=add 2>/dev/null || true
   udevadm settle 2>/dev/null || true
   echo -e "${CLR_OK} Daemon de hardware udev ativo e dispositivos configurados."
+elif command -v mdev >/dev/null 2>&1; then
+  mdev -s 2>/dev/null || true
+  echo -e "${CLR_OK} Varredura de dispositivos mdev concluída."
 else
-  echo -e "${CLR_INFO} Varredura de hardware mdev/devtmpfs concluída."
+  echo -e "${CLR_INFO} Varredura de hardware devtmpfs ativa."
 fi
 
 # 3. Configurar Conexão com a Internet e Atribuição de IP Automático (DHCP)
 echo -e "${CLR_STEP} Configurando placas de rede e buscando IP via DHCP..."
-hostname inovecloud-os
-ifconfig lo 127.0.0.1 up 2>/dev/null || true
+hostname inovecloud-os 2>/dev/null || true
+ifconfig lo 127.0.0.1 up 2>/dev/null || ip link set lo up 2>/dev/null || true
 
 # Procura interfaces de rede ativas (Ethernet/Wi-Fi) e solicita IP via DHCP
 for iface in $(ls /sys/class/net/ 2>/dev/null | grep -v lo || true); do
   echo -e "${CLR_INFO} Ativando interface de rede: ${iface}..."
-  ifconfig "$iface" up 2>/dev/null || true
-  udhcpc -i "$iface" -n -q -t 3 -T 2 -b 2>/dev/null || true
+  ifconfig "$iface" up 2>/dev/null || ip link set "$iface" up 2>/dev/null || true
+  udhcpc -i "$iface" -n -q -t 3 -T 2 -b 2>/dev/null || dhclient "$iface" 2>/dev/null || true
 done
 
-echo "nameserver 1.1.1.1" > /etc/resolv.conf
-echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+echo "nameserver 1.1.1.1" > /etc/resolv.conf 2>/dev/null || true
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf 2>/dev/null || true
 rfkill unblock all 2>/dev/null || true
 echo -e "${CLR_OK} Conectividade de rede e DNS configurados."
 
@@ -406,11 +443,18 @@ echo -e "   ▶ Digite 'poweroff' para desligar ou 'reboot' para reiniciar"
 echo -e "${CLR_BLUE}================================================================================${CLR_RESET}"
 echo ""
 
+# Loop eterno seguro: PID 1 NUNCA encerra, evitando Kernel Panic
 while true; do
-  /bin/sh
+  if [ -x /bin/sh ]; then
+    /bin/sh 2>/dev/null || true
+  elif [ -x /bin/busybox ]; then
+    /bin/busybox sh 2>/dev/null || true
+  fi
+  sleep 1
 done
 EOF
-chmod +x "${ROOTFS_DIR}/init"
+chmod 755 "${ROOTFS_DIR}/init"
+cp -f "${ROOTFS_DIR}/init" "${ROOTFS_DIR}/sbin/init" 2>/dev/null || true
 
 # Copiar ferramentas nativas InoveCloud (icpkg e inovecloud-install)
 if [ -f "$(pwd)/icpkg.py" ]; then
@@ -546,7 +590,21 @@ if [ ! -f ".config" ]; then
   scripts/config --enable CONFIG_BT_HIDP
   scripts/config --enable CONFIG_BT_HCIBTUSB
   
-  # 7. Suporte a Armazenamento e Inicialização (Decompressão de Initramfs)
+  # 7. Suporte a Execução de Binários ELF, Scripts e Memória (Initramfs / PID 1)
+  scripts/config --enable CONFIG_BINFMT_ELF
+  scripts/config --enable CONFIG_BINFMT_SCRIPT
+  scripts/config --enable CONFIG_BINFMT_MISC
+  scripts/config --enable CONFIG_TMPFS
+  scripts/config --enable CONFIG_TMPFS_POSIX_ACL
+  scripts/config --enable CONFIG_TMPFS_XATTR
+  scripts/config --enable CONFIG_SHMEM
+  scripts/config --enable CONFIG_PRINTK
+  scripts/config --enable CONFIG_EARLY_PRINTK
+  scripts/config --enable CONFIG_TTY
+  scripts/config --enable CONFIG_SERIAL_8250
+  scripts/config --enable CONFIG_SERIAL_8250_CONSOLE
+
+  # 8. Suporte a Armazenamento e Inicialização (Decompressão de Initramfs)
   scripts/config --enable CONFIG_BLK_DEV_INITRD
   scripts/config --enable CONFIG_RD_GZIP
   scripts/config --enable CONFIG_RD_BZIP2
