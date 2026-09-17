@@ -126,7 +126,7 @@ apt-get install -y --no-install-recommends \
   systemd-sysv \
   firmware-linux-free
 
-# 2. Ambiente GNOME Desktop & Gerenciador de Sessão GDM3
+# 2. Ambiente GNOME Desktop & Gerenciador de Sessão GDM3 Completo
 apt-get install -y --no-install-recommends \
   gnome-core \
   gnome-shell \
@@ -140,27 +140,62 @@ apt-get install -y --no-install-recommends \
   nautilus \
   gnome-software \
   gnome-control-center \
+  gnome-calculator \
+  gnome-text-editor \
+  gnome-system-monitor \
+  gnome-disk-utility \
+  eog \
+  evince \
+  file-roller \
   dconf-cli \
   dconf-gsettings-backend \
   gsettings-desktop-schemas \
   libglib2.0-bin
 
-# 3. Áudio PipeWire, Rede, Drivers Mesa 3D, Flatpak e Utilitários
+# 3. Áudio PipeWire, Rede, Drivers Mesa 3D & Xorg, Flatpak, Bluetooth e Multimídia
 apt-get install -y --no-install-recommends \
   pipewire \
   wireplumber \
   pipewire-pulse \
   pipewire-alsa \
+  pipewire-audio \
+  pavucontrol \
   network-manager \
   network-manager-gnome \
+  bluez \
+  gnome-bluetooth-sendto \
   iproute2 \
   curl \
   wget \
   sudo \
   pciutils \
+  usbutils \
+  gparted \
+  xserver-xorg \
+  xserver-xorg-core \
+  xserver-xorg-video-all \
+  xserver-xorg-video-intel \
+  xserver-xorg-video-nouveau \
+  xserver-xorg-video-amdgpu \
+  xserver-xorg-video-qxl \
+  xserver-xorg-video-vmware \
+  xserver-xorg-video-fbdev \
+  xserver-xorg-video-vesa \
+  spice-vdagent \
+  qemu-guest-agent \
+  open-vm-tools \
+  open-vm-tools-desktop \
+  x11-xserver-utils \
+  xinit \
   mesa-va-drivers \
   mesa-vulkan-drivers \
   libgl1-mesa-dri \
+  vulkan-tools \
+  ffmpeg \
+  gstreamer1.0-plugins-good \
+  gstreamer1.0-plugins-bad \
+  gstreamer1.0-plugins-ugly \
+  gstreamer1.0-libav \
   flatpak \
   gnome-software-plugin-flatpak \
   chromium \
@@ -168,12 +203,24 @@ apt-get install -y --no-install-recommends \
   fonts-freefont-ttf \
   fonts-noto-color-emoji \
   fonts-inter \
+  fonts-roboto \
   papirus-icon-theme \
   ca-certificates \
   nodejs \
+  npm \
+  python3 \
+  python3-pip \
+  git \
+  build-essential \
+  rsync \
   htop \
+  btop \
   fastfetch \
-  unzip
+  neofetch \
+  unzip \
+  p7zip-full \
+  tar \
+  gzip
 
 # Adicionar repositório oficial Flathub
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
@@ -194,14 +241,16 @@ cat << 'HOSTS_EOF' > /etc/hosts
 127.0.1.1   inovecloud-os
 HOSTS_EOF
 
-# Configurar GDM3 Auto-Login para a sessão GNOME Wayland
+# Configurar GDM3 Auto-Login e Compatibilidade Gráfica Universal (Zero Tela Preta)
 mkdir -p /etc/gdm3
 cat << 'GDM_CONF' > /etc/gdm3/daemon.conf
 # GDM configuration storage for InoveCloud OS Live
 [daemon]
 AutomaticLoginEnable = true
 AutomaticLogin = inove
-WaylandEnable=true
+# Desativar Wayland forçado na live para garantir 100% de compatibilidade Xorg sem tela preta
+WaylandEnable = false
+DefaultSession = gnome-xorg.desktop
 
 [security]
 
@@ -210,6 +259,8 @@ WaylandEnable=true
 [chooser]
 
 [debug]
+# Habilitar logs detalhados para diagnóstico se necessário
+Enable = false
 GDM_CONF
 
 systemctl enable gdm3 || true
@@ -815,28 +866,28 @@ if loadfont /boot/grub/fonts/unicode.pf2; then
   terminal_output gfxterm
 fi
 
-menuentry "🚀 InoveCloud OS 2026 (Live Desktop - Plymouth Splash Silencioso)" {
-  linux /live/vmlinuz boot=live components quiet splash loglevel=3 rd.udev.log_priority=3 vt.global_cursor_default=0
+menuentry "🚀 InoveCloud OS 2026 (Live Desktop - Inicialização Padrão)" {
+  linux /live/vmlinuz boot=live components systemd.show_status=1 console=tty1
+  initrd /live/initrd
+}
+
+menuentry "🛡️ InoveCloud OS 2026 (Modo Seguro - 100% Anti Tela Preta / Safe Graphics)" {
+  linux /live/vmlinuz boot=live components nomodeset xforcevesa systemd.show_status=1 console=tty1
+  initrd /live/initrd
+}
+
+menuentry "🔍 InoveCloud OS 2026 (Modo Diagnóstico e Logs Visíveis)" {
+  linux /live/vmlinuz boot=live components debug nosplash systemd.show_status=1 console=tty1
   initrd /live/initrd
 }
 
 menuentry "💾 InoveCloud OS (Modo Live USB com Persistência de Dados)" {
-  linux /live/vmlinuz boot=live persistence components quiet splash loglevel=3
+  linux /live/vmlinuz boot=live persistence components systemd.show_status=1 console=tty1
   initrd /live/initrd
 }
 
 menuentry "🛠️ InoveCloud OS (Modo Instalação no Disco SSD/NVMe)" {
-  linux /live/vmlinuz boot=live inove_mode=installer components
-  initrd /live/initrd
-}
-
-menuentry "🔍 InoveCloud OS (Diagnóstico e Hardware Verbose Boot)" {
-  linux /live/vmlinuz boot=live debug earlyprintk=vga components
-  initrd /live/initrd
-}
-
-menuentry "🛡️ InoveCloud OS (Modo Seguro / Fallback VESA Framebuffer)" {
-  linux /live/vmlinuz boot=live nomodeset components
+  linux /live/vmlinuz boot=live inove_mode=installer components systemd.show_status=1 console=tty1
   initrd /live/initrd
 }
 GRUB_CFG

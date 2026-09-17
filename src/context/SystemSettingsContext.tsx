@@ -4,6 +4,10 @@ export interface SystemSettingsState {
   // Connectivity
   wifiEnabled: boolean;
   connectedSsid: string;
+  ethernetEnabled: boolean;
+  ethernetConnected: boolean;
+  ethernetSpeed: string;
+  ethernetIp: string;
   bluetoothEnabled: boolean;
   pairedBtCount: number;
   
@@ -14,6 +18,7 @@ export interface SystemSettingsState {
   darkMode: boolean;
   screenBrightness: number; // 20 to 100
   nightLight: boolean;
+  doNotDisturb: boolean;
   
   // Audio
   speakerVolume: number; // 0 to 100
@@ -36,6 +41,9 @@ interface SystemSettingsContextType extends SystemSettingsState {
   toggleWifi: () => void;
   setWifiEnabled: (enabled: boolean) => void;
   setConnectedSsid: (ssid: string) => void;
+
+  toggleEthernet: () => void;
+  setEthernetEnabled: (enabled: boolean) => void;
   
   toggleBluetooth: () => void;
   setBluetoothEnabled: (enabled: boolean) => void;
@@ -46,6 +54,9 @@ interface SystemSettingsContextType extends SystemSettingsState {
   toggleDarkMode: () => void;
   setDarkMode: (enabled: boolean) => void;
   
+  toggleDoNotDisturb: () => void;
+  setDoNotDisturb: (enabled: boolean) => void;
+
   setScreenBrightness: (val: number) => void;
   toggleNightLight: () => void;
   
@@ -67,7 +78,7 @@ interface SystemSettingsContextType extends SystemSettingsState {
   wakeFromSleep: () => void;
   
   // Sound effect
-  playFeedbackTone: () => void;
+  playFeedbackTone: (force?: boolean) => void;
 }
 
 const STORAGE_KEY = 'inovecloud_system_settings_v1';
@@ -75,12 +86,17 @@ const STORAGE_KEY = 'inovecloud_system_settings_v1';
 const defaultState: SystemSettingsState = {
   wifiEnabled: true,
   connectedSsid: 'InoveCloud-5G-Ultra',
+  ethernetEnabled: true,
+  ethernetConnected: true,
+  ethernetSpeed: '10 Gbps Full-Duplex (DMA Intel X550)',
+  ethernetIp: '192.168.1.145',
   bluetoothEnabled: true,
   pairedBtCount: 3,
   gpuTurboEnabled: true,
   darkMode: true,
   screenBrightness: 90,
   nightLight: false,
+  doNotDisturb: false,
   speakerVolume: 75,
   isMuted: false,
   isScreenLocked: false,
@@ -122,11 +138,20 @@ export const SystemSettingsProvider: React.FC<{ children: React.ReactNode }> = (
     } catch (e) {
       console.error('Error saving settings:', e);
     }
+
+    // Sync root dark mode class
+    if (state.darkMode) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    }
   }, [state]);
 
-  // Audio feedback helper
-  const playFeedbackTone = () => {
-    if (state.isMuted || state.speakerVolume === 0) return;
+  // Audio feedback helper (respects Do Not Disturb and Mute)
+  const playFeedbackTone = (force = false) => {
+    if (!force && (state.doNotDisturb || state.isMuted || state.speakerVolume === 0)) return;
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const osc = audioCtx.createOscillator();
@@ -146,15 +171,49 @@ export const SystemSettingsProvider: React.FC<{ children: React.ReactNode }> = (
   };
 
   const toggleWifi = () => {
-    setState((prev) => ({ ...prev, wifiEnabled: !prev.wifiEnabled }));
+    setState((prev) => {
+      const next = !prev.wifiEnabled;
+      fetch('/api/system/debian/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'network-wifi-toggle', payload: { enabled: next } }),
+      }).catch(() => {});
+      return { ...prev, wifiEnabled: next };
+    });
   };
 
   const setWifiEnabled = (enabled: boolean) => {
+    fetch('/api/system/debian/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'network-wifi-toggle', payload: { enabled } }),
+    }).catch(() => {});
     setState((prev) => ({ ...prev, wifiEnabled: enabled }));
   };
 
   const setConnectedSsid = (ssid: string) => {
     setState((prev) => ({ ...prev, connectedSsid: ssid, wifiEnabled: true }));
+  };
+
+  const toggleEthernet = () => {
+    setState((prev) => {
+      const next = !prev.ethernetEnabled;
+      fetch('/api/system/debian/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'network-eth-toggle', payload: { enabled: next } }),
+      }).catch(() => {});
+      return { ...prev, ethernetEnabled: next, ethernetConnected: next };
+    });
+  };
+
+  const setEthernetEnabled = (enabled: boolean) => {
+    fetch('/api/system/debian/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'network-eth-toggle', payload: { enabled } }),
+    }).catch(() => {});
+    setState((prev) => ({ ...prev, ethernetEnabled: enabled, ethernetConnected: enabled }));
   };
 
   const toggleBluetooth = () => {
@@ -179,6 +238,14 @@ export const SystemSettingsProvider: React.FC<{ children: React.ReactNode }> = (
 
   const setDarkMode = (enabled: boolean) => {
     setState((prev) => ({ ...prev, darkMode: enabled }));
+  };
+
+  const toggleDoNotDisturb = () => {
+    setState((prev) => ({ ...prev, doNotDisturb: !prev.doNotDisturb }));
+  };
+
+  const setDoNotDisturb = (enabled: boolean) => {
+    setState((prev) => ({ ...prev, doNotDisturb: enabled }));
   };
 
   const setScreenBrightness = (val: number) => {
@@ -283,12 +350,16 @@ export const SystemSettingsProvider: React.FC<{ children: React.ReactNode }> = (
         toggleWifi,
         setWifiEnabled,
         setConnectedSsid,
+        toggleEthernet,
+        setEthernetEnabled,
         toggleBluetooth,
         setBluetoothEnabled,
         toggleGpuTurbo,
         setGpuTurboEnabled,
         toggleDarkMode,
         setDarkMode,
+        toggleDoNotDisturb,
+        setDoNotDisturb,
         setScreenBrightness,
         toggleNightLight,
         setSpeakerVolume,

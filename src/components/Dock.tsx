@@ -14,7 +14,6 @@ import {
   Wifi,
   Sparkles,
   ShieldCheck,
-  Cpu,
   Compass,
   User,
   LayoutGrid,
@@ -23,13 +22,20 @@ import {
   X,
   RotateCcw,
   Sliders,
-  Check,
   ExternalLink,
   Minimize2,
   Disc,
-  BookOpen
+  BookOpen,
+  Palette,
+  ArrowDown,
+  ArrowUp,
+  ArrowLeft,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Maximize2
 } from 'lucide-react';
-import { AppId } from '../types';
+import { AppId, DockConfig, DEFAULT_DOCK_CONFIG, DockPosition, DockAlignment, DockThemeStyle } from '../types';
 import { DEFAULT_DOCK_PINNED } from '../data/launcherApps';
 import { AppIcon } from './desktop/AppIcon';
 
@@ -59,6 +65,8 @@ interface DockProps {
   onResetDockDefault?: () => void;
   showOpenWindowsInDock?: boolean;
   onToggleShowOpenWindows?: () => void;
+  dockConfig?: DockConfig;
+  onUpdateDockConfig?: (config: Partial<DockConfig>) => void;
 }
 
 export const Dock: React.FC<DockProps> = ({
@@ -75,10 +83,14 @@ export const Dock: React.FC<DockProps> = ({
   onResetDockDefault,
   showOpenWindowsInDock = true,
   onToggleShowOpenWindows,
+  dockConfig = DEFAULT_DOCK_CONFIG,
+  onUpdateDockConfig,
 }) => {
   const [mouseX, setMouseX] = useState<number | null>(null);
+  const [mouseY, setMouseY] = useState<number | null>(null);
   const [hoveredApp, setHoveredApp] = useState<AppId | null>(null);
   const [bouncingAppId, setBouncingAppId] = useState<AppId | null>(null);
+  const [isDockHovered, setIsDockHovered] = useState(false);
   const [contextMenu, setContextMenu] = useState<{
     appId: AppId;
     x: number;
@@ -88,6 +100,13 @@ export const Dock: React.FC<DockProps> = ({
 
   const dockRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<AppId, HTMLDivElement>>(new Map());
+  const launcherRef = useRef<HTMLDivElement>(null);
+
+  const position = dockConfig.position || 'bottom';
+  const alignment = dockConfig.alignment || 'center';
+  const iconSize = dockConfig.iconSize || 54;
+  const isVertical = position === 'left' || position === 'right';
+  const isHorizontal = !isVertical;
 
   // Close context menu on window click
   useEffect(() => {
@@ -99,7 +118,7 @@ export const Dock: React.FC<DockProps> = ({
     return () => window.removeEventListener('click', handleOutsideClick);
   }, []);
 
-  // Master definition of all macOS squircle icons
+  // Master definition of all desktop icons
   const masterDockItems: DockItemConfig[] = [
     {
       id: 'projects',
@@ -128,6 +147,18 @@ export const Dock: React.FC<DockProps> = ({
           <div className="absolute -top-1 -right-1 flex space-x-0.5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           </div>
+        </div>
+      ),
+    },
+    {
+      id: 'storage',
+      label: 'Gerenciador de Arquivos & USB',
+      subLabel: 'SSD NVMe, USB Kingston & Lixeira',
+      gradient: 'from-rose-500 via-pink-600 to-red-600',
+      glowColor: 'rgba(244, 63, 94, 0.5)',
+      renderIcon: () => (
+        <div className="relative flex items-center justify-center">
+          <HardDrive className="w-6 h-6 text-white drop-shadow-md" />
         </div>
       ),
     },
@@ -193,7 +224,7 @@ export const Dock: React.FC<DockProps> = ({
     {
       id: 'appstore',
       label: 'App Store Hub',
-      subLabel: '1-Click Docker Catalog',
+      subLabel: 'Catálogo de Aplicativos Linux & Docker',
       gradient: 'from-purple-500 via-indigo-600 to-violet-800',
       glowColor: 'rgba(147, 51, 234, 0.5)',
       renderIcon: () => (
@@ -203,20 +234,8 @@ export const Dock: React.FC<DockProps> = ({
       ),
     },
     {
-      id: 'storage',
-      label: 'Cloud Storage & Fotos',
-      subLabel: 'Backup S3 & Mídia',
-      gradient: 'from-rose-500 via-pink-600 to-red-600',
-      glowColor: 'rgba(244, 63, 94, 0.5)',
-      renderIcon: () => (
-        <div className="relative flex items-center justify-center">
-          <HardDrive className="w-6 h-6 text-white drop-shadow-md" />
-        </div>
-      ),
-    },
-    {
       id: 'terminal',
-      label: 'Cloud Shell (CLI)',
+      label: 'Terminal Root (CLI)',
       subLabel: 'inovectl & Bash Root',
       gradient: 'from-zinc-800 via-slate-900 to-neutral-950',
       glowColor: 'rgba(16, 185, 129, 0.4)',
@@ -270,9 +289,24 @@ export const Dock: React.FC<DockProps> = ({
       ),
     },
     {
+      id: 'themes',
+      label: 'Temas & Papéis de Parede',
+      subLabel: 'Wallpapers 4K & Vidro Líquido',
+      gradient: 'from-pink-500 via-purple-600 to-cyan-500',
+      glowColor: 'rgba(236, 72, 153, 0.6)',
+      badge: '4K',
+      badgeColor: 'bg-fuchsia-600',
+      isUtility: false,
+      renderIcon: () => (
+        <div className="relative flex items-center justify-center">
+          <Palette className="w-6 h-6 text-white drop-shadow-md" />
+        </div>
+      ),
+    },
+    {
       id: 'settings',
-      label: 'Ajustes & Wallpapers',
-      subLabel: 'Preferências do Sistema',
+      label: 'Ajustes do Sistema',
+      subLabel: 'Preferências do InoveCloud OS & Dock',
       gradient: 'from-slate-600 via-slate-700 to-zinc-800',
       glowColor: 'rgba(148, 163, 184, 0.4)',
       isUtility: true,
@@ -308,14 +342,65 @@ export const Dock: React.FC<DockProps> = ({
         </div>
       ),
     },
+    {
+      id: 'gallery',
+      label: 'Galeria de Fotos Pro',
+      subLabel: 'Visualizador & Editor',
+      gradient: 'from-purple-600 via-violet-600 to-indigo-800',
+      glowColor: 'rgba(147, 51, 234, 0.5)',
+      badge: 'Pro',
+      badgeColor: 'bg-violet-600',
+      isUtility: false,
+      renderIcon: () => null,
+    },
+    {
+      id: 'music',
+      label: 'DAW Studio & Música',
+      subLabel: 'Estúdio Beatmaker & Hi-Fi',
+      gradient: 'from-red-600 via-rose-600 to-pink-700',
+      glowColor: 'rgba(239, 68, 68, 0.5)',
+      badge: 'DAW',
+      badgeColor: 'bg-red-600',
+      isUtility: false,
+      renderIcon: () => null,
+    },
+    {
+      id: 'videoplayer',
+      label: 'Player de Vídeo 4K HDR',
+      subLabel: 'Reprodutor de Mídia Local',
+      gradient: 'from-orange-500 via-rose-500 to-pink-600',
+      glowColor: 'rgba(244, 63, 94, 0.5)',
+      badge: '4K',
+      badgeColor: 'bg-rose-600',
+      isUtility: false,
+      renderIcon: () => null,
+    },
+    {
+      id: 'calculator',
+      label: 'Calculadora',
+      subLabel: 'Padrão, Científica & HEX',
+      gradient: 'from-orange-500 via-amber-600 to-slate-900',
+      glowColor: 'rgba(245, 158, 11, 0.5)',
+      badge: 'Calc',
+      badgeColor: 'bg-orange-500',
+      isUtility: false,
+      renderIcon: () => null,
+    },
+    {
+      id: 'camera',
+      label: 'Câmera HD',
+      subLabel: '1080p 60FPS Vision',
+      gradient: 'from-red-600 via-rose-600 to-slate-900',
+      glowColor: 'rgba(239, 68, 68, 0.5)',
+      badge: 'HD',
+      badgeColor: 'bg-red-600',
+      isUtility: false,
+      renderIcon: () => null,
+    },
   ];
 
-  // Resolve which items appear in the dock:
-  // 1. All pinned apps
-  // 2. Plus open apps/windows if showOpenWindowsInDock is enabled
+  // Resolve items
   const renderedDockItems: DockItemConfig[] = [];
-
-  // Add pinned apps in user-specified order
   dockPinnedApps.forEach((pId) => {
     const item = masterDockItems.find((i) => i.id === pId);
     if (item && !renderedDockItems.some((r) => r.id === item.id)) {
@@ -323,7 +408,6 @@ export const Dock: React.FC<DockProps> = ({
     }
   });
 
-  // Add open windows if showOpenWindowsInDock is true
   if (showOpenWindowsInDock) {
     openAppIds.forEach((oId) => {
       const item = masterDockItems.find((i) => i.id === oId);
@@ -333,41 +417,62 @@ export const Dock: React.FC<DockProps> = ({
     });
   }
 
-  // Calculate magnification scale and lift for an element based on mouse distance
+  // Calculate magnification scale and displacement
   const calculateMagnification = (element: HTMLElement | null) => {
-    if (mouseX === null || !element) {
-      return { scale: 1, translateY: 0, zIndex: 1, margin: 4 };
+    if (!dockConfig.magnification) {
+      return { scale: 1, translateX: 0, translateY: 0, zIndex: 1, margin: 4 };
     }
 
-    const rect = element.getBoundingClientRect();
-    const itemCenter = rect.left + rect.width / 2;
-    const distance = Math.abs(mouseX - itemCenter);
-    const maxDistance = 150; // Fisheye radius in pixels
+    if (isVertical) {
+      if (mouseY === null || !element) {
+        return { scale: 1, translateX: 0, translateY: 0, zIndex: 1, margin: 4 };
+      }
+      const rect = element.getBoundingClientRect();
+      const itemCenter = rect.top + rect.height / 2;
+      const distance = Math.abs(mouseY - itemCenter);
+      const maxDistance = 140;
 
-    if (distance >= maxDistance) {
-      return { scale: 1, translateY: 0, zIndex: 1, margin: 4 };
+      if (distance >= maxDistance) {
+        return { scale: 1, translateX: 0, translateY: 0, zIndex: 1, margin: 4 };
+      }
+
+      const factor = Math.cos((distance / maxDistance) * (Math.PI / 2));
+      const scale = 1 + factor * ((dockConfig.magnificationScale || 1.35) - 1);
+      const translateX = position === 'left' ? (scale - 1) * 20 : -(scale - 1) * 20;
+      const zIndex = Math.round(scale * 20);
+      const margin = 4 + factor * 6;
+
+      return { scale, translateX, translateY: 0, zIndex, margin };
+    } else {
+      if (mouseX === null || !element) {
+        return { scale: 1, translateX: 0, translateY: 0, zIndex: 1, margin: 4 };
+      }
+      const rect = element.getBoundingClientRect();
+      const itemCenter = rect.left + rect.width / 2;
+      const distance = Math.abs(mouseX - itemCenter);
+      const maxDistance = 140;
+
+      if (distance >= maxDistance) {
+        return { scale: 1, translateX: 0, translateY: 0, zIndex: 1, margin: 4 };
+      }
+
+      const factor = Math.cos((distance / maxDistance) * (Math.PI / 2));
+      const scale = 1 + factor * ((dockConfig.magnificationScale || 1.35) - 1);
+      const translateY = position === 'top' ? (scale - 1) * 20 : -(scale - 1) * 20;
+      const zIndex = Math.round(scale * 20);
+      const margin = 4 + factor * 6;
+
+      return { scale, translateX: 0, translateY, zIndex, margin };
     }
-
-    // Smooth Cosine curve (macOS fisheye wave formula)
-    const factor = Math.cos((distance / maxDistance) * (Math.PI / 2));
-    const scale = 1 + factor * 0.58; // Max 1.58x magnification
-    const translateY = -(scale - 1) * 34; // Lift icon up to stay anchored to dock base
-    const zIndex = Math.round(scale * 20); // Higher scale = front layer
-    const margin = 4 + factor * 8; // Gentle horizontal expansion between icons
-
-    return { scale, translateY, zIndex, margin };
   };
 
-  const launcherRef = useRef<HTMLDivElement>(null);
   const launcherMag = calculateMagnification(launcherRef.current);
 
   const handleAppClick = (id: AppId) => {
-    // Trigger macOS bounce
     setBouncingAppId(id);
     setTimeout(() => {
       setBouncingAppId(null);
     }, 750);
-
     onOpenApp(id);
   };
 
@@ -385,20 +490,102 @@ export const Dock: React.FC<DockProps> = ({
 
   const isOnlyLauncher = renderedDockItems.length === 0;
 
+  // Positioning container classes
+  const containerPositionClass = (() => {
+    switch (position) {
+      case 'top':
+        return 'fixed top-9 left-0 right-0 z-40 flex';
+      case 'left':
+        return 'fixed left-2 top-10 bottom-2 z-40 flex flex-col';
+      case 'right':
+        return 'fixed right-2 top-10 bottom-2 z-40 flex flex-col';
+      case 'bottom':
+      default:
+        return 'fixed bottom-2 left-0 right-0 z-40 flex';
+    }
+  })();
+
+  const alignmentClass = (() => {
+    if (isHorizontal) {
+      switch (alignment) {
+        case 'start':
+          return 'justify-start pl-6';
+        case 'end':
+          return 'justify-end pr-6';
+        case 'center':
+        default:
+          return 'justify-center';
+      }
+    } else {
+      switch (alignment) {
+        case 'start':
+          return 'justify-start pt-4';
+        case 'end':
+          return 'justify-end pb-4';
+        case 'center':
+        default:
+          return 'justify-center';
+      }
+    }
+  })();
+
+  // Auto-hide translation
+  const autoHideTransformClass = (() => {
+    if (!dockConfig.autoHide || isDockHovered || isDockOptionsOpen) return 'translate-x-0 translate-y-0 opacity-100';
+    switch (position) {
+      case 'top':
+        return '-translate-y-[calc(100%-8px)] opacity-50 hover:opacity-100';
+      case 'left':
+        return '-translate-x-[calc(100%-8px)] opacity-50 hover:opacity-100';
+      case 'right':
+        return 'translate-x-[calc(100%-8px)] opacity-50 hover:opacity-100';
+      case 'bottom':
+      default:
+        return 'translate-y-[calc(100%-8px)] opacity-50 hover:opacity-100';
+    }
+  })();
+
+  // Theme Style classes
+  const themeStyleClass = (() => {
+    switch (dockConfig.style) {
+      case 'macos':
+        return 'bg-black/60 backdrop-blur-3xl border border-white/20 shadow-2xl';
+      case 'floating_pill':
+        return 'bg-slate-950/90 backdrop-blur-2xl border border-cyan-500/40 rounded-full shadow-[0_0_30px_rgba(6,182,212,0.25)]';
+      case 'solid_dark':
+        return 'bg-slate-950 border border-slate-800 shadow-2xl';
+      case 'liquid_glass':
+      default:
+        return 'glass-dock border border-white/30 backdrop-blur-2xl bg-white/10 dark:bg-black/40 shadow-2xl';
+    }
+  })();
+
   return (
-    <div className="fixed bottom-3 left-0 right-0 z-40 flex justify-center pointer-events-none select-none">
+    <div className={`${containerPositionClass} ${alignmentClass} pointer-events-none select-none transition-all duration-300`}>
       <div
         ref={dockRef}
-        onMouseMove={(e) => setMouseX(e.clientX)}
+        onMouseEnter={() => setIsDockHovered(true)}
+        onMouseMove={(e) => {
+          setIsDockHovered(true);
+          setMouseX(e.clientX);
+          setMouseY(e.clientY);
+        }}
         onMouseLeave={() => {
+          setIsDockHovered(false);
           setMouseX(null);
+          setMouseY(null);
           setHoveredApp(null);
         }}
         onContextMenu={(e) => {
           e.preventDefault();
           setIsDockOptionsOpen(true);
         }}
-        className={`pointer-events-auto flex items-end px-3.5 py-2.5 rounded-3xl glass-dock transition-all duration-300 relative border border-white/30 ${
+        style={{
+          borderRadius: dockConfig.style === 'floating_pill' ? '9999px' : '26px',
+        }}
+        className={`pointer-events-auto flex ${
+          isVertical ? 'flex-col items-center py-3 px-2' : 'flex-row items-end px-3.5 py-2'
+        } ${themeStyleClass} ${autoHideTransformClass} transition-all duration-300 relative ${
           isOnlyLauncher ? 'ring-2 ring-purple-500/50 shadow-purple-500/20' : ''
         }`}
       >
@@ -407,9 +594,11 @@ export const Dock: React.FC<DockProps> = ({
           <>
             <div
               ref={launcherRef}
-              className="relative flex flex-col items-center group origin-bottom select-none"
+              className={`relative flex flex-col items-center group ${
+                position === 'top' ? 'origin-top' : isVertical ? (position === 'left' ? 'origin-left' : 'origin-right') : 'origin-bottom'
+              } select-none`}
               style={{
-                margin: `0 ${launcherMag.margin}px`,
+                margin: isVertical ? `${launcherMag.margin}px 0` : `0 ${launcherMag.margin}px`,
                 zIndex: launcherMag.zIndex,
                 transition: 'margin 100ms cubic-bezier(0.2, 0.8, 0.2, 1)',
               }}
@@ -417,51 +606,72 @@ export const Dock: React.FC<DockProps> = ({
               onMouseLeave={() => setHoveredApp(null)}
             >
               {/* Tooltip for Launcher */}
-              {isOnlyLauncher && hoveredApp === null && (
-                <div className="absolute -top-14 px-3 py-1.5 bg-purple-950/95 text-white rounded-xl shadow-2xl backdrop-blur-xl border border-purple-400/30 whitespace-nowrap animate-fade-in pointer-events-none z-50 flex flex-col items-center">
+              {hoveredApp === ('settings' as AppId) && !contextMenu && (
+                <div
+                  className={`absolute ${
+                    position === 'top'
+                      ? 'top-14'
+                      : position === 'left'
+                      ? 'left-16 top-1/2 -translate-y-1/2'
+                      : position === 'right'
+                      ? 'right-16 top-1/2 -translate-y-1/2'
+                      : '-top-14'
+                  } px-3 py-1.5 bg-purple-950/95 text-white rounded-xl shadow-2xl backdrop-blur-xl border border-purple-400/30 whitespace-nowrap animate-fade-in pointer-events-none z-50 flex flex-col items-center`}
+                >
                   <span className="text-xs font-bold leading-tight tracking-wide">
-                    Launcher de Apps (Dock Minimalista)
+                    Launcher de Apps
                   </span>
                   <span className="text-[10px] text-purple-200">Clique para abrir todos os aplicativos</span>
-                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-purple-950/95 rotate-45 border-r border-b border-purple-400/30" />
                 </div>
               )}
 
               {/* Launcher Magnified Container */}
               <div
                 style={{
-                  transform: `scale(${launcherMag.scale}) translateY(${launcherMag.translateY}px)`,
-                  transformOrigin: 'bottom center',
+                  transform: `scale(${launcherMag.scale}) translate(${launcherMag.translateX}px, ${launcherMag.translateY}px)`,
+                  transformOrigin: isVertical
+                    ? position === 'left'
+                      ? 'center left'
+                      : 'center right'
+                    : position === 'top'
+                    ? 'top center'
+                    : 'bottom center',
                   transition: 'transform 90ms cubic-bezier(0.2, 0.8, 0.2, 1)',
                 }}
               >
                 <button
                   onClick={onToggleLauncher}
-                  className="relative flex items-center justify-center rounded-2xl p-2.5 cursor-pointer shadow-lg active:scale-95 bg-gradient-to-tr from-fuchsia-600 via-purple-600 to-indigo-700 border border-white/30 hover:shadow-purple-500/50"
+                  className="relative flex items-center justify-center rounded-2xl p-2 cursor-pointer shadow-lg active:scale-95 bg-gradient-to-tr from-fuchsia-600 via-purple-600 to-indigo-700 border border-white/30 hover:shadow-purple-500/50"
                   style={{
-                    width: '48px',
-                    height: '48px',
+                    width: `${iconSize}px`,
+                    height: `${iconSize}px`,
                     filter: 'drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35))',
                   }}
-                  title="Launcher de Aplicativos (Organizar & Fixar na Tela Inicial / Dock)"
+                  title="Launcher de Aplicativos"
                 >
                   <LayoutGrid className="w-6 h-6 text-white drop-shadow-md" />
                 </button>
               </div>
 
               {/* Dot indicator if launcher is open */}
-              <div className="h-1.5 flex items-center justify-center mt-1">
-                {isLauncherOpen ? (
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400 animate-pulse" />
-                ) : (
-                  <div className="w-1 h-1 rounded-full bg-transparent" />
-                )}
-              </div>
+              {dockConfig.showOpenIndicators && (
+                <div className="h-1.5 flex items-center justify-center mt-1">
+                  {isLauncherOpen ? (
+                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400 animate-pulse" />
+                  ) : (
+                    <div className="w-1 h-1 rounded-full bg-transparent" />
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Separator if there are other items */}
             {renderedDockItems.length > 0 && (
-              <div className="w-px h-8 bg-white/20 mx-1.5 self-center rounded-full shrink-0" />
+              <div
+                className={`${
+                  isVertical ? 'h-px w-8 my-1.5' : 'w-px h-8 mx-1.5'
+                } bg-white/20 self-center rounded-full shrink-0`}
+              />
             )}
           </>
         )}
@@ -473,7 +683,7 @@ export const Dock: React.FC<DockProps> = ({
           const isHovered = hoveredApp === item.id;
           const isBouncing = bouncingAppId === item.id;
           const element = itemRefs.current.get(item.id) || null;
-          const { scale, translateY, zIndex, margin } = calculateMagnification(element);
+          const { scale, translateX, translateY, zIndex, margin } = calculateMagnification(element);
 
           return (
             <React.Fragment key={item.id}>
@@ -482,29 +692,34 @@ export const Dock: React.FC<DockProps> = ({
                   if (node) itemRefs.current.set(item.id, node);
                   else itemRefs.current.delete(item.id);
                 }}
-                className="relative flex flex-col items-center group origin-bottom select-none"
+                className={`relative flex flex-col items-center group ${
+                  position === 'top' ? 'origin-top' : isVertical ? (position === 'left' ? 'origin-left' : 'origin-right') : 'origin-bottom'
+                } select-none`}
                 style={{
-                  margin: `0 ${margin}px`,
+                  margin: isVertical ? `${margin}px 0` : `0 ${margin}px`,
                   zIndex: zIndex,
                   transition: 'margin 100ms cubic-bezier(0.2, 0.8, 0.2, 1)',
                 }}
                 onMouseEnter={() => setHoveredApp(item.id)}
                 onMouseLeave={() => setHoveredApp(null)}
               >
-                {/* macOS Magnified Tooltip with subLabel */}
+                {/* Magnified Tooltip */}
                 {isHovered && !contextMenu && (
                   <div
-                    className="absolute px-3 py-1.5 bg-slate-900/95 text-white rounded-xl shadow-2xl backdrop-blur-xl border border-white/20 whitespace-nowrap animate-fade-in pointer-events-none z-50 flex flex-col items-center"
-                    style={{
-                      top: `${translateY - 48}px`,
-                      transition: 'top 90ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-                    }}
+                    className={`absolute ${
+                      position === 'top'
+                        ? 'top-14'
+                        : position === 'left'
+                        ? 'left-16 top-1/2 -translate-y-1/2'
+                        : position === 'right'
+                        ? 'right-16 top-1/2 -translate-y-1/2'
+                        : '-top-14'
+                    } px-3 py-1.5 bg-slate-900/95 text-white rounded-xl shadow-2xl backdrop-blur-xl border border-white/20 whitespace-nowrap animate-fade-in pointer-events-none z-50 flex flex-col items-center`}
                   >
                     <span className="text-xs font-bold leading-tight tracking-wide">{item.label}</span>
                     {item.subLabel && (
                       <span className="text-[10px] text-slate-400 font-medium">{item.subLabel}</span>
                     )}
-                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-900/95 rotate-45 border-r border-b border-white/20" />
                   </div>
                 )}
 
@@ -512,8 +727,14 @@ export const Dock: React.FC<DockProps> = ({
                 <div
                   className={`relative ${isBouncing ? 'animate-dock-bounce' : ''}`}
                   style={{
-                    transform: `scale(${scale}) translateY(${translateY}px)`,
-                    transformOrigin: 'bottom center',
+                    transform: `scale(${scale}) translate(${translateX}px, ${translateY}px)`,
+                    transformOrigin: isVertical
+                      ? position === 'left'
+                        ? 'center left'
+                        : 'center right'
+                      : position === 'top'
+                      ? 'top center'
+                      : 'bottom center',
                     transition: 'transform 90ms cubic-bezier(0.2, 0.8, 0.2, 1)',
                   }}
                 >
@@ -521,10 +742,11 @@ export const Dock: React.FC<DockProps> = ({
                     onClick={() => handleAppClick(item.id)}
                     onContextMenu={(e) => handleContextMenu(e, item.id)}
                     className="relative cursor-pointer active:scale-95 transition-transform duration-150 block"
+                    style={{ width: `${iconSize}px`, height: `${iconSize}px` }}
                   >
-                    <AppIcon appId={item.id} size="md" className="w-12 h-12" />
+                    <AppIcon appId={item.id} size="md" className="w-full h-full" />
 
-                    {/* Badge notification (e.g. 5 VMs, PC, AI) */}
+                    {/* Badge notification */}
                     {item.badge && (
                       <span
                         className={`absolute -top-1 -right-1 px-1.5 py-0.2 ${
@@ -538,29 +760,31 @@ export const Dock: React.FC<DockProps> = ({
                 </div>
 
                 {/* macOS Running / Active Dot Indicator */}
-                <div className="h-2 flex items-center justify-center mt-1">
-                  {isOpen ? (
-                    <div
-                      className={`transition-all duration-300 rounded-full ${
-                        isActive
-                          ? 'w-4 h-1 bg-white shadow-glow'
-                          : 'w-1.5 h-1.5 bg-white/70 hover:bg-white'
-                      }`}
-                      style={{
-                        boxShadow: isActive ? '0 0 8px rgba(255, 255, 255, 0.9)' : undefined,
-                      }}
-                    />
-                  ) : (
-                    <div className="w-1.5 h-1.5 opacity-0" />
-                  )}
-                </div>
+                {dockConfig.showOpenIndicators && (
+                  <div className="h-2 flex items-center justify-center mt-1">
+                    {isOpen ? (
+                      <div
+                        className={`transition-all duration-300 rounded-full ${
+                          isActive
+                            ? 'w-4 h-1 bg-white shadow-glow'
+                            : 'w-1.5 h-1.5 bg-white/70 hover:bg-white'
+                        }`}
+                        style={{
+                          boxShadow: isActive ? '0 0 8px rgba(255, 255, 255, 0.9)' : undefined,
+                        }}
+                      />
+                    ) : (
+                      <div className="w-1.5 h-1.5 opacity-0" />
+                    )}
+                  </div>
+                )}
               </div>
             </React.Fragment>
           );
         })}
 
         {/* Subtle Dock Settings Gear/Options Icon Button at the end */}
-        <div className="relative flex flex-col items-center group ml-1 origin-bottom self-center mb-2">
+        <div className={`relative flex flex-col items-center group ${isVertical ? 'mt-2' : 'ml-1'} self-center`}>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -568,7 +792,7 @@ export const Dock: React.FC<DockProps> = ({
               setContextMenu(null);
             }}
             className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer border border-transparent hover:border-white/15"
-            title="Ajustes da Dock (Deixar só o Launcher / Gerenciar Apps & Janelas)"
+            title="Ajustar Posição e Configurações da Dock"
           >
             <Sliders className="w-4 h-4" />
           </button>
@@ -581,7 +805,8 @@ export const Dock: React.FC<DockProps> = ({
           className="fixed z-50 py-2 w-64 bg-slate-900/95 text-white rounded-2xl shadow-2xl backdrop-blur-2xl border border-white/20 animate-fade-in pointer-events-auto"
           style={{
             left: Math.max(12, Math.min(window.innerWidth - 270, contextMenu.x - 120)),
-            bottom: '75px',
+            top: position === 'top' ? '80px' : undefined,
+            bottom: position !== 'top' ? '75px' : undefined,
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -637,7 +862,7 @@ export const Dock: React.FC<DockProps> = ({
                     className="w-full text-left px-3 py-1.5 hover:bg-red-600 text-xs flex items-center space-x-2 text-red-300 hover:text-white cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
-                    <span>Fechar Janela (Tirar da Tela)</span>
+                    <span>Fechar Janela</span>
                   </button>
                 )}
 
@@ -695,19 +920,23 @@ export const Dock: React.FC<DockProps> = ({
         </div>
       )}
 
-      {/* Dock Quick Options Popup Menu */}
+      {/* Dock Quick Positioning & Options Popup Menu */}
       {isDockOptionsOpen && (
         <div
-          className="fixed z-50 py-3 px-3.5 w-72 bg-slate-900/95 text-white rounded-2xl shadow-2xl backdrop-blur-2xl border border-white/20 animate-fade-in pointer-events-auto"
+          className="fixed z-50 py-3.5 px-4 w-80 bg-slate-900/98 text-white rounded-3xl shadow-2xl backdrop-blur-3xl border border-white/20 animate-fade-in pointer-events-auto"
           style={{
-            bottom: '75px',
+            bottom: position === 'bottom' ? '75px' : position === 'top' ? undefined : '50px',
+            top: position === 'top' ? '80px' : undefined,
+            left: position === 'left' ? '80px' : position === 'right' ? undefined : '50%',
+            right: position === 'right' ? '80px' : undefined,
+            transform: position === 'bottom' || position === 'top' ? 'translateX(-50%)' : undefined,
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
+          <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
             <div className="flex items-center space-x-2">
               <Sliders className="w-4 h-4 text-cyan-400" />
-              <h4 className="text-xs font-extrabold text-white">Preferências da Dock</h4>
+              <h4 className="text-xs font-black uppercase tracking-wider text-white">Ajustes & Posição da Dock</h4>
             </div>
             <button
               onClick={() => setIsDockOptionsOpen(false)}
@@ -717,87 +946,150 @@ export const Dock: React.FC<DockProps> = ({
             </button>
           </div>
 
-          <div className="space-y-2">
-            {/* Action 1: Leave only Launcher on dock */}
+          <div className="space-y-3 text-xs">
+            {/* 1. Posicionamento da Dock */}
+            <div>
+              <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
+                Posição na Tela:
+              </label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  { pos: 'bottom' as DockPosition, label: 'Inferior', icon: ArrowDown },
+                  { pos: 'left' as DockPosition, label: 'Esquerda', icon: ArrowLeft },
+                  { pos: 'top' as DockPosition, label: 'Superior', icon: ArrowUp },
+                  { pos: 'right' as DockPosition, label: 'Direita', icon: ArrowRight },
+                ].map(({ pos, label, icon: Icon }) => (
+                  <button
+                    key={pos}
+                    onClick={() => onUpdateDockConfig && onUpdateDockConfig({ position: pos })}
+                    className={`py-2 px-1 rounded-xl text-[10px] font-bold flex flex-col items-center gap-1 border transition cursor-pointer ${
+                      position === pos
+                        ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-500/30'
+                        : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. Alinhamento da Dock */}
+            <div>
+              <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
+                Alinhamento:
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { align: 'start' as DockAlignment, label: isVertical ? 'Topo' : 'Esquerda' },
+                  { align: 'center' as DockAlignment, label: 'Centro' },
+                  { align: 'end' as DockAlignment, label: isVertical ? 'Base' : 'Direita' },
+                ].map(({ align, label }) => (
+                  <button
+                    key={align}
+                    onClick={() => onUpdateDockConfig && onUpdateDockConfig({ alignment: align })}
+                    className={`py-1.5 px-2 rounded-xl text-[10px] font-semibold text-center border transition cursor-pointer ${
+                      alignment === align
+                        ? 'bg-cyan-600 border-cyan-400 text-white'
+                        : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. Tamanho dos Ícones */}
+            <div>
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 mb-1">
+                <span>Tamanho dos Ícones:</span>
+                <span className="font-mono text-cyan-400">{iconSize}px</span>
+              </div>
+              <input
+                type="range"
+                min="40"
+                max="74"
+                value={iconSize}
+                onChange={(e) => onUpdateDockConfig && onUpdateDockConfig({ iconSize: Number(e.target.value) })}
+                className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              />
+            </div>
+
+            {/* 4. Estilo Visual */}
+            <div>
+              <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
+                Estilo Visual:
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { style: 'liquid_glass' as DockThemeStyle, label: 'Vidro Líquido' },
+                  { style: 'macos' as DockThemeStyle, label: 'macOS Escuro' },
+                  { style: 'floating_pill' as DockThemeStyle, label: 'Pílula Neon' },
+                  { style: 'solid_dark' as DockThemeStyle, label: 'Preto Linux' },
+                ].map(({ style: st, label }) => (
+                  <button
+                    key={st}
+                    onClick={() => onUpdateDockConfig && onUpdateDockConfig({ style: st })}
+                    className={`py-1.5 px-2 rounded-xl text-[10px] font-semibold text-center border transition cursor-pointer ${
+                      dockConfig.style === st
+                        ? 'bg-purple-600 border-purple-400 text-white'
+                        : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 5. Toggles Rápidos (Auto-hide, Zoom, Janelas) */}
+            <div className="space-y-1.5 pt-1 border-t border-white/10">
+              {/* Auto Hide */}
+              <div
+                onClick={() => onUpdateDockConfig && onUpdateDockConfig({ autoHide: !dockConfig.autoHide })}
+                className="flex items-center justify-between p-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition"
+              >
+                <div className="flex items-center space-x-2">
+                  {dockConfig.autoHide ? <EyeOff className="w-3.5 h-3.5 text-amber-400" /> : <Eye className="w-3.5 h-3.5 text-cyan-400" />}
+                  <span className="text-[11px]">Ocultar Automaticamente (Auto-Hide)</span>
+                </div>
+                <div className={`w-7 h-3.5 rounded-full transition-colors flex items-center p-0.5 ${
+                  dockConfig.autoHide ? 'bg-amber-500 justify-end' : 'bg-slate-700 justify-start'
+                }`}>
+                  <div className="w-2.5 h-2.5 rounded-full bg-white shadow" />
+                </div>
+              </div>
+
+              {/* Magnification */}
+              <div
+                onClick={() => onUpdateDockConfig && onUpdateDockConfig({ magnification: !dockConfig.magnification })}
+                className="flex items-center justify-between p-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition"
+              >
+                <div className="flex items-center space-x-2">
+                  <Maximize2 className="w-3.5 h-3.5 text-pink-400" />
+                  <span className="text-[11px]">Efeito de Zoom (Magnification)</span>
+                </div>
+                <div className={`w-7 h-3.5 rounded-full transition-colors flex items-center p-0.5 ${
+                  dockConfig.magnification ? 'bg-pink-500 justify-end' : 'bg-slate-700 justify-start'
+                }`}>
+                  <div className="w-2.5 h-2.5 rounded-full bg-white shadow" />
+                </div>
+              </div>
+            </div>
+
+            {/* Leave only launcher on dock */}
             {onClearDockExceptLauncher && (
               <button
                 onClick={() => {
                   onClearDockExceptLauncher();
                   setIsDockOptionsOpen(false);
                 }}
-                className={`w-full text-left p-2.5 rounded-xl border transition cursor-pointer flex items-center space-x-2.5 ${
-                  isOnlyLauncher
-                    ? 'bg-purple-600/30 border-purple-500/50 text-purple-200'
-                    : 'bg-white/5 hover:bg-purple-600/20 border-white/10 hover:border-purple-500/40 text-white'
-                }`}
+                className="w-full text-left p-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-200 text-xs font-semibold flex items-center space-x-2 transition cursor-pointer"
               >
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-fuchsia-600 to-indigo-600 flex items-center justify-center shrink-0">
-                  <LayoutGrid className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-purple-300">
-                    ⭐ Deixar apenas Launcher na Dock
-                  </div>
-                  <div className="text-[10px] text-slate-400">
-                    Remove todos os apps e mantém a dock minimalista
-                  </div>
-                </div>
-              </button>
-            )}
-
-            {/* Toggle: Show open windows in dock */}
-            {onToggleShowOpenWindows && (
-              <div
-                onClick={onToggleShowOpenWindows}
-                className="w-full text-left p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition cursor-pointer flex items-center justify-between"
-              >
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-cyan-400" />
-                  <div>
-                    <div className="text-xs font-semibold text-white">
-                      Mostrar janelas abertas na Dock
-                    </div>
-                    <div className="text-[10px] text-slate-400">
-                      {showOpenWindowsInDock ? 'Janelas ativas aparecem na dock' : 'Apenas apps fixados aparecem'}
-                    </div>
-                  </div>
-                </div>
-                <div className={`w-8 h-4 rounded-full transition-colors flex items-center p-0.5 ${
-                  showOpenWindowsInDock ? 'bg-cyan-500 justify-end' : 'bg-slate-700 justify-start'
-                }`}>
-                  <div className="w-3 h-3 rounded-full bg-white shadow-sm" />
-                </div>
-              </div>
-            )}
-
-            {/* Open Launcher to configure apps */}
-            {onToggleLauncher && (
-              <button
-                onClick={() => {
-                  onToggleLauncher();
-                  setIsDockOptionsOpen(false);
-                }}
-                className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs flex items-center justify-between text-slate-300 hover:text-white transition cursor-pointer"
-              >
-                <span className="flex items-center space-x-2">
-                  <Pin className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Escolher quais apps ficam na Dock</span>
-                </span>
-                <span className="text-[10px] text-cyan-300 font-bold">{dockPinnedApps.length} Fixados</span>
-              </button>
-            )}
-
-            {/* Restore Default */}
-            {onResetDockDefault && (
-              <button
-                onClick={() => {
-                  onResetDockDefault();
-                  setIsDockOptionsOpen(false);
-                }}
-                className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs flex items-center space-x-2 text-slate-400 hover:text-white transition cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Restaurar todos os apps padrão da Dock</span>
+                <LayoutGrid className="w-3.5 h-3.5 text-purple-400" />
+                <span>Deixar apenas Launcher na Dock</span>
               </button>
             )}
           </div>

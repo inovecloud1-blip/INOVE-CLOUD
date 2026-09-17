@@ -28,7 +28,9 @@ import {
   Moon,
   Volume2,
   VolumeX,
-  Sun
+  Sun,
+  Network,
+  BellOff
 } from 'lucide-react';
 import { SystemStats, AppId } from '../types';
 import { useSystemSettings } from '../context/SystemSettingsContext';
@@ -61,9 +63,14 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   const {
     wifiEnabled,
     connectedSsid,
+    ethernetEnabled,
+    ethernetConnected,
+    ethernetSpeed,
     bluetoothEnabled,
     pairedBtCount,
     gpuTurboEnabled,
+    darkMode,
+    doNotDisturb,
     speakerVolume,
     isMuted,
     screenBrightness,
@@ -296,7 +303,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
           </button>
         )}
 
-        {/* Traditional Mac Desktop Menus */}
+        {/* Traditional Linux Desktop Menus */}
         <div className="hidden md:flex items-center space-x-3 text-slate-300">
           <button
             onClick={() => onOpenApp('vn')}
@@ -305,16 +312,16 @@ export const MenuBar: React.FC<MenuBarProps> = ({
             Nós Virtuais
           </button>
           <button
-            onClick={() => onOpenApp('webapps')}
+            onClick={() => onOpenApp('storage')}
             className="hover:text-white transition px-1.5 py-0.5 rounded hover:bg-white/10 cursor-pointer"
           >
-            Web Apps
+            Armazenamento & USB
           </button>
           <button
-            onClick={() => onOpenApp('idaas')}
+            onClick={() => onOpenApp('appstore')}
             className="hover:text-white transition px-1.5 py-0.5 rounded hover:bg-white/10 cursor-pointer"
           >
-            IDaaS
+            Central de Apps
           </button>
           <button
             onClick={() => onOpenApp('aiagent')}
@@ -376,6 +383,27 @@ export const MenuBar: React.FC<MenuBarProps> = ({
           title="Busca Rápida (Cmd+K)"
         >
           <Search className="w-3.5 h-3.5" />
+        </button>
+
+        {/* Do Not Disturb Moon Indicator */}
+        {doNotDisturb && (
+          <button
+            onClick={onToggleControlCenter}
+            className="p-1 px-1.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center space-x-1 text-[11px] transition cursor-pointer animate-pulse"
+            title="Modo Não Perturbe Ativo (Silencioso)"
+          >
+            <BellOff className="w-3.5 h-3.5 text-purple-400" />
+            <span className="hidden lg:inline text-[10px]">DND</span>
+          </button>
+        )}
+
+        {/* Ethernet / Cabo RJ45 Status */}
+        <button
+          onClick={onToggleControlCenter}
+          className="p-1 hover:bg-white/10 rounded transition cursor-pointer"
+          title={ethernetEnabled && ethernetConnected ? `Cabo Conectado (eth0): ${ethernetSpeed}` : 'Ethernet Cabo Desconectado'}
+        >
+          <Network className={`w-3.5 h-3.5 ${ethernetEnabled && ethernetConnected ? 'text-emerald-400' : 'text-slate-500'}`} />
         </button>
 
         {/* Wi-Fi Icon */}

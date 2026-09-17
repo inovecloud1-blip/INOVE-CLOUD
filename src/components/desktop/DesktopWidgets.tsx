@@ -625,37 +625,6 @@ export const DesktopWidgets: React.FC<DesktopWidgetsProps> = ({
         </div>
       )}
 
-      {/* Empty Desktop State (Clean Wallpaper Mode like Umbrel OS) */}
-      {isAllWidgetsHidden && (
-        <div className="pointer-events-auto my-auto max-w-md mx-auto text-center p-6 rounded-3xl liquid-glass shadow-2xl animate-fade-in text-white space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 mx-auto flex items-center justify-center shadow-lg">
-            <Sparkles className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold">Modo Tela Limpa (UmbrelOS)</h3>
-            <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-              Todos os widgets foram retirados da inicial. Desfrute do seu papel de parede fotográfico com total foco. Seus aplicativos continuam disponíveis na Dock e no Launcher.
-            </p>
-          </div>
-          <div className="flex items-center justify-center gap-2 pt-2">
-            <button
-              onClick={() => onOpenLauncher && onOpenLauncher()}
-              className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition cursor-pointer shadow-lg shadow-cyan-600/25 active:scale-95 flex items-center space-x-1.5"
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Abrir Launcher</span>
-            </button>
-            <button
-              onClick={() => setIsConfigModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white font-bold text-xs transition cursor-pointer border border-white/10 flex items-center space-x-1.5"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-300" />
-              <span>Restaurar Widgets</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Main Widgets Showcase Area with Drag & Drop Reordering */}
       {!isAllWidgetsHidden && (
         <div className="pointer-events-auto my-4 max-w-6xl mx-auto w-full">

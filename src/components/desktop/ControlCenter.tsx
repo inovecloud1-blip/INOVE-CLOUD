@@ -13,7 +13,12 @@ import {
   Lock,
   ChevronRight,
   Settings,
-  Sparkles
+  Sparkles,
+  Network,
+  BellOff,
+  Bell,
+  Camera,
+  Cpu
 } from 'lucide-react';
 import { AppId, SystemStats } from '../../types';
 import { useSystemSettings } from '../../context/SystemSettingsContext';
@@ -37,6 +42,10 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
     wifiEnabled,
     toggleWifi,
     connectedSsid,
+    ethernetEnabled,
+    toggleEthernet,
+    ethernetConnected,
+    ethernetSpeed,
     bluetoothEnabled,
     toggleBluetooth,
     pairedBtCount,
@@ -44,6 +53,8 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
     toggleGpuTurbo,
     darkMode,
     toggleDarkMode,
+    doNotDisturb,
+    toggleDoNotDisturb,
     screenBrightness,
     setScreenBrightness,
     speakerVolume,
@@ -62,8 +73,10 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="fixed right-3 top-9 z-50 w-88 liquid-glass rounded-2xl p-4 shadow-2xl border border-white/20 text-slate-100 space-y-3.5 select-none animate-fade-in font-sans">
-        {/* Top 2 Primary Connectivity Tiles */}
+      <div className={`fixed right-3 top-9 z-50 w-92 rounded-2xl p-4 shadow-2xl border text-slate-100 space-y-3.5 select-none animate-fade-in font-sans ${
+        darkMode ? 'liquid-glass border-white/20' : 'bg-slate-900/90 text-white border-white/30 backdrop-blur-2xl'
+      }`}>
+        {/* Top Header: Network Stack Linux (Wi-Fi & Ethernet) */}
         <div className="grid grid-cols-2 gap-2.5">
           {/* Wi-Fi Tile */}
           <div
@@ -73,16 +86,16 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
             }}
             className="p-3 liquid-glass-subcard rounded-xl flex items-center justify-between cursor-pointer hover:bg-white/10 transition"
           >
-            <div className="flex items-center space-x-2.5">
+            <div className="flex items-center space-x-2.5 min-w-0">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition shadow-md ${
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition shadow-md shrink-0 ${
                   wifiEnabled ? 'bg-cyan-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400'
                 }`}
               >
                 <Wifi className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <div className="font-bold text-xs text-white truncate">Wi-Fi</div>
+                <div className="font-bold text-xs text-white truncate">Wi-Fi 6E/7</div>
                 <div className="text-[10px] text-slate-300 truncate">
                   {wifiEnabled ? connectedSsid : 'Desativado'}
                 </div>
@@ -94,33 +107,33 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
                 onOpenApp('settings');
                 onClose();
               }}
-              className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white"
+              className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white shrink-0"
               title="Configurar Redes Wi-Fi"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {/* Bluetooth Tile */}
+          {/* Ethernet / Internet a Cabo Tile */}
           <div
             onClick={() => {
               playFeedbackTone();
-              toggleBluetooth();
+              toggleEthernet();
             }}
             className="p-3 liquid-glass-subcard rounded-xl flex items-center justify-between cursor-pointer hover:bg-white/10 transition"
           >
-            <div className="flex items-center space-x-2.5">
+            <div className="flex items-center space-x-2.5 min-w-0">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition shadow-md ${
-                  bluetoothEnabled ? 'bg-indigo-500 text-white font-bold' : 'bg-slate-800 text-slate-400'
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition shadow-md shrink-0 ${
+                  ethernetEnabled && ethernetConnected ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400'
                 }`}
               >
-                <Bluetooth className="w-4 h-4" />
+                <Network className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <div className="font-bold text-xs text-white truncate">Bluetooth</div>
+                <div className="font-bold text-xs text-white truncate">Cabo (eth0)</div>
                 <div className="text-[10px] text-slate-300 truncate">
-                  {bluetoothEnabled ? `${pairedBtCount} Dispositivos` : 'Desativado'}
+                  {ethernetEnabled && ethernetConnected ? '10G Conectado' : 'Desconectado'}
                 </div>
               </div>
             </div>
@@ -130,37 +143,16 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
                 onOpenApp('settings');
                 onClose();
               }}
-              className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white"
-              title="Configurar Bluetooth"
+              className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white shrink-0"
+              title="Configurar Rede Ethernet Linux"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* Second Row: GPU Turbo & Modo Escuro */}
+        {/* Second Row: Dark Mode & Do Not Disturb */}
         <div className="grid grid-cols-2 gap-2.5">
-          {/* GPU Acceleration */}
-          <div
-            onClick={() => {
-              playFeedbackTone();
-              toggleGpuTurbo();
-            }}
-            className="p-3 liquid-glass-subcard rounded-xl flex items-center space-x-2.5 cursor-pointer hover:bg-white/10 transition"
-          >
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md transition ${
-                gpuTurboEnabled ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-white'
-              }`}
-            >
-              <Zap className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="font-bold text-xs text-white">GPU Turbo</div>
-              <div className="text-[10px] text-slate-400">{gpuTurboEnabled ? 'Ativo (Vulkan)' : 'Desligado'}</div>
-            </div>
-          </div>
-
           {/* Dark / Light Mode */}
           <div
             onClick={() => {
@@ -171,14 +163,84 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
           >
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md transition ${
-                darkMode ? 'bg-purple-600 text-white' : 'bg-amber-400 text-slate-950'
+                darkMode ? 'bg-indigo-600 text-white' : 'bg-amber-400 text-slate-950'
               }`}
             >
               {darkMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
             </div>
             <div>
-              <div className="font-bold text-xs text-white">Modo Escuro</div>
-              <div className="text-[10px] text-slate-400">{darkMode ? 'Noturno' : 'Claro'}</div>
+              <div className="font-bold text-xs text-white">{darkMode ? 'Modo Escuro' : 'Modo Claro'}</div>
+              <div className="text-[10px] text-slate-400">{darkMode ? 'Tema Noturno Ativo' : 'Tema Diurno Ativo'}</div>
+            </div>
+          </div>
+
+          {/* Do Not Disturb / Modo Não Perturbe */}
+          <div
+            onClick={() => {
+              playFeedbackTone(true);
+              toggleDoNotDisturb();
+            }}
+            className={`p-3 liquid-glass-subcard rounded-xl flex items-center space-x-2.5 cursor-pointer hover:bg-white/10 transition ${
+              doNotDisturb ? 'border border-purple-500/50 bg-purple-950/40' : ''
+            }`}
+          >
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md transition ${
+                doNotDisturb ? 'bg-purple-600 text-white font-bold animate-pulse' : 'bg-slate-800 text-slate-400'
+              }`}
+            >
+              {doNotDisturb ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+            </div>
+            <div>
+              <div className="font-bold text-xs text-white">Não Perturbe</div>
+              <div className="text-[10px] text-slate-400">{doNotDisturb ? 'Silencioso' : 'Desativado'}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Third Row: Bluetooth & GPU Turbo */}
+        <div className="grid grid-cols-2 gap-2.5">
+          {/* Bluetooth Tile */}
+          <div
+            onClick={() => {
+              playFeedbackTone();
+              toggleBluetooth();
+            }}
+            className="p-2.5 liquid-glass-subcard rounded-xl flex items-center space-x-2.5 cursor-pointer hover:bg-white/10 transition"
+          >
+            <div
+              className={`w-7 h-7 rounded-full flex items-center justify-center transition shadow-md ${
+                bluetoothEnabled ? 'bg-blue-500 text-white font-bold' : 'bg-slate-800 text-slate-400'
+              }`}
+            >
+              <Bluetooth className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="font-bold text-xs text-white truncate">Bluetooth</div>
+              <div className="text-[10px] text-slate-300 truncate">
+                {bluetoothEnabled ? `${pairedBtCount} Dispositivos` : 'Off'}
+              </div>
+            </div>
+          </div>
+
+          {/* GPU Turbo Acceleration */}
+          <div
+            onClick={() => {
+              playFeedbackTone();
+              toggleGpuTurbo();
+            }}
+            className="p-2.5 liquid-glass-subcard rounded-xl flex items-center space-x-2.5 cursor-pointer hover:bg-white/10 transition"
+          >
+            <div
+              className={`w-7 h-7 rounded-full flex items-center justify-center shadow-md transition ${
+                gpuTurboEnabled ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-white'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <div className="font-bold text-xs text-white">GPU Turbo</div>
+              <div className="text-[10px] text-slate-400">{gpuTurboEnabled ? 'Vulkan / DMA' : 'Desligado'}</div>
             </div>
           </div>
         </div>

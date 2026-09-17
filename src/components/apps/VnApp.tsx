@@ -26,6 +26,81 @@ interface VnAppProps {
   onConnectVnc?: (vnId: string) => void;
 }
 
+export const OsVectorIcon: React.FC<{ os: VirtualNode['os']; size?: string }> = ({
+  os,
+  size = 'w-6 h-6',
+}) => {
+  switch (os) {
+    case 'ubuntu':
+      return (
+        <div className={`${size} rounded-lg bg-[#E95420] flex items-center justify-center p-1 shadow shrink-0`} title="Ubuntu Linux">
+          <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
+            <circle cx="50" cy="50" r="38" stroke="#ffffff" strokeWidth="8" />
+            <circle cx="50" cy="18" r="7" fill="#ffffff" />
+            <circle cx="22" cy="66" r="7" fill="#ffffff" />
+            <circle cx="78" cy="66" r="7" fill="#ffffff" />
+            <path d="M50 18 L50 26 M22 66 L29 62 M78 66 L71 62" stroke="#E95420" strokeWidth="4" />
+          </svg>
+        </div>
+      );
+
+    case 'windows':
+      return (
+        <div className={`${size} rounded-lg bg-[#0078D4] flex items-center justify-center p-1 shadow shrink-0`} title="Windows Server">
+          <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
+            <rect x="18" y="18" width="28" height="28" fill="#ffffff" />
+            <rect x="54" y="18" width="28" height="28" fill="#ffffff" />
+            <rect x="18" y="54" width="28" height="28" fill="#ffffff" />
+            <rect x="54" y="54" width="28" height="28" fill="#ffffff" />
+          </svg>
+        </div>
+      );
+
+    case 'debian':
+      return (
+        <div className={`${size} rounded-lg bg-[#D70A53] flex items-center justify-center p-1 shadow shrink-0`} title="Debian GNU/Linux">
+          <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
+            <path
+              d="M50 16 C30 16 18 32 20 52 C22 72 40 84 58 82 C74 80 82 66 80 52 C78 38 68 32 56 32 C46 32 38 40 40 50 C42 60 52 64 60 58 C64 54 62 48 58 48 C54 48 52 52 50 52"
+              stroke="#ffffff"
+              strokeWidth="7"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+      );
+
+    case 'alpine':
+      return (
+        <div className={`${size} rounded-lg bg-[#0D597F] flex items-center justify-center p-1 shadow shrink-0`} title="Alpine Linux">
+          <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
+            {/* Mountain peak silhouette */}
+            <path d="M18 78 L45 32 L62 58 L72 42 L86 78 Z" fill="#ffffff" opacity="0.3" />
+            <path d="M18 78 L42 34 L58 60 L68 44 L82 78 Z" fill="#38BDF8" />
+            <path d="M36 44 L42 34 L48 44 L44 47 Z" fill="#ffffff" />
+            <path d="M64 50 L68 44 L72 50 L69 52 Z" fill="#ffffff" />
+          </svg>
+        </div>
+      );
+
+    case 'android':
+      return (
+        <div className={`${size} rounded-lg bg-[#3DDC84] flex items-center justify-center p-1 shadow shrink-0`} title="Android x86">
+          <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
+            {/* Antennae */}
+            <line x1="32" y1="20" x2="40" y2="35" stroke="#202124" strokeWidth="5" strokeLinecap="round" />
+            <line x1="68" y1="20" x2="60" y2="35" stroke="#202124" strokeWidth="5" strokeLinecap="round" />
+            {/* Robot Head */}
+            <path d="M22 65 C22 40 34 32 50 32 C66 32 78 40 78 65 Z" fill="#202124" />
+            {/* Eyes */}
+            <circle cx="38" cy="50" r="3.5" fill="#3DDC84" />
+            <circle cx="62" cy="50" r="3.5" fill="#3DDC84" />
+          </svg>
+        </div>
+      );
+  }
+};
+
 export const VnApp: React.FC<VnAppProps> = ({
   vns,
   onToggleVnStatus,
@@ -220,6 +295,7 @@ export const VnApp: React.FC<VnAppProps> = ({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2 truncate">
+                      <OsVectorIcon os={vn.os} size="w-5 h-5" />
                       <div
                         className={`w-2 h-2 rounded-full ${
                           isRunning ? 'bg-emerald-400 shadow-glow' : 'bg-slate-500'
@@ -265,27 +341,30 @@ export const VnApp: React.FC<VnAppProps> = ({
           <div className="flex-1 flex flex-col overflow-y-auto bg-slate-950">
             {/* Header with Quick Actions */}
             <div className="p-4 border-b border-white/10 flex flex-wrap items-center justify-between gap-3 bg-slate-900/30">
-              <div>
-                <div className="flex items-center space-x-2">
-                  <h3 className="text-base font-bold text-white">{selectedVn.name}</h3>
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                      selectedVn.status === 'running'
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                    }`}
-                  >
-                    {selectedVn.status === 'running' ? 'Executando' : 'Parado'}
-                  </span>
-                  {selectedVn.gpuAccelerated && (
-                    <span className="flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                      <Zap className="w-3 h-3 text-cyan-400" />
-                      <span>GPU Passthrough</span>
+              <div className="flex items-center space-x-3">
+                <OsVectorIcon os={selectedVn.os} size="w-10 h-10" />
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-base font-bold text-white">{selectedVn.name}</h3>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+                        selectedVn.status === 'running'
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                      }`}
+                    >
+                      {selectedVn.status === 'running' ? 'Executando' : 'Parado'}
                     </span>
-                  )}
-                </div>
-                <div className="text-xs text-slate-400 mt-0.5">
-                  {selectedVn.version} • Uptime: {selectedVn.uptime}
+                    {selectedVn.gpuAccelerated && (
+                      <span className="flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                        <Zap className="w-3 h-3 text-cyan-400" />
+                        <span>GPU Passthrough</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-0.5">
+                    {selectedVn.version} • Uptime: {selectedVn.uptime}
+                  </div>
                 </div>
               </div>
 

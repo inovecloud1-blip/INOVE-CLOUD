@@ -14,7 +14,13 @@ import {
   Compass,
   User,
   Disc,
-  BookOpen
+  BookOpen,
+  Palette,
+  Calculator as CalcIcon,
+  Camera as CameraIcon,
+  Image as GalleryIcon,
+  Film as VideoIcon,
+  Music as MusicIcon
 } from 'lucide-react';
 import { MenuBar } from './components/MenuBar';
 import { Dock } from './components/Dock';
@@ -33,6 +39,7 @@ import { StorageApp } from './components/apps/StorageApp';
 import { TerminalApp } from './components/apps/TerminalApp';
 import { AiAgentApp } from './components/apps/AiAgentApp';
 import { SettingsApp } from './components/apps/SettingsApp';
+import { ThemesApp } from './components/apps/ThemesApp';
 import { ProjectsApp } from './components/apps/ProjectsApp';
 import { MonitorApp } from './components/apps/MonitorApp';
 import { BrowserApp } from './components/apps/BrowserApp';
@@ -40,6 +47,11 @@ import { UserApp } from './components/apps/UserApp';
 import { IsoBuilderApp } from './components/apps/IsoBuilderApp';
 import { LinuxPediaApp } from './components/apps/LinuxPediaApp';
 import { InstallerApp } from './components/apps/InstallerApp';
+import { CalculatorApp } from './components/apps/CalculatorApp';
+import { CameraApp } from './components/apps/CameraApp';
+import { GalleryApp } from './components/apps/GalleryApp';
+import { VideoPlayerApp } from './components/apps/VideoPlayerApp';
+import { MusicApp } from './components/apps/MusicApp';
 import { AppLauncher } from './components/desktop/AppLauncher';
 import { BootVideoSplash } from './components/desktop/BootVideoSplash';
 import { LockScreen } from './components/desktop/LockScreen';
@@ -68,6 +80,8 @@ import {
   StorageItem,
   DesktopWidgetsConfig,
   DEFAULT_DESKTOP_WIDGETS_CONFIG,
+  DockConfig,
+  DEFAULT_DOCK_CONFIG,
 } from './types';
 
 function DesktopOS() {
@@ -75,7 +89,7 @@ function DesktopOS() {
   const [wallpaper, setWallpaper] = useState<string>(() => {
     try {
       const saved = localStorage.getItem('inovecloud_custom_wallpaper');
-      if (saved && saved.startsWith('data:image')) {
+      if (saved && (saved.startsWith('data:image') || saved.startsWith('http') || saved.startsWith('/'))) {
         return saved;
       }
     } catch (e) {
@@ -83,6 +97,58 @@ function DesktopOS() {
     }
     return WALLPAPERS[0].url; // '/wallpaper.jpg'
   });
+
+  // Global Theme & Accent Color State (persisted)
+  const [accentColor, setAccentColor] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('inovecloud_accent_color');
+      if (saved) return saved;
+    } catch (e) {
+      console.error(e);
+    }
+    return '#ec4899';
+  });
+
+  const [activeThemeId, setActiveThemeId] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('inovecloud_active_theme_id');
+      if (saved) return saved;
+    } catch (e) {
+      console.error(e);
+    }
+    return 'candy';
+  });
+
+  const handleSelectWallpaper = (url: string) => {
+    setWallpaper(url);
+    try {
+      localStorage.setItem('inovecloud_custom_wallpaper', url);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSelectAccentColor = (color: string) => {
+    setAccentColor(color);
+    try {
+      localStorage.setItem('inovecloud_accent_color', color);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSelectThemePreset = (preset: any) => {
+    setActiveThemeId(preset.id);
+    setAccentColor(preset.accentColor);
+    setWallpaper(preset.wallpaperUrl);
+    try {
+      localStorage.setItem('inovecloud_active_theme_id', preset.id);
+      localStorage.setItem('inovecloud_accent_color', preset.accentColor);
+      localStorage.setItem('inovecloud_custom_wallpaper', preset.wallpaperUrl);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // Cluster & App Data State
   const [vns, setVns] = useState<VirtualNode[]>(INITIAL_VNS);
@@ -206,12 +272,39 @@ function DesktopOS() {
     }
   };
 
+  // Dock Configuration State (position, style, magnification, auto-hide, etc.)
+  const [dockConfig, setDockConfig] = useState<DockConfig>(() => {
+    try {
+      const saved = localStorage.getItem('inovecloud_dock_config');
+      if (saved) {
+        return { ...DEFAULT_DOCK_CONFIG, ...JSON.parse(saved) };
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return DEFAULT_DOCK_CONFIG;
+  });
+
+  const handleUpdateDockConfig = (newConfig: Partial<DockConfig>) => {
+    setDockConfig((prev) => {
+      const updated = { ...prev, ...newConfig };
+      try {
+        localStorage.setItem('inovecloud_dock_config', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
+
   const handleResetDockDefault = () => {
     setDockPinnedApps(DEFAULT_DOCK_PINNED);
     setShowOpenWindowsInDock(true);
+    setDockConfig(DEFAULT_DOCK_CONFIG);
     try {
       localStorage.setItem('inovecloud_dock_pinned_apps', JSON.stringify(DEFAULT_DOCK_PINNED));
       localStorage.setItem('inovecloud_dock_show_windows', JSON.stringify(true));
+      localStorage.setItem('inovecloud_dock_config', JSON.stringify(DEFAULT_DOCK_CONFIG));
     } catch (e) {
       console.error(e);
     }
@@ -311,13 +404,13 @@ function DesktopOS() {
     },
     storage: {
       id: 'storage',
-      title: 'Cloud Storage S3 & Backup de Fotos',
+      title: 'Meus Arquivos & Gerenciador de Documentos — InoveCloud Files',
       isOpen: false,
       isMinimized: false,
       isMaximized: false,
       zIndex: 6,
       position: { x: 110, y: 90 },
-      size: { width: 840, height: 540 },
+      size: { width: 880, height: 580 },
     },
     terminal: {
       id: 'terminal',
@@ -428,6 +521,76 @@ function DesktopOS() {
       zIndex: 16,
       position: { x: 110, y: 60 },
       size: { width: 920, height: 580 },
+    },
+    themes: {
+      id: 'themes',
+      title: 'Temas & Papéis de Parede — InoveCloud Personalização',
+      isOpen: false,
+      isMinimized: false,
+      isMaximized: false,
+      zIndex: 17,
+      position: { x: 150, y: 75 },
+      size: { width: 900, height: 600 },
+    },
+    calculator: {
+      id: 'calculator',
+      title: 'Calculadora — InoveCloud Calc (Padrão, Científica, Programador)',
+      isOpen: false,
+      isMinimized: false,
+      isMaximized: false,
+      zIndex: 18,
+      position: { x: 180, y: 80 },
+      size: { width: 680, height: 560 },
+    },
+    camera: {
+      id: 'camera',
+      title: 'Câmera HD — InoveCloud Vision (1080p 60FPS)',
+      isOpen: false,
+      isMinimized: false,
+      isMaximized: false,
+      zIndex: 19,
+      position: { x: 120, y: 65 },
+      size: { width: 880, height: 600 },
+    },
+    gallery: {
+      id: 'gallery',
+      title: 'Galeria & Editor de Fotos Pro (ProKnockout 4K)',
+      isOpen: false,
+      isMinimized: false,
+      isMaximized: false,
+      zIndex: 20,
+      position: { x: 130, y: 70 },
+      size: { width: 940, height: 640 },
+    },
+    videoplayer: {
+      id: 'videoplayer',
+      title: 'Player de Vídeo HD / 4K — InoveCloud Player',
+      isOpen: false,
+      isMinimized: false,
+      isMaximized: false,
+      zIndex: 21,
+      position: { x: 100, y: 55 },
+      size: { width: 980, height: 640 },
+    },
+    videoeditor: {
+      id: 'videoeditor',
+      title: 'Player de Vídeo HD / 4K — InoveCloud Player',
+      isOpen: false,
+      isMinimized: false,
+      isMaximized: false,
+      zIndex: 21,
+      position: { x: 100, y: 55 },
+      size: { width: 980, height: 640 },
+    },
+    music: {
+      id: 'music',
+      title: 'Produtor de Música & DAW Studio (Beatmaker 16-Step & Hi-Fi)',
+      isOpen: false,
+      isMinimized: false,
+      isMaximized: false,
+      zIndex: 22,
+      position: { x: 140, y: 75 },
+      size: { width: 920, height: 620 },
     },
   });
 
@@ -818,6 +981,7 @@ function DesktopOS() {
               photos={photos}
               files={files}
               onUploadFile={handleUploadFile}
+              onOpenApp={(appId) => openApp(appId)}
             />
           </WindowFrame>
         </div>
@@ -925,6 +1089,11 @@ function DesktopOS() {
               widgetsConfig={widgetsConfig}
               onUpdateWidgetsConfig={handleUpdateWidgetsConfig}
               onResetWidgetsConfig={handleResetWidgetsConfig}
+              dockConfig={dockConfig}
+              onUpdateDockConfig={handleUpdateDockConfig}
+              dockPinnedApps={dockPinnedApps}
+              onTogglePinDock={handleTogglePinDock}
+              onResetDockDefault={handleResetDockDefault}
             />
           </WindowFrame>
         </div>
@@ -1003,6 +1172,115 @@ function DesktopOS() {
             <InstallerApp onInstallationFinished={() => closeWindow('installer')} />
           </WindowFrame>
         </div>
+
+        {/* Themes & Wallpaper App (Dedicated Full Feature Experience) */}
+        <div className="pointer-events-auto">
+          <WindowFrame
+            window={windows.themes}
+            icon={<Palette className="w-3.5 h-3.5 text-rose-400" />}
+            onClose={() => closeWindow('themes')}
+            onMinimize={() => minimizeWindow('themes')}
+            onToggleMaximize={() => toggleMaximize('themes')}
+            onFocus={() => focusWindow('themes')}
+            onMove={(pos) => moveWindow('themes', pos)}
+          >
+            <ThemesApp
+              currentWallpaper={wallpaper}
+              onSelectWallpaper={handleSelectWallpaper}
+              accentColor={accentColor}
+              onSelectAccentColor={handleSelectAccentColor}
+              activeThemeId={activeThemeId}
+              onSelectThemePreset={handleSelectThemePreset}
+            />
+          </WindowFrame>
+        </div>
+
+        {/* Calculator App */}
+        <div className="pointer-events-auto">
+          <WindowFrame
+            window={windows.calculator}
+            icon={<CalcIcon className="w-3.5 h-3.5 text-orange-400" />}
+            onClose={() => closeWindow('calculator')}
+            onMinimize={() => minimizeWindow('calculator')}
+            onToggleMaximize={() => toggleMaximize('calculator')}
+            onFocus={() => focusWindow('calculator')}
+            onMove={(pos) => moveWindow('calculator', pos)}
+          >
+            <CalculatorApp />
+          </WindowFrame>
+        </div>
+
+        {/* Camera App */}
+        <div className="pointer-events-auto">
+          <WindowFrame
+            window={windows.camera}
+            icon={<CameraIcon className="w-3.5 h-3.5 text-red-400" />}
+            onClose={() => closeWindow('camera')}
+            onMinimize={() => minimizeWindow('camera')}
+            onToggleMaximize={() => toggleMaximize('camera')}
+            onFocus={() => focusWindow('camera')}
+            onMove={(pos) => moveWindow('camera', pos)}
+          >
+            <CameraApp />
+          </WindowFrame>
+        </div>
+
+        {/* Gallery & Photo Editor Pro */}
+        <div className="pointer-events-auto">
+          <WindowFrame
+            window={windows.gallery}
+            icon={<GalleryIcon className="w-3.5 h-3.5 text-violet-400" />}
+            onClose={() => closeWindow('gallery')}
+            onMinimize={() => minimizeWindow('gallery')}
+            onToggleMaximize={() => toggleMaximize('gallery')}
+            onFocus={() => focusWindow('gallery')}
+            onMove={(pos) => moveWindow('gallery', pos)}
+          >
+            <GalleryApp />
+          </WindowFrame>
+        </div>
+
+        {/* Video Player HD / 4K */}
+        <div className="pointer-events-auto">
+          <WindowFrame
+            window={windows.videoplayer || windows.videoeditor}
+            icon={<VideoIcon className="w-3.5 h-3.5 text-rose-400" />}
+            onClose={() => {
+              closeWindow('videoplayer');
+              closeWindow('videoeditor');
+            }}
+            onMinimize={() => {
+              minimizeWindow('videoplayer');
+              minimizeWindow('videoeditor');
+            }}
+            onToggleMaximize={() => {
+              toggleMaximize('videoplayer');
+              toggleMaximize('videoeditor');
+            }}
+            onFocus={() => focusWindow('videoplayer')}
+            onMove={(pos) => {
+              moveWindow('videoplayer', pos);
+              moveWindow('videoeditor', pos);
+            }}
+          >
+            <VideoPlayerApp />
+          </WindowFrame>
+        </div>
+
+        {/* Music Producer & DAW */}
+        <div className="pointer-events-auto">
+          <WindowFrame
+            window={windows.music}
+            icon={<MusicIcon className="w-3.5 h-3.5 text-red-400" />}
+            onClose={() => closeWindow('music')}
+            onMinimize={() => minimizeWindow('music')}
+            onToggleMaximize={() => toggleMaximize('music')}
+            onFocus={() => focusWindow('music')}
+            onMove={(pos) => moveWindow('music', pos)}
+          >
+            <MusicApp />
+          </WindowFrame>
+        </div>
       </main>
 
       {/* macOS Floating Glass Dock at Bottom */}
@@ -1020,6 +1298,8 @@ function DesktopOS() {
         onResetDockDefault={handleResetDockDefault}
         showOpenWindowsInDock={showOpenWindowsInDock}
         onToggleShowOpenWindows={handleToggleShowOpenWindows}
+        dockConfig={dockConfig}
+        onUpdateDockConfig={handleUpdateDockConfig}
       />
 
       {/* Spotlight Search Modal */}

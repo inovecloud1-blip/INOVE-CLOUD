@@ -21,7 +21,7 @@ import {
 interface LinuxCommand {
   id: string;
   name: string;
-  category: 'Arquivos & Diretórios' | 'Redes & Segurança' | 'Processos & Systemd' | 'Virtualização & Kiosk' | 'Pacotes & Repositórios';
+  category: 'Arquivos & Diretórios' | 'Redes & Segurança' | 'Processos & Systemd' | 'Virtualização & Kiosk' | 'Pacotes & Repositórios' | 'Engenharia de SOs & OSDev';
   summary: string;
   syntax: string;
   example: string;
@@ -31,6 +31,83 @@ interface LinuxCommand {
 }
 
 const LINUX_COMMANDS: LinuxCommand[] = [
+  {
+    id: 'littleosbook-gdt-idt',
+    name: 'LittleOSBook: GDT, IDT & Paging',
+    category: 'Engenharia de SOs & OSDev',
+    summary: 'Fundamentos de inicialização x86, tabela de descritores globais e paginação de memória',
+    syntax: 'lgdt [gdt_ptr] / lidt [idt_ptr] / mov cr3, eax',
+    example: 'littleosbook: setup_gdt(); setup_idt(); enable_paging();',
+    description: 'Conforme documentado em littleosbook.github.io, a inicialização do modo protegido requer carregar a GDT com segmentos de código/dados (Kernel 0x08/0x10, User 0x18/0x20), remapear o PIC 8259 (offsets 0x20 e 0x28) e configurar o diretório de páginas ativando o bit PG no registrador CR0 (0x80000000).',
+    flags: [
+      { flag: 'CR0 PG (bit 31)', desc: 'Habilita a unidade de gerenciamento de memória paginada (MMU).' },
+      { flag: 'CR3 Register', desc: 'Armazena o endereço físico do Page Directory base.' },
+      { flag: 'Interrupt 14 (#PF)', desc: 'Tratador de exceção para faltas de página (Page Fault).' },
+      { flag: 'ATA PIO (0x1F0)', desc: 'Leitura/escrita de setores de disco sem dependência de BIOS.' },
+    ],
+    outputSample: `[OS Init] GDT loaded at physical 0x00100400 (5 entries: NULL, KCODE, KDATA, UCODE, UDATA)
+[OS Init] IDT initialized: 256 interrupt gates registered. PIC 8259 remapped to 0x20-0x2F
+[OS Init] Page Directory initialized: Identity mapping 0-4MB (PTE 0..1023). CR0.PG = 1
+[OS Init] ATA Primary Controller ready at I/O port 0x1F0 (Status: 0x50 DRDY/DSC)`,
+  },
+  {
+    id: 'osdev-ahci-nvme',
+    name: 'OSDev: AHCI SATA & NVMe Drivers',
+    category: 'Engenharia de SOs & OSDev',
+    summary: 'Controladores de armazenamento direto ao hardware para HDs e SSDs de alta velocidade',
+    syntax: 'ahci_init(pci_device_t *dev) / nvme_init(pci_device_t *dev)',
+    example: 'osdev: pci_scan_class(0x01, 0x06); // Encontrar AHCI Host Bus Adapter',
+    description: 'Padrão industrial da wiki.osdev.org para comunicação direta com discos rígidos via Memory-Mapped I/O (MMIO). Elimina a lentidão do ATA PIO e permite transferências DMA de até 6 Gbps (SATA III) ou PCIe Gen4 (NVMe) sem travar a CPU.',
+    flags: [
+      { flag: 'HBA GHC.HR', desc: 'Reset do controlador Host Bus Adapter AHCI.' },
+      { flag: 'Port Command List (CLB)', desc: 'Lista de comandos DMA para leitura/escrita de setores.' },
+      { flag: 'PRDT (Physical Region)', desc: 'Tabela de ponteiros de memória física para DMA.' },
+      { flag: 'FIS (Frame Info Struct)', desc: 'Estrutura serial SATA que transmite pacotes de dados.' },
+    ],
+    outputSample: `[PCI Scan] Class 01:06:01 (SATA Controller AHCI 1.30) found at 00:1f.2 (BAR5 MMIO: 0xfebd0000)
+[AHCI] Ports Implemented: 0x00000003 (Port 0: ATA SSD 512GB, Port 1: Empty)
+[AHCI Port 0] Signature: 0x00000101 (SATA Drive). Allocating Command List & Received FIS
+[AHCI Port 0] DMA Buffer mapped at 0x10000000 (PRDT entries: 128). Ready for sector read/write`,
+  },
+  {
+    id: 'phil-opp-pml4',
+    name: 'Phil Opp: 4-Level Paging & IST',
+    category: 'Engenharia de SOs & OSDev',
+    summary: 'Paginação x86_64 multinível de 64 bits e Interrupt Stack Table anti-falha',
+    syntax: 'PML4 -> PDPT -> Page Directory -> Page Table -> 4KB Frame',
+    example: 'let mut frame_allocator = BootInfoFrameAllocator::init(&boot_info.memory_map);',
+    description: 'Fundamentado em os.phil-opp.com (Writing an OS in Rust). Implementa mapeamento de 4 níveis de páginas para segurança total contra invasão de memória, além de configurar uma pilha dedicada no TSS (IST1) para capturar Double Faults e impedir o desligamento ou reboot em loop (Triple Fault) da máquina.',
+    flags: [
+      { flag: 'PML4 Entry', desc: 'Primeiro nível de tradução de endereço virtual de 48 bits.' },
+      { flag: 'IST1 (Double Fault)', desc: 'Pilha física separada de 20KB para recuperação de erros críticos.' },
+      { flag: 'Frame Allocator', desc: 'Varredura do mapa de memória E820 / UEFI para alocar páginas livres.' },
+      { flag: 'Async Executor', desc: 'Escalonamento cooperativo de tarefas baseado em Wakers e Futures.' },
+    ],
+    outputSample: `[x86_64 Kernel] Active PML4 Table physical address: 0x0000000000101000
+[x86_64 Kernel] TSS initialized with IST1 at 0xffff800000040000 (Double Fault Guard Stack)
+[x86_64 Kernel] Usable physical memory frames discovered: 1,048,576 (4096 MB)
+[x86_64 Kernel] Async kernel executor online. Handling IRQ 1 (Keyboard) and IRQ 14 (Disk)`,
+  },
+  {
+    id: 'xorriso-isohybrid',
+    name: 'xorriso (ISO Híbrida UEFI/BIOS)',
+    category: 'Engenharia de SOs & OSDev',
+    summary: 'Gera imagens ISO 9660 compatíveis com boot em qualquer computador e pendrive USB',
+    syntax: 'xorriso -as mkisofs [opções_híbridas] -o sistema.iso rootfs/',
+    example: 'xorriso -as mkisofs -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin -c isolinux/boot.cat -b isolinux/isolinux.bin -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot -e boot/grub/efi.img -no-emul-boot -isohybrid-gpt-basdat -o inovecloud-os.iso isodir/',
+    description: 'Comando essencial para criar ISOs que dão boot garantido tanto em computadores antigos (Legacy BIOS via MBR El Torito) quanto em placas modernas com UEFI / SecureBoot (via partição ESP FAT32).',
+    flags: [
+      { flag: '-isohybrid-mbr', desc: 'Grava o código MBR no setor 0 permitindo boot direto via pendrive com dd.' },
+      { flag: '-eltorito-alt-boot', desc: 'Permite registrar uma segunda entrada de boot para o EFI.' },
+      { flag: '-e [efi.img]', desc: 'Imagem de partição FAT32 contendo o bootloader BOOTX64.EFI.' },
+      { flag: '-isohybrid-gpt-basdat', desc: 'Registra a partição EFI na tabela GPT para conformidade UEFI estrita.' },
+    ],
+    outputSample: `xorriso 1.5.6 : RockRidge filesystem manipulator, libburnia project.
+Drive current: -outdev 'inovecloud-os-kernel-pure-x86_64.iso'
+Media current: stdio file, overwriteable
+Writing to 'inovecloud-os-kernel-pure-x86_64.iso' completed successfully.
+ISO image size: 840 MB. Hybrid MBR + GPT ESP FAT32 partition verified. Bootable: YES.`,
+  },
   {
     id: 'systemctl',
     name: 'systemctl',
@@ -194,6 +271,7 @@ export const LinuxPediaApp: React.FC = () => {
 
   const categories = [
     'Todos',
+    'Engenharia de SOs & OSDev',
     'Processos & Systemd',
     'Virtualização & Kiosk',
     'Redes & Segurança',

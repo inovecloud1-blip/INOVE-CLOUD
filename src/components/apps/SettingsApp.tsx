@@ -52,11 +52,24 @@ import {
   Database,
   Layers,
   Flame,
-  ArrowUpRight
+  ArrowUpRight,
+  Network,
+  BellOff,
+  Camera,
+  Video,
+  Gauge,
+  LayoutGrid,
+  ArrowDown,
+  ArrowUp,
+  ArrowLeft,
+  ArrowRight,
+  Maximize2,
+  EyeOff
 } from 'lucide-react';
 import { WALLPAPERS } from '../../data/mockData';
-import { DesktopWidgetsConfig } from '../../types';
+import { DesktopWidgetsConfig, DockConfig, DEFAULT_DOCK_CONFIG, DockPosition, DockAlignment, DockThemeStyle, AppId } from '../../types';
 import { AppIcon } from '../desktop/AppIcon';
+import { useSystemSettings } from '../../context/SystemSettingsContext';
 
 interface SettingsAppProps {
   currentWallpaper: string;
@@ -66,6 +79,27 @@ interface SettingsAppProps {
   widgetsConfig?: DesktopWidgetsConfig;
   onUpdateWidgetsConfig?: (config: Partial<DesktopWidgetsConfig>) => void;
   onResetWidgetsConfig?: () => void;
+  dockConfig?: DockConfig;
+  onUpdateDockConfig?: (config: Partial<DockConfig>) => void;
+  dockPinnedApps?: AppId[];
+  onTogglePinDock?: (id: AppId) => void;
+  onResetDockDefault?: () => void;
+  initialSection?:
+    | 'debian'
+    | 'wifi'
+    | 'ethernet'
+    | 'camera'
+    | 'dnd'
+    | 'bluetooth'
+    | 'mouse'
+    | 'display'
+    | 'sound'
+    | 'power'
+    | 'themes'
+    | 'dock'
+    | 'user'
+    | 'accessibility'
+    | 'about';
 }
 
 export const SettingsApp: React.FC<SettingsAppProps> = ({
@@ -76,10 +110,23 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
   widgetsConfig,
   onUpdateWidgetsConfig,
   onResetWidgetsConfig,
+  dockConfig = DEFAULT_DOCK_CONFIG,
+  onUpdateDockConfig,
+  dockPinnedApps,
+  onTogglePinDock,
+  onResetDockDefault,
+  initialSection = 'debian',
 }) => {
+  const sysSettings = useSystemSettings();
   const [activeSection, setActiveSection] = useState<
-    'debian' | 'wifi' | 'bluetooth' | 'mouse' | 'display' | 'sound' | 'power' | 'themes' | 'user' | 'accessibility' | 'about'
-  >('debian');
+    'debian' | 'wifi' | 'ethernet' | 'camera' | 'dnd' | 'bluetooth' | 'mouse' | 'display' | 'sound' | 'power' | 'themes' | 'dock' | 'user' | 'accessibility' | 'about'
+  >(initialSection);
+
+  useEffect(() => {
+    if (initialSection) {
+      setActiveSection(initialSection);
+    }
+  }, [initialSection]);
 
   // Debian 13 Host Integration States
   const [debianInfo, setDebianInfo] = useState<any>({
@@ -372,14 +419,29 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
 
   // Navigation Items
   const menuItems = [
-    { id: 'debian', label: 'Debian 13 & GNOME Host', icon: Server, badge: 'Trixie' },
-    { id: 'wifi', label: 'Wi-Fi & Internet', icon: Wifi, badge: connectedSsid ? 'Conectado' : 'Desligado' },
+    { id: 'debian', label: 'Debian 13 & Pure Kernel Host', icon: Server, badge: 'Trixie' },
+    { id: 'wifi', label: 'Wi-Fi & Sem Fio', icon: Wifi, badge: sysSettings.wifiEnabled ? (connectedSsid || 'Conectado') : 'Desligado' },
+    { id: 'ethernet', label: 'Internet a Cabo (Ethernet)', icon: Network, badge: sysSettings.ethernetEnabled ? '10 Gbps' : 'Desativado' },
+    { id: 'camera', label: 'Câmera, Vídeo & V4L2 ISP', icon: Camera, badge: '/dev/video0' },
+    { id: 'dnd', label: 'Não Perturbe & Modo Escuro', icon: BellOff, badge: sysSettings.doNotDisturb ? 'DND Ativo' : (sysSettings.darkMode ? 'Escuro' : 'Claro') },
     { id: 'bluetooth', label: 'Bluetooth & Dispositivos', icon: Bluetooth, badge: `${pairedDevices.filter(d => d.connected).length} ativos` },
     { id: 'mouse', label: 'Mouse & Touchpad', icon: Mouse },
     { id: 'display', label: 'Tela, Resolução & Luz', icon: Monitor },
-    { id: 'sound', label: 'Som & Microfone', icon: Volume2 },
+    { id: 'sound', label: 'Som & Microfone PipeWire', icon: Volume2 },
     { id: 'power', label: 'Energia & Bateria', icon: BatteryCharging, badge: '88%' },
     { id: 'themes', label: 'Temas & Wallpapers', icon: Palette, badge: 'Candy' },
+    {
+      id: 'dock',
+      label: 'Dock & Barra de Tarefas',
+      icon: LayoutGrid,
+      badge: dockConfig.position === 'top'
+        ? 'Superior'
+        : dockConfig.position === 'left'
+        ? 'Esquerda'
+        : dockConfig.position === 'right'
+        ? 'Direita'
+        : 'Inferior',
+    },
     { id: 'user', label: 'Usuário & Contas', icon: User, badge: 'inove' },
     { id: 'accessibility', label: 'Acessibilidade', icon: Accessibility },
     { id: 'about', label: 'Sobre o PC & Sistema', icon: Info, badge: 'v2026.1' },
@@ -1084,6 +1146,291 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* 1.1 INTERNET A CABO (ETHERNET ETH0) */}
+        {/* =================================================================== */}
+        {activeSection === 'ethernet' && (
+          <div className="space-y-6 max-w-3xl">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center space-x-2">
+                  <Network className="w-5 h-5 text-emerald-400" />
+                  <span>Internet a Cabo (Ethernet eth0)</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Conexão cabeada de alta velocidade direta via driver do kernel Linux com DMA Netlink.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sysSettings.ethernetEnabled}
+                  onChange={sysSettings.toggleEthernet}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
+
+            {sysSettings.ethernetEnabled ? (
+              <div className="space-y-4">
+                {/* Active Link Card */}
+                <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 shadow-xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                        <Network className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <h4 className="text-sm font-bold text-white">Interface eth0 (PCIe 10 GbE)</h4>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                            Conectado (Carrier OK)
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-300">{sysSettings.ethernetSpeed}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold">Latência do Kernel</span>
+                      <p className="text-xs font-mono font-bold text-emerald-300">0.4ms (Loopback DMA)</p>
+                    </div>
+                  </div>
+
+                  {/* Network Telemetry Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-white/10 text-xs">
+                    <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold">Endereço IPv4</span>
+                      <p className="font-mono text-white font-bold">{sysSettings.ethernetIp}</p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold">Máscara / Sub-rede</span>
+                      <p className="font-mono text-white font-bold">255.255.255.0 (/24)</p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold">Gateway Padrão</span>
+                      <p className="font-mono text-white font-bold">192.168.1.1</p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold">DNS Primário</span>
+                      <p className="font-mono text-cyan-400 font-bold">1.1.1.1 / 8.8.8.8</p>
+                    </div>
+                  </div>
+
+                  {/* Packet Traffic Stats */}
+                  <div className="p-3 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between text-xs font-mono">
+                    <div className="flex items-center space-x-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      <span className="text-slate-300">Pacotes RX: <b className="text-white">1,482,904 pkts</b> (1.82 GB)</span>
+                    </div>
+                    <div className="text-slate-300">
+                      Pacotes TX: <b className="text-white">942,108 pkts</b> (840 MB)
+                    </div>
+                    <div className="text-emerald-400 font-bold">
+                      0 erros • 0 descartes
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ethernet Tuning Options */}
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                    Configurações Avançadas do Adaptador Linux
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
+                      <div>
+                        <p className="font-bold text-white">Jumbo Frames (MTU 9000)</p>
+                        <p className="text-[10px] text-slate-400">Otimização para transferências locais e SAN</p>
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 font-bold">Ativo</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
+                      <div>
+                        <p className="font-bold text-white">Hardware Offloading (TSO/GSO)</p>
+                        <p className="text-[10px] text-slate-400">Processamento de checksum acelerado por CPU</p>
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 font-bold">Ativo</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-8 text-center rounded-2xl bg-white/5 border border-white/10 text-slate-400 text-xs">
+                A conexão a cabo (Ethernet) está desativada. Ligue o interruptor para estabelecer link com o roteador.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* 1.2 CÂMERA, VÍDEO & V4L2 ISP */}
+        {/* =================================================================== */}
+        {activeSection === 'camera' && (
+          <div className="space-y-6 max-w-3xl">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center space-x-2">
+                  <Camera className="w-5 h-5 text-red-500" />
+                  <span>Câmera, Vídeo & Driver V4L2 ISP</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Pipeline de captura direta com suporte a DMA-BUF Zero-Copy, aceleração por GPU e calibrações de imagem.
+                </p>
+              </div>
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                /dev/video0 Ativo
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {/* Hardware Device Specs Card */}
+              <div className="p-5 rounded-2xl bg-slate-900 border border-white/10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-400">
+                      <Camera className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white">Sensor de Imagem & ISP Framebuffer</h4>
+                      <p className="text-xs text-slate-300 font-mono">Driver: uvcvideo • Buffer: DMA-BUF Ring (4.2ms)</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-emerald-400">
+                    60 FPS 1080p / 4K UHD
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Processador / Core IRQ</span>
+                    <p className="font-bold text-white">CPU Core #2 Affinity</p>
+                    <p className="text-[10px] text-emerald-400">Zero-Copy Direct Memory</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Aceleração de Hardware</span>
+                    <p className="font-bold text-white">VA-API / Vulkan Video</p>
+                    <p className="text-[10px] text-cyan-400">H.264, HEVC, AV1 Nativo</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Rastreamento Facial AI</span>
+                    <p className="font-bold text-white">Neural Engine Ativo</p>
+                    <p className="text-[10px] text-purple-400">99.4% precisão de foco</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Callout */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/30 to-slate-900 border border-red-500/30 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-white">Aplicativo de Câmera & Gravação</h4>
+                  <p className="text-[11px] text-slate-400">Acesse a câmera com filtros HDR, visão noturna, zoom digital e gravação de vídeo.</p>
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => {
+                      fetch('/api/system/debian/action', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'camera-v4l2-probe' }),
+                      }).catch(() => {});
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition cursor-pointer"
+                  >
+                    Testar V4L2
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* 1.3 NÃO PERTURBE & MODO ESCURO */}
+        {/* =================================================================== */}
+        {activeSection === 'dnd' && (
+          <div className="space-y-6 max-w-3xl">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center space-x-2">
+                  <BellOff className="w-5 h-5 text-indigo-400" />
+                  <span>Modo Não Perturbe & Modo Escuro</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Controle de foco, supressão de notificações, temas do sistema e personalização visual.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Dark Mode Card */}
+              <div className="p-5 rounded-2xl bg-slate-900 border border-white/10 flex items-center justify-between">
+                <div className="flex items-center space-x-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                    <Moon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">Modo Escuro Global (Dark Theme)</h4>
+                    <p className="text-xs text-slate-400">Ajusta o contraste, paleta e fundo do sistema e de todos os aplicativos.</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sysSettings.darkMode}
+                    onChange={sysSettings.toggleDarkMode}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+                </label>
+              </div>
+
+              {/* Do Not Disturb Card */}
+              <div className="p-5 rounded-2xl bg-slate-900 border border-white/10 flex items-center justify-between">
+                <div className="flex items-center space-x-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-rose-600/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                    <BellOff className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">Modo Não Perturbe (DND)</h4>
+                    <p className="text-xs text-slate-400">Silencia sons de clique, bips de feedback de áudio e oculta notificações em tela cheia.</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sysSettings.doNotDisturb}
+                    onChange={sysSettings.toggleDoNotDisturb}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                </label>
+              </div>
+
+              {/* Rules & Preferences */}
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Regras de Silêncio e Alertas</h4>
+                <div className="space-y-2 text-xs">
+                  <div className="p-3 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-white">Silenciar bips e efeitos sonoros Web Audio</p>
+                      <p className="text-[10px] text-slate-400">Bloqueia sintetizador de áudio enquanto Não Perturbe estiver ativo</p>
+                    </div>
+                    <span className="text-emerald-400 font-bold text-[11px]">Habilitado</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-white">Indicador visual na barra superior</p>
+                      <p className="text-[10px] text-slate-400">Exibe o ícone de sino desativado no MenuBar</p>
+                    </div>
+                    <span className="text-emerald-400 font-bold text-[11px]">Habilitado</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1915,6 +2262,316 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                   Aplicar URL
                 </button>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* DOCK & BARRA DE TAREFAS */}
+        {/* =================================================================== */}
+        {activeSection === 'dock' && (
+          <div className="space-y-6 max-w-4xl">
+            <div className="pb-3 border-b border-white/10">
+              <h3 className="text-base font-bold text-white flex items-center space-x-2">
+                <LayoutGrid className="w-5 h-5 text-cyan-400" />
+                <span>Configurações da Dock & Barra de Tarefas</span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Ajuste a posição na tela (Inferior, Superior, Esquerda ou Direita), alinhamento, tamanho dos ícones, temas visuais e comportamento de zoom e auto-ocultação.
+              </p>
+            </div>
+
+            {/* 1. Posicionamento na Tela */}
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+              <div>
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                  1. Posição da Dock na Área de Trabalho
+                </h4>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Escolha em qual borda da tela você deseja fixar a Dock do InoveCloud OS.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  {
+                    pos: 'bottom' as DockPosition,
+                    title: 'Inferior (Bottom)',
+                    desc: 'Padrão macOS / Linux clássico na base da tela',
+                    icon: ArrowDown,
+                  },
+                  {
+                    pos: 'left' as DockPosition,
+                    title: 'Esquerda (Left)',
+                    desc: 'Estilo Ubuntu / Unity Dock na lateral esquerda',
+                    icon: ArrowLeft,
+                  },
+                  {
+                    pos: 'top' as DockPosition,
+                    title: 'Superior (Top)',
+                    desc: 'Barra superior integrada logo abaixo do menu',
+                    icon: ArrowUp,
+                  },
+                  {
+                    pos: 'right' as DockPosition,
+                    title: 'Direita (Right)',
+                    desc: 'Lateral direita para monitores ultra-wide',
+                    icon: ArrowRight,
+                  },
+                ].map(({ pos, title, desc, icon: Icon }) => {
+                  const isSelected = (dockConfig.position || 'bottom') === pos;
+                  return (
+                    <button
+                      key={pos}
+                      onClick={() => onUpdateDockConfig && onUpdateDockConfig({ position: pos })}
+                      className={`p-4 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between h-32 relative ${
+                        isSelected
+                          ? 'border-cyan-400 bg-cyan-950/40 shadow-lg shadow-cyan-950/50 ring-2 ring-cyan-500/50'
+                          : 'border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                            isSelected
+                              ? 'bg-cyan-500 text-slate-950 shadow-md'
+                              : 'bg-white/10 text-slate-300'
+                          }`}
+                        >
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        {isSelected && (
+                          <span className="px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 text-[10px] font-extrabold border border-cyan-400/30">
+                            Ativo
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white">{title}</div>
+                        <div className="text-[10px] text-slate-400 leading-tight mt-0.5">{desc}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Alinhamento e Escala dos Ícones */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Alinhamento */}
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                <div>
+                  <h4 className="text-xs font-bold text-white">Alinhamento da Barra</h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Defina a ancoragem dos ícones ao longo da borda selecionada.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { align: 'start' as DockAlignment, label: 'Início (Start)' },
+                    { align: 'center' as DockAlignment, label: 'Centro (Center)' },
+                    { align: 'end' as DockAlignment, label: 'Fim (End)' },
+                  ].map(({ align, label }) => {
+                    const isSelected = (dockConfig.alignment || 'center') === align;
+                    return (
+                      <button
+                        key={align}
+                        onClick={() => onUpdateDockConfig && onUpdateDockConfig({ alignment: align })}
+                        className={`py-2.5 px-2 rounded-xl text-xs font-bold text-center border transition cursor-pointer ${
+                          isSelected
+                            ? 'bg-cyan-600 border-cyan-400 text-white shadow-md'
+                            : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Tamanho dos Ícones */}
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-white">Tamanho dos Ícones</h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Ajuste a escala visual dos aplicativos na Dock.
+                    </p>
+                  </div>
+                  <span className="font-mono text-xs font-black text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded-lg border border-cyan-500/30">
+                    {dockConfig.iconSize || 54}px
+                  </span>
+                </div>
+
+                <input
+                  type="range"
+                  min="38"
+                  max="76"
+                  value={dockConfig.iconSize || 54}
+                  onChange={(e) => onUpdateDockConfig && onUpdateDockConfig({ iconSize: Number(e.target.value) })}
+                  className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                />
+
+                <div className="flex justify-between text-[10px] text-slate-400">
+                  <span>Pequeno (38px)</span>
+                  <span>Médio (54px)</span>
+                  <span>Grande (76px)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Estilo e Tema da Dock */}
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+              <div>
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                  2. Acabamento Visual & Tema
+                </h4>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Selecione o estilo translúcido ou opaco para a superfície da Dock.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  {
+                    style: 'liquid_glass' as DockThemeStyle,
+                    title: 'Vidro Líquido',
+                    desc: 'Design translúcido Apple com blur e reflexos',
+                  },
+                  {
+                    style: 'macos' as DockThemeStyle,
+                    title: 'macOS Dark Glass',
+                    desc: 'Vidro escuro profundo com bordas suaves',
+                  },
+                  {
+                    style: 'floating_pill' as DockThemeStyle,
+                    title: 'Pílula Neon',
+                    desc: 'Cápsula arredondada com brilho cyan',
+                  },
+                  {
+                    style: 'solid_dark' as DockThemeStyle,
+                    title: 'Preto Sólido Linux',
+                    desc: 'Fundo escuro fosco de alta performance',
+                  },
+                ].map(({ style: st, title, desc }) => {
+                  const isSelected = (dockConfig.style || 'liquid_glass') === st;
+                  return (
+                    <button
+                      key={st}
+                      onClick={() => onUpdateDockConfig && onUpdateDockConfig({ style: st })}
+                      className={`p-3.5 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between h-28 ${
+                        isSelected
+                          ? 'border-purple-400 bg-purple-950/40 shadow-lg shadow-purple-950/50 ring-2 ring-purple-500/50'
+                          : 'border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10'
+                      }`}
+                    >
+                      <div>
+                        <div className="text-xs font-bold text-white">{title}</div>
+                        <div className="text-[10px] text-slate-400 leading-tight mt-1">{desc}</div>
+                      </div>
+                      {isSelected && (
+                        <div className="text-[10px] font-extrabold text-purple-300">
+                          ✓ Selecionado
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 4. Comportamentos e Efeitos Interativos */}
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2">
+                3. Comportamento & Efeitos
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* Auto Hide */}
+                <div
+                  onClick={() => onUpdateDockConfig && onUpdateDockConfig({ autoHide: !dockConfig.autoHide })}
+                  className="p-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition flex flex-col justify-between space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      {dockConfig.autoHide ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4 text-cyan-400" />}
+                      <span className="text-xs font-bold text-white">Auto-Ocultar</span>
+                    </div>
+                    <div className={`w-8 h-4 rounded-full transition-colors flex items-center p-0.5 ${
+                      dockConfig.autoHide ? 'bg-amber-500 justify-end' : 'bg-slate-700 justify-start'
+                    }`}>
+                      <div className="w-3 h-3 rounded-full bg-white shadow" />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    Oculta a dock automaticamente e revela ao aproximar o mouse.
+                  </p>
+                </div>
+
+                {/* Magnification Zoom */}
+                <div
+                  onClick={() => onUpdateDockConfig && onUpdateDockConfig({ magnification: !dockConfig.magnification })}
+                  className="p-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition flex flex-col justify-between space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Maximize2 className="w-4 h-4 text-pink-400" />
+                      <span className="text-xs font-bold text-white">Efeito Magnification</span>
+                    </div>
+                    <div className={`w-8 h-4 rounded-full transition-colors flex items-center p-0.5 ${
+                      dockConfig.magnification ? 'bg-pink-500 justify-end' : 'bg-slate-700 justify-start'
+                    }`}>
+                      <div className="w-3 h-3 rounded-full bg-white shadow" />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    Amplia suavemente os ícones ao passar o cursor do mouse.
+                  </p>
+                </div>
+
+                {/* Open Indicators */}
+                <div
+                  onClick={() => onUpdateDockConfig && onUpdateDockConfig({ showOpenIndicators: !dockConfig.showOpenIndicators })}
+                  className="p-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition flex flex-col justify-between space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400" />
+                      <span className="text-xs font-bold text-white">Indicador de Execução</span>
+                    </div>
+                    <div className={`w-8 h-4 rounded-full transition-colors flex items-center p-0.5 ${
+                      dockConfig.showOpenIndicators ? 'bg-emerald-500 justify-end' : 'bg-slate-700 justify-start'
+                    }`}>
+                      <div className="w-3 h-3 rounded-full bg-white shadow" />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    Exibe um ponto brilhante abaixo dos apps em execução.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Reset Dock to Default */}
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div>
+                <div className="text-xs font-bold text-white">Restaurar Padrões da Dock</div>
+                <div className="text-[11px] text-slate-400">
+                  Volta a posição para Inferior (Bottom), tamanho 54px e tema Vidro Líquido.
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (onUpdateDockConfig) onUpdateDockConfig(DEFAULT_DOCK_CONFIG);
+                  if (onResetDockDefault) onResetDockDefault();
+                }}
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Restaurar Padrão</span>
+              </button>
             </div>
           </div>
         )}

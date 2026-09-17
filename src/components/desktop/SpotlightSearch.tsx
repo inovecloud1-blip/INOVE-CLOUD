@@ -16,7 +16,8 @@ import {
   Compass,
   User,
   Disc,
-  BookOpen
+  BookOpen,
+  Palette
 } from 'lucide-react';
 import { AppId } from '../../types';
 
@@ -48,6 +49,7 @@ export const SpotlightSearch: React.FC<SpotlightSearchProps> = ({
     { id: 'aiagent' as AppId, title: 'Agente IA (MCP)', desc: 'Gerenciar o sistema conversando com IA', icon: <Bot className="w-4 h-4 text-fuchsia-400" /> },
     { id: 'monitor' as AppId, title: 'Monitor de Desempenho', desc: 'Uso de CPU, RAM, disco e tráfego de rede', icon: <Activity className="w-4 h-4 text-cyan-400" /> },
     { id: 'projects' as AppId, title: 'Projetos & Workspace', desc: 'Portfólio visual e fila de outreach', icon: <FolderKanban className="w-4 h-4 text-amber-400" /> },
+    { id: 'themes' as AppId, title: 'Temas & Papéis de Parede (Wallpapers)', desc: 'Personalizar papel de parede 4K, Vidro Líquido, cores de destaque e tema visual', icon: <Palette className="w-4 h-4 text-rose-400" /> },
     { id: 'settings' as AppId, title: 'Ajustes do Sistema', desc: 'Papéis de parede, aceleração GPU e rede', icon: <Settings className="w-4 h-4 text-slate-400" /> },
     { id: 'isobuilder' as AppId, title: 'Gerador de ISO & Live OS Linux', desc: 'Compilar ISO bootável Debian 13 (Trixie) com GNOME 46+ e Liquid Glass', icon: <Disc className="w-4 h-4 text-red-400" /> },
     { id: 'linuxpedia' as AppId, title: 'LinuxPedia (API & Comandos)', desc: 'Enciclopédia de comandos, flags e simulação de terminal', icon: <BookOpen className="w-4 h-4 text-emerald-400" /> },
