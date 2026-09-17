@@ -216,11 +216,13 @@ apt-get install -y --no-install-recommends \
   htop \
   btop \
   fastfetch \
-  neofetch \
   unzip \
   p7zip-full \
   tar \
   gzip
+
+# Alias / wrapper para compatibilidade com comando neofetch
+ln -sf /usr/bin/fastfetch /usr/local/bin/neofetch || true
 
 # Adicionar repositório oficial Flathub
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
