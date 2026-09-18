@@ -65,6 +65,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
   const categories = [
     'Todos',
     'Populares',
+    'AppImage Portable',
     'Internet',
     'Jogos',
     'Áudio e Vídeo',
@@ -243,6 +244,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
 
     if (selectedCategory === 'Todos') return true;
     if (selectedCategory === 'Populares') return app.rating >= 4.9 || ['firefox', 'chrome', 'spotify', 'steam', 'discord', 'vscode'].includes(app.id);
+    if (selectedCategory === 'AppImage Portable') return app.packageManager === 'appimage';
     if (selectedCategory === 'Instalados') return app.installed;
     return app.category.toLowerCase() === selectedCategory.toLowerCase();
   });
@@ -252,12 +254,15 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
   return (
     <div className="flex flex-col h-full bg-[#1b1924] text-white select-none overflow-hidden font-sans">
       
-      {/* 1. TOP HEADER (EXACT FLATHUB REPLICA) */}
+      {/* 1. TOP HEADER (EXACT FLATHUB & APPIMAGE REPLICA) */}
       <header className="h-16 px-6 bg-[#211f2c] border-b border-[#2e2c3a] flex items-center justify-between shrink-0 z-30 shadow-md">
         
-        {/* Left: Flathub Logo Box */}
+        {/* Left: Flathub & AppImage Logo Box */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#444054] bg-[#292736] hover:bg-[#312f42] transition-colors cursor-pointer">
+          <div 
+            onClick={() => setSelectedCategory('Todos')}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#444054] bg-[#292736] hover:bg-[#312f42] transition-colors cursor-pointer"
+          >
             <div className="w-5 h-5 flex items-center justify-center">
               <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
                 <circle cx="36" cy="36" r="11.8" fill="#FFFFFF" />
@@ -267,7 +272,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
                 <rect x="60.7" y="52.5" width="6.6" height="22" rx="3.3" fill="#FFFFFF" />
               </svg>
             </div>
-            <span className="font-bold text-base text-white tracking-tight">Flathub</span>
+            <span className="font-bold text-base text-white tracking-tight">Flathub & AppImage</span>
           </div>
         </div>
 
@@ -280,7 +285,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Procurar aplicativos"
+              placeholder="Procurar aplicativos (Flatpak, AppImage, APT)..."
               className="w-full pl-10 pr-10 py-2 rounded-xl bg-[#2b2838] border border-[#3e3a4e] text-sm text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-[#322f42] transition-all"
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded bg-[#3c384c] text-[11px] font-mono text-gray-400 border border-white/5">
@@ -290,14 +295,21 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
         </div>
 
         {/* Right: Navigation Links */}
-        <nav className="flex items-center gap-6 text-sm font-medium text-gray-300">
+        <nav className="flex items-center gap-4 text-sm font-medium text-gray-300">
+          <button
+            onClick={() => {
+              setSelectedCategory('AppImage Portable');
+              setNotification({ type: 'info', message: 'Visualizando pacotes AppImage integrados (https://appimage.github.io/apps/). Suporte FUSE2/3 ativo!' });
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 border border-purple-500/30 text-xs font-semibold transition-colors cursor-pointer"
+          >
+            <Box className="w-3.5 h-3.5 text-purple-400" />
+            AppImage Hub
+          </button>
           <a href="#" onClick={(e) => { e.preventDefault(); setNotification({ type: 'info', message: 'Flathub Publisher portal disponível via flatpak-builder.' }); }} className="hover:text-white transition-colors hidden sm:inline">
             Publicar
           </a>
-          <a href="#" onClick={(e) => { e.preventDefault(); setNotification({ type: 'info', message: 'Comunidade e Fórum Flathub online.' }); }} className="hover:text-white transition-colors hidden sm:inline">
-            Fórum
-          </a>
-          <a href="#" onClick={(e) => { e.preventDefault(); setNotification({ type: 'info', message: 'Flathub é o repositório central de aplicativos Linux Flatpak.' }); }} className="hover:text-white transition-colors">
+          <a href="#" onClick={(e) => { e.preventDefault(); setNotification({ type: 'info', message: 'InoveCloud OS suporta nativamente Flatpak, AppImage (FUSE 2 & 3) e APT Debian.' }); }} className="hover:text-white transition-colors">
             Sobre
           </a>
           <button
@@ -474,13 +486,23 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
 
                 {/* Center Title & Tagline */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <h4 className="font-bold text-white text-base truncate group-hover:text-blue-300 transition-colors">
                       {app.name}
                     </h4>
                     {app.verified && (
-                      <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#4A86CF] text-white shrink-0" title="Verificado Flathub">
+                      <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#4A86CF] text-white shrink-0" title="Verificado Oficial">
                         <Check className="w-2.5 h-2.5 stroke-[3]" />
+                      </span>
+                    )}
+                    {app.packageManager === 'appimage' && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-950/80 text-purple-300 border border-purple-500/40 font-semibold shrink-0">
+                        AppImage
+                      </span>
+                    )}
+                    {app.packageManager === 'flatpak' && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-blue-950/80 text-blue-300 border border-blue-500/40 font-semibold shrink-0">
+                        Flatpak
                       </span>
                     )}
                   </div>
@@ -490,9 +512,15 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
                 </div>
 
                 {/* Right Installed Badge / Quick Action */}
-                {app.installed && (
-                  <div className="shrink-0 flex items-center">
+                {app.installed ? (
+                  <div className="shrink-0 flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 ring-4 ring-emerald-500/20" title="Instalado" />
+                  </div>
+                ) : (
+                  <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-xs text-blue-400 flex items-center gap-1">
+                      Instalar <ChevronRight className="w-3.5 h-3.5" />
+                    </span>
                   </div>
                 )}
               </div>

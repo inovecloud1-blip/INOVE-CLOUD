@@ -13,8 +13,9 @@ export interface FlathubAppDetail {
   reviewsCount: number;
   downloads: string;
   installed: boolean;
-  packageManager: 'flatpak' | 'apt';
+  packageManager: 'flatpak' | 'apt' | 'appimage';
   executable?: string;
+  appimageUrl?: string;
   verified: boolean;
   license: string;
   releaseDate: string;
@@ -1345,6 +1346,147 @@ export const FLATHUB_APPS: FlathubAppDetail[] = [
         caption: 'Todos os seus jogos em um só lugar',
         type: 'game',
         themeColor: '#FF6F00'
+      }
+    ]
+  },
+  // --- APPIMAGE PORTABLE PACKAGES (AppImage Hub https://appimage.github.io/apps/) ---
+  {
+    id: 'balena-etcher-appimage',
+    appId: 'io.balena.etcher.AppImage',
+    name: 'balenaEtcher (AppImage)',
+    tagline: 'Gravador universal de imagens ISO e cartões SD',
+    description: 'Aplicativo portátil AppImage líder para gravar imagens de sistemas operacionais (ISO/IMG) em pendrives USB e cartões SD de forma segura e com validação de blocos.',
+    category: 'Utilitários',
+    version: '1.19.25',
+    developer: 'Balena Inc',
+    developerUrl: 'https://etcher.balena.io',
+    appimageUrl: 'https://appimage.github.io/apps/balenaEtcher/',
+    size: '142 MB',
+    rating: 4.9,
+    reviewsCount: 14200,
+    downloads: '58.0M',
+    installed: false,
+    packageManager: 'appimage',
+    executable: 'balenaEtcher.AppImage',
+    verified: true,
+    license: 'Apache-2.0',
+    releaseDate: '15 Setembro 2026',
+    memoryUsage: '110 MB RAM',
+    iconType: 'etcher',
+    features: ['Gravação validada contra corrupção', 'Suporte a ISO, IMG, ZIP', '100% Portátil sem dependências'],
+    permissions: ['Dispositivos de Bloco USB'],
+    screenshots: [
+      {
+        title: 'Gravação Rápida e Segura',
+        description: 'Selecione a imagem ISO, aponte a unidade USB e clique em Flash.',
+        caption: 'Gravação de pendrive bootável em 3 passos',
+        type: 'ui_mock',
+        themeColor: '#10b981'
+      }
+    ]
+  },
+  {
+    id: 'obsidian-appimage',
+    appId: 'md.obsidian.Obsidian.AppImage',
+    name: 'Obsidian (AppImage)',
+    tagline: 'Base de conhecimento pessoal e notas em Markdown',
+    description: 'Aplicativo portátil AppImage de notas em Markdown com grafo de conexões bidirecionais, plugins extensíveis e armazenamento 100% local e privado.',
+    category: 'Produtividade',
+    version: '1.7.4',
+    developer: 'Dynalist Inc.',
+    developerUrl: 'https://obsidian.md',
+    appimageUrl: 'https://appimage.github.io/apps/Obsidian/',
+    size: '98 MB',
+    rating: 5.0,
+    reviewsCount: 31200,
+    downloads: '45.2M',
+    installed: false,
+    packageManager: 'appimage',
+    executable: 'Obsidian.AppImage',
+    verified: true,
+    license: 'Freeware',
+    releaseDate: '10 Setembro 2026',
+    memoryUsage: '140 MB RAM',
+    iconType: 'obsidian',
+    features: ['Gráfico visual de notas interligadas', 'Edição Markdown com visualização ao vivo', 'Totalmente portátil AppImage'],
+    permissions: ['Armazenamento Local'],
+    screenshots: [
+      {
+        title: 'Grafo de Conhecimento Dinâmico',
+        description: 'Visualize todas as suas ideias conectadas em uma rede neural interativa.',
+        caption: 'Segundo cérebro portátil',
+        type: 'dashboard',
+        themeColor: '#8b5cf6'
+      }
+    ]
+  },
+  {
+    id: 'cura-appimage',
+    appId: 'com.ultimaker.cura.AppImage',
+    name: 'Ultimaker Cura (AppImage)',
+    tagline: 'Fatiador 3D avançado para manufatura aditiva',
+    description: 'O software de fatiamento 3D mais popular do mundo em formato portátil AppImage. Converte modelos 3D STL em comandos G-code para impressoras 3D.',
+    category: 'Gráficos',
+    version: '5.8.1',
+    developer: 'Ultimaker B.V.',
+    developerUrl: 'https://ultimaker.com/software/ultimaker-cura/',
+    appimageUrl: 'https://appimage.github.io/apps/Ultimaker_Cura/',
+    size: '220 MB',
+    rating: 4.8,
+    reviewsCount: 9600,
+    downloads: '18.9M',
+    installed: false,
+    packageManager: 'appimage',
+    executable: 'Ultimaker-Cura.AppImage',
+    verified: true,
+    license: 'LGPL-3.0',
+    releaseDate: '01 Setembro 2026',
+    memoryUsage: '260 MB RAM',
+    iconType: 'cura',
+    features: ['Mais de 400 perfis de impressoras 3D', 'Otimização inteligente de suportes arbóreos', 'Simulação de camadas de impressão'],
+    permissions: ['GPU 3D', 'Portas Seriais USB'],
+    screenshots: [
+      {
+        title: 'Visualizador de Camadas 3D',
+        description: 'Inspeção precisa de cada camada de filamento antes de enviar para a impressora.',
+        caption: 'Fatiamento de alta precisão',
+        type: 'editor',
+        themeColor: '#3b82f6'
+      }
+    ]
+  },
+  {
+    id: 'kdenlive-appimage',
+    appId: 'org.kde.kdenlive.AppImage',
+    name: 'Kdenlive (AppImage)',
+    tagline: 'Editor de vídeo profissional multitrack portátil',
+    description: 'Poderoso editor de vídeo não linear em pacote portátil AppImage, com suporte a 4K, edição multitrack, transições GPU e renderização por hardware.',
+    category: 'Áudio e Vídeo',
+    version: '24.08.1',
+    developer: 'KDE Community',
+    developerUrl: 'https://kdenlive.org',
+    appimageUrl: 'https://appimage.github.io/apps/Kdenlive/',
+    size: '280 MB',
+    rating: 4.8,
+    reviewsCount: 15400,
+    downloads: '32.1M',
+    installed: false,
+    packageManager: 'appimage',
+    executable: 'kdenlive.AppImage',
+    verified: true,
+    license: 'GPL-3.0',
+    releaseDate: '05 Setembro 2026',
+    memoryUsage: '380 MB RAM',
+    iconType: 'kdenlive',
+    features: ['Timeline multitrack com efeitos de áudio e cor', 'Aceleração NVENC / VAAPI', 'AppImage standalone com todos os codecs'],
+    permissions: ['Armazenamento Local', 'Aceleração GPU'],
+    screenshots: [
+      {
+        title: 'Linha do Tempo Multicamadas',
+        description: 'Edição profissional de clipes, títulos e efeitos com pré-visualização em tempo real.',
+        caption: 'Edição de vídeo portátil completa',
+        type: 'media',
+        themeColor: '#0ea5e9'
       }
     ]
   }

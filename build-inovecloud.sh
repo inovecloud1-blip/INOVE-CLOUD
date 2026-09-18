@@ -506,6 +506,19 @@ if [ -x /usr/bin/inovecloud-sync ]; then
   echo -e "${CLR_OK} InoveCloud ID & Sincronização de Nuvem iniciados."
 fi
 
+# Criar script de suporte a AppImage se não existir
+cat << 'RUNNER_EOF' > /usr/bin/inove-appimage-runner
+#!/usr/bin/env sh
+APP="$1"
+if [ -z "$APP" ] || [ ! -f "$APP" ]; then
+  echo "Uso: inove-appimage-runner <arquivo.AppImage>"
+  exit 1
+fi
+chmod +x "$APP"
+"$APP" "$@" 2>/dev/null || "$APP" --appimage-extract-and-run "$@"
+RUNNER_EOF
+chmod 755 /usr/bin/inove-appimage-runner 2>/dev/null || true
+
 # Fechar Plymouth antes de carregar o ambiente gráfico
 if command -v plymouth >/dev/null 2>&1; then
   plymouth quit 2>/dev/null || true

@@ -126,12 +126,18 @@ apt-get install -y --no-install-recommends \
   systemd-sysv \
   firmware-linux-free
 
-# 2. Ambiente GNOME Desktop & Gerenciador de Sessão GDM3 Completo
+# 2. Ambiente GNOME Desktop & Display Manager Universal (LightDM & GNOME Session)
 apt-get install -y --no-install-recommends \
   gnome-core \
   gnome-shell \
-  gdm3 \
   gnome-session \
+  lightdm \
+  lightdm-gtk-greeter \
+  accountsservice \
+  polkitd \
+  libpam-systemd \
+  dbus-user-session \
+  dbus-x11 \
   gnome-tweaks \
   gnome-shell-extensions \
   gnome-shell-extension-dash-to-dock \
@@ -152,7 +158,18 @@ apt-get install -y --no-install-recommends \
   gsettings-desktop-schemas \
   libglib2.0-bin
 
-# 3. Áudio PipeWire, Rede, Drivers Mesa 3D & Xorg, Flatpak, Bluetooth e Multimídia
+# 3. Suporte Completo a AppImage (FUSE 2 & 3, MIME, Desktop Integration)
+apt-get install -y --no-install-recommends \
+  libfuse2t64 \
+  fuse3 \
+  zsync \
+  desktop-file-utils \
+  zenity \
+  binutils \
+  file \
+  appstream || apt-get install -y --no-install-recommends libfuse2 fuse3 zsync desktop-file-utils zenity binutils file
+
+# 4. Áudio PipeWire, Rede, Drivers Mesa 3D & Xorg, Flatpak, Bluetooth e Multimídia
 apt-get install -y --no-install-recommends \
   pipewire \
   wireplumber \
@@ -173,6 +190,8 @@ apt-get install -y --no-install-recommends \
   gparted \
   xserver-xorg \
   xserver-xorg-core \
+  xserver-xorg-input-all \
+  xserver-xorg-input-libinput \
   xserver-xorg-video-all \
   xserver-xorg-video-intel \
   xserver-xorg-video-nouveau \
@@ -227,10 +246,11 @@ ln -sf /usr/bin/fastfetch /usr/local/bin/neofetch || true
 # Adicionar repositório oficial Flathub
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
 
-# Criar usuário 'inove' para sessão live
+# Criar grupo de autologin e usuário 'inove' para sessão live
+groupadd -r autologin || true
 useradd -m -s /bin/bash inove || true
 echo "inove:inove" | chpasswd
-usermod -aG sudo,video,input,render,audio,netdev inove || true
+usermod -aG sudo,video,input,render,audio,netdev,autologin inove || true
 
 # Configurar sudo sem senha para o usuário inove
 echo "inove ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/inove-nopasswd
@@ -243,29 +263,67 @@ cat << 'HOSTS_EOF' > /etc/hosts
 127.0.1.1   inovecloud-os
 HOSTS_EOF
 
-# Configurar GDM3 Auto-Login e Compatibilidade Gráfica Universal (Zero Tela Preta)
-mkdir -p /etc/gdm3
-cat << 'GDM_CONF' > /etc/gdm3/daemon.conf
-# GDM configuration storage for InoveCloud OS Live
-[daemon]
-AutomaticLoginEnable = true
-AutomaticLogin = inove
-# Desativar Wayland forçado na live para garantir 100% de compatibilidade Xorg sem tela preta
-WaylandEnable = false
-DefaultSession = gnome-xorg.desktop
+# Configurar LightDM Auto-Login e Compatibilidade Gráfica Universal (Zero Crash / Zero Tela Preta)
+mkdir -p /etc/lightdm/lightdm.conf.d
+cat << 'LIGHTDM_CONF' > /etc/lightdm/lightdm.conf
+[LightDM]
+run-directory=/run/lightdm
 
-[security]
+[Seat:*]
+autologin-user=inove
+autologin-user-timeout=0
+autologin-session=gnome
+user-session=gnome
+greeter-session=lightdm-gtk-greeter
+greeter-hide-users=false
+allow-user-switching=true
+LIGHTDM_CONF
 
-[xdmcp]
+# Configurar PAM para autologin do LightDM
+cat << 'PAM_AUTOLOGIN' > /etc/pam.d/lightdm-autologin
+#%PAM-1.0
+auth      requisite pam_nologin.so
+auth      required  pam_permit.so
+auth      required  pam_env.so readenv=1
+account   include   system-login
+password  include   system-login
+session   include   system-login
+PAM_AUTOLOGIN
 
-[chooser]
+# Configurar AppImage Runner Universal e Integração de Arquivos .AppImage
+cat << 'APPIMAGE_RUNNER' > /usr/local/bin/inove-appimage-runner
+#!/usr/bin/env bash
+# InoveCloud OS - Universal AppImage Runner & Integrator
+set -e
+APPIMAGE_PATH="$1"
+if [ -z "$APPIMAGE_PATH" ] || [ ! -f "$APPIMAGE_PATH" ]; then
+  echo "Uso: inove-appimage-runner <caminho-para-appimage>"
+  exit 1
+fi
 
-[debug]
-# Habilitar logs detalhados para diagnóstico se necessário
-Enable = false
-GDM_CONF
+chmod +x "$APPIMAGE_PATH"
+# Executar com suporte a fallback de extração caso FUSE precise
+"$APPIMAGE_PATH" "$@" 2>/dev/null || "$APPIMAGE_PATH" --appimage-extract-and-run "$@"
+APPIMAGE_RUNNER
+chmod +x /usr/local/bin/inove-appimage-runner
 
-systemctl enable gdm3 || true
+# Criar Desktop Entry para abrir qualquer .AppImage com 2 cliques
+mkdir -p /usr/share/applications /usr/share/mime/packages
+cat << 'APPIMAGE_DESKTOP' > /usr/share/applications/inove-appimage-runner.desktop
+[Desktop Entry]
+Type=Application
+Name=InoveCloud AppImage Launcher
+GenericName=AppImage Executor
+Comment=Executar aplicativos portáteis AppImage no InoveCloud OS
+Exec=/usr/local/bin/inove-appimage-runner %f
+Icon=application-x-executable
+Terminal=false
+MimeType=application/vnd.appimage;application/x-iso9660-appimage;application/x-executable;
+Categories=Utility;System;
+NoDisplay=true
+APPIMAGE_DESKTOP
+
+systemctl enable lightdm || true
 systemctl enable NetworkManager || true
 
 apt-get clean

@@ -17,7 +17,8 @@ import {
   Cpu,
   Layers,
   Sparkles,
-  Info
+  Info,
+  Box
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FlathubAppDetail } from '../../data/flathubAppsData';
@@ -79,19 +80,25 @@ export const AppScreenshotModal: React.FC<AppScreenshotModalProps> = ({
           transition={{ duration: 0.2 }}
           className="relative w-full max-w-5xl bg-[#1e1c24] border border-[#3e3b4a] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
         >
-          {/* Top Bar with Flathub header style */}
+          {/* Top Bar with Flathub & AppImage header style */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-[#2e2c38] bg-[#19171f]">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#4A86CF] flex items-center justify-center p-1.5 shadow">
-                <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
-                  <circle cx="36" cy="36" r="11.8" fill="#FFFFFF" />
-                  <path d="M 55.5 25.5 C 55.5 23.4 57.8 22.1 59.6 23.2 L 75.8 33.8 C 77.4 34.8 77.4 37.2 75.8 38.2 L 59.6 48.8 C 57.8 49.9 55.5 48.6 55.5 46.5 Z" fill="#FFFFFF" />
-                  <rect x="25.5" y="52.5" width="21.5" height="21.5" rx="6.5" fill="#FFFFFF" />
-                  <rect x="53" y="60.2" width="22" height="6.6" rx="3.3" fill="#FFFFFF" />
-                  <rect x="60.7" y="52.5" width="6.6" height="22" rx="3.3" fill="#FFFFFF" />
-                </svg>
+              <div className={`w-8 h-8 rounded-lg ${app.packageManager === 'appimage' ? 'bg-purple-600' : 'bg-[#4A86CF]'} flex items-center justify-center p-1.5 shadow`}>
+                {app.packageManager === 'appimage' ? (
+                  <Box className="w-5 h-5 text-white" />
+                ) : (
+                  <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
+                    <circle cx="36" cy="36" r="11.8" fill="#FFFFFF" />
+                    <path d="M 55.5 25.5 C 55.5 23.4 57.8 22.1 59.6 23.2 L 75.8 33.8 C 77.4 34.8 77.4 37.2 75.8 38.2 L 59.6 48.8 C 57.8 49.9 55.5 48.6 55.5 46.5 Z" fill="#FFFFFF" />
+                    <rect x="25.5" y="52.5" width="21.5" height="21.5" rx="6.5" fill="#FFFFFF" />
+                    <rect x="53" y="60.2" width="22" height="6.6" rx="3.3" fill="#FFFFFF" />
+                    <rect x="60.7" y="52.5" width="6.6" height="22" rx="3.3" fill="#FFFFFF" />
+                  </svg>
+                )}
               </div>
-              <span className="text-sm font-semibold text-gray-300">Flathub &bull; {app.category}</span>
+              <span className="text-sm font-semibold text-gray-300">
+                {app.packageManager === 'appimage' ? 'AppImage Hub' : 'Flathub'} &bull; {app.category}
+              </span>
               <span className="text-xs text-gray-500 font-mono hidden sm:inline">{app.appId}</span>
             </div>
 
@@ -182,10 +189,14 @@ export const AppScreenshotModal: React.FC<AppScreenshotModalProps> = ({
                     ) : (
                       <button
                         onClick={() => onInstall(app)}
-                        className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[#4A86CF] hover:bg-[#3D72B4] text-white font-semibold flex items-center justify-center gap-2.5 shadow-lg shadow-blue-500/25 transition-all active:scale-95 cursor-pointer text-base"
+                        className={`w-full sm:w-auto px-8 py-3 rounded-xl ${
+                          app.packageManager === 'appimage'
+                            ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/25'
+                            : 'bg-[#4A86CF] hover:bg-[#3D72B4] shadow-blue-500/25'
+                        } text-white font-semibold flex items-center justify-center gap-2.5 shadow-lg transition-all active:scale-95 cursor-pointer text-base`}
                       >
                         <Download className="w-5 h-5" />
-                        Instalar Flatpak
+                        {app.packageManager === 'appimage' ? 'Baixar & Executar AppImage' : 'Instalar Flatpak'}
                       </button>
                     )}
                   </div>
