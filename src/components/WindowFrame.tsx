@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
-import { Minus, Square, X, Maximize2, Minimize2 } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Minus, X, Maximize2, Minimize2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { WindowState } from '../types';
 
 interface WindowFrameProps {
@@ -60,10 +61,6 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  if (!window.isOpen || window.isMinimized) {
-    return null;
-  }
-
   const windowStyle = window.isMaximized
     ? {
         top: '32px',
@@ -83,78 +80,119 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
       };
 
   return (
-    <div
-      onMouseDown={onFocus}
-      style={windowStyle}
-      className={`fixed flex flex-col liquid-glass rounded-2xl border border-white/25 mac-window-shadow overflow-hidden transition-all duration-150 select-none ${
-        window.isMaximized ? 'rounded-none border-x-0 border-t-0' : ''
-      }`}
-    >
-      {/* macOS Window Titlebar with Liquid Refraction */}
-      <div
-        onMouseDown={handleMouseDown}
-        onDoubleClick={onToggleMaximize}
-        className="h-10 bg-white/5 border-b border-white/15 flex items-center justify-between px-3.5 cursor-grab active:cursor-grabbing shrink-0 select-none backdrop-blur-md"
-      >
-        {/* Left: Traffic light control buttons */}
-        <div className="flex items-center space-x-2 group">
-          {/* Close (Red) */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E] flex items-center justify-center text-black/60 hover:text-black transition"
-            title="Fechar"
+    <AnimatePresence>
+      {window.isOpen && !window.isMinimized && (
+        <motion.div
+          key={window.id}
+          id={`window-${window.id}`}
+          onMouseDown={onFocus}
+          layout
+          initial={{
+            opacity: 0,
+            scale: 0.88,
+            y: 22,
+            filter: 'blur(10px)',
+          }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            filter: 'blur(0px)',
+            transition: {
+              type: 'spring',
+              stiffness: 360,
+              damping: 26,
+              mass: 0.85,
+            },
+          }}
+          exit={{
+            opacity: 0,
+            scale: 0.82,
+            y: 35,
+            filter: 'blur(12px)',
+            transition: {
+              duration: 0.2,
+              ease: [0.32, 0, 0.67, 0],
+            },
+          }}
+          style={windowStyle}
+          className={`fixed flex flex-col liquid-glass rounded-2xl border border-white/25 mac-window-shadow overflow-hidden select-none will-change-transform ${
+            window.isMaximized ? 'rounded-none border-x-0 border-t-0' : ''
+          }`}
+        >
+          {/* macOS Window Titlebar with Liquid Refraction */}
+          <div
+            onMouseDown={handleMouseDown}
+            onDoubleClick={onToggleMaximize}
+            className="h-10 bg-white/5 border-b border-white/15 flex items-center justify-between px-3.5 cursor-grab active:cursor-grabbing shrink-0 select-none backdrop-blur-md"
           >
-            <X className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </button>
+            {/* Left: Traffic light control buttons */}
+            <div className="flex items-center space-x-2 group">
+              {/* Close (Red) */}
+              <motion.button
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                }}
+                className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E] flex items-center justify-center text-black/60 hover:text-black transition"
+                title="Fechar"
+              >
+                <X className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </motion.button>
 
-          {/* Minimize (Yellow) */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onMinimize();
-            }}
-            className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123] flex items-center justify-center text-black/60 hover:text-black transition"
-            title="Minimizar"
-          >
-            <Minus className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </button>
+              {/* Minimize (Yellow) */}
+              <motion.button
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMinimize();
+                }}
+                className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123] flex items-center justify-center text-black/60 hover:text-black transition"
+                title="Minimizar"
+              >
+                <Minus className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </motion.button>
 
-          {/* Maximize (Green) */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleMaximize();
-            }}
-            className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29] flex items-center justify-center text-black/60 hover:text-black transition"
-            title={window.isMaximized ? 'Restaurar tamanho' : 'Maximizar'}
-          >
-            {window.isMaximized ? (
-              <Minimize2 className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-            ) : (
-              <Maximize2 className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-            )}
-          </button>
-        </div>
+              {/* Maximize (Green) */}
+              <motion.button
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleMaximize();
+                }}
+                className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29] flex items-center justify-center text-black/60 hover:text-black transition"
+                title={window.isMaximized ? 'Restaurar tamanho' : 'Maximizar'}
+              >
+                {window.isMaximized ? (
+                  <Minimize2 className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                ) : (
+                  <Maximize2 className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
+              </motion.button>
+            </div>
 
-        {/* Center: Title and App Icon */}
-        <div className="flex items-center space-x-2 text-xs font-semibold text-slate-200 tracking-wide pointer-events-none truncate max-w-[50%]">
-          {icon && <span className="opacity-80">{icon}</span>}
-          <span className="truncate">{window.title}</span>
-        </div>
+            {/* Center: Title and App Icon */}
+            <div className="flex items-center space-x-2 text-xs font-semibold text-slate-200 tracking-wide pointer-events-none truncate max-w-[50%]">
+              {icon && <span className="opacity-80">{icon}</span>}
+              <span className="truncate">{window.title}</span>
+            </div>
 
-        {/* Right: Custom window header actions if any */}
-        <div className="flex items-center space-x-2">
-          {headerRightContent}
-        </div>
-      </div>
+            {/* Right: Custom window header actions if any */}
+            <div className="flex items-center space-x-2">
+              {headerRightContent}
+            </div>
+          </div>
 
-      {/* Window Body Content */}
-      <div className="flex-1 overflow-auto p-0 bg-slate-950/70 text-slate-100 flex flex-col">
-        {children}
-      </div>
-    </div>
+          {/* Window Body Content */}
+          <div className="flex-1 overflow-auto p-0 bg-slate-950/70 text-slate-100 flex flex-col">
+            {children}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

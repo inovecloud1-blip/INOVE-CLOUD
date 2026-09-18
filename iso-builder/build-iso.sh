@@ -126,11 +126,10 @@ apt-get install -y --no-install-recommends \
   systemd-sysv \
   firmware-linux-free
 
-# 2. Ambiente GNOME Desktop & Display Manager Universal (LightDM & GNOME Session)
+# 2. Ambiente InoveCloud OS Native Desktop & Display Manager Universal (LightDM + Picom Glass Compositor)
 apt-get install -y --no-install-recommends \
-  gnome-core \
-  gnome-shell \
-  gnome-session \
+  openbox \
+  picom \
   lightdm \
   lightdm-gtk-greeter \
   accountsservice \
@@ -138,21 +137,9 @@ apt-get install -y --no-install-recommends \
   libpam-systemd \
   dbus-user-session \
   dbus-x11 \
-  gnome-tweaks \
-  gnome-shell-extensions \
-  gnome-shell-extension-dash-to-dock \
-  gnome-shell-extension-appindicator \
-  gnome-terminal \
-  nautilus \
-  gnome-software \
-  gnome-control-center \
-  gnome-calculator \
-  gnome-text-editor \
-  gnome-system-monitor \
-  gnome-disk-utility \
-  eog \
-  evince \
-  file-roller \
+  x11-xserver-utils \
+  xdotool \
+  unclutter \
   dconf-cli \
   dconf-gsettings-backend \
   gsettings-desktop-schemas \
@@ -272,12 +259,61 @@ run-directory=/run/lightdm
 [Seat:*]
 autologin-user=inove
 autologin-user-timeout=0
-autologin-session=gnome
-user-session=gnome
+autologin-session=inovecloud
+user-session=inovecloud
 greeter-session=lightdm-gtk-greeter
 greeter-hide-users=false
 allow-user-switching=true
 LIGHTDM_CONF
+
+# Configurar Sessão Nativa InoveCloud OS
+mkdir -p /usr/share/xsessions
+cat << 'XSESSIONS_CONF' > /usr/share/xsessions/inovecloud.desktop
+[Desktop Entry]
+Name=InoveCloud OS
+Comment=InoveCloud OS Liquid Glass Desktop Environment
+Exec=/usr/local/bin/inovecloud-session
+Type=Application
+DesktopNames=InoveCloud
+XSESSIONS_CONF
+
+# Script Inicializador da Sessão Nativa InoveCloud OS
+cat << 'SESSION_SCRIPT' > /usr/local/bin/inovecloud-session
+#!/usr/bin/env bash
+# InoveCloud OS Native Session Initializer
+
+xset s off -dpms s noblank 2>/dev/null || true
+
+# Ativar compositor Picom para aceleração de transparência e blur líquido
+picom -b --backend glx --vsync 2>/dev/null || picom -b --vsync 2>/dev/null || true
+
+# Iniciar Openbox como gerenciador de janelas ultra-leve em background
+openbox &
+
+# Aguardar servidor local InoveCloud estar pronto
+for i in $(seq 1 30); do
+  if curl -s http://127.0.0.1:3000 >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.5
+done
+
+# Executar InoveCloud OS como o Desktop Principal em Tela Cheia Nativa (Zero GNOME UI)
+exec chromium \
+  --app=http://127.0.0.1:3000 \
+  --start-fullscreen \
+  --no-sandbox \
+  --disable-features=TranslateUI \
+  --disable-pinch \
+  --overscroll-history-navigation=0 \
+  --no-first-run \
+  --no-default-browser-check \
+  --password-store=basic \
+  --disable-session-crashed-bubble \
+  --disable-infobars \
+  --check-for-update-interval=31536000
+SESSION_SCRIPT
+chmod +x /usr/local/bin/inovecloud-session
 
 # Configurar PAM para autologin do LightDM
 cat << 'PAM_AUTOLOGIN' > /etc/pam.d/lightdm-autologin
@@ -961,16 +997,15 @@ sha256sum "${ISO_NAME}" > "${ISO_NAME}.sha256"
 
 echo -e "${GREEN}${BOLD}"
 echo "========================================================================"
-echo "    SUCESSO! ISO DEBIAN 13 GNOME GLASS GERADA COM ÊXITO:               "
+echo "    SUCESSO! ISO INOVECLOUD OS NATIVE DESKTOP GERADA COM ÊXITO:         "
 echo "    Arquivo: ${OUTPUT_DIR}/${ISO_NAME}                                 "
 echo "    Checksum: ${OUTPUT_DIR}/${ISO_NAME}.sha256                         "
 echo "========================================================================"
 echo -e "${RESET}"
 echo "Recursos incluídos na ISO:"
-echo "- Debian 13 (Trixie) x86_64 Minimal Base"
-echo "- GNOME 46+ Desktop Environment com Liquid Glass Theme & Blur"
-echo "- Coleção Completa de Wallpapers InoveCloud (8K/4K) pré-instalada"
-echo "- Ícones Papirus-Dark & Custom Glass accents"
-echo "- Flatpak & Flathub + Servidor Local InoveCloud Node.js"
+echo "- InoveCloud OS Liquid Glass Native Shell (Sem GNOME UI)"
+echo "- Compositor Picom + Openbox Ultraleve"
+echo "- Suporte Nativo a AppImage (FUSE 2/3) e Flatpak Flathub"
+echo "- Servidor Local InoveCloud Node.js Nativo"
 echo "- Boot Híbrido UEFI / BIOS com GRUB2"
 echo ""
