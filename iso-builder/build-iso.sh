@@ -165,9 +165,8 @@ apt-get install -y --no-install-recommends \
   pipewire-audio \
   pavucontrol \
   network-manager \
-  network-manager-gnome \
   bluez \
-  gnome-bluetooth-sendto \
+  bluez-tools \
   iproute2 \
   curl \
   wget \
@@ -203,7 +202,8 @@ apt-get install -y --no-install-recommends \
   gstreamer1.0-plugins-ugly \
   gstreamer1.0-libav \
   flatpak \
-  gnome-software-plugin-flatpak \
+  xdg-desktop-portal \
+  xdg-desktop-portal-gtk \
   chromium \
   fonts-dejavu-core \
   fonts-freefont-ttf \

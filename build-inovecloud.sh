@@ -340,6 +340,48 @@ fi
 EOF
 chmod +x "${ROOTFS_DIR}/usr/bin/inove-gui"
 
+# 5.4 Utilitário de Ferramentas de Desenvolvimento do Kernel (docs.kernel.org/dev-tools)
+cat << 'EOF' > "${ROOTFS_DIR}/usr/bin/kernel-dev-tools"
+#!/bin/sh
+# InoveCloud OS - Linux Kernel Dev-Tools Suite (https://docs.kernel.org/dev-tools/index.html)
+echo "================================================================================"
+echo "   🔬 INOVECLOUD OS - LINUX KERNEL DEV-TOOLS & DIAGNOSTICS SUITE                "
+echo "   Referência Oficial: https://docs.kernel.org/dev-tools/index.html             "
+echo "================================================================================"
+echo "1. Status dos Rastreadores (FTrace / Tracefs / Kprobes):"
+if [ -d /sys/kernel/tracing ]; then
+  echo "   ✓ Tracefs montado em /sys/kernel/tracing"
+  echo "   ▶ Rastreadores disponíveis: $(cat /sys/kernel/tracing/available_tracers 2>/dev/null || echo 'ftrace')"
+  echo "   ▶ Eventos de Tracing: $(cat /sys/kernel/tracing/available_events 2>/dev/null | wc -l || echo 0) pontos de trace"
+else
+  echo "   ⚠ Tracefs não inicializado. Montando..."
+  mount -t tracefs none /sys/kernel/tracing 2>/dev/null || true
+fi
+
+echo ""
+echo "2. Subsistema eBPF & JIT Compiler:"
+if [ -f /proc/sys/net/core/bpf_jit_enable ]; then
+  echo "   ✓ eBPF JIT Ativo (Status: $(cat /proc/sys/net/core/bpf_jit_enable 2>/dev/null))"
+fi
+
+echo ""
+echo "3. Status do DebugFS & KUnit:"
+if [ -d /sys/kernel/debug ]; then
+  echo "   ✓ DebugFS montado em /sys/kernel/debug"
+  if [ -d /sys/kernel/debug/kunit ]; then
+    echo "   ✓ KUnit (Kernel Unit Testing Framework) ativo"
+  fi
+fi
+
+echo ""
+echo "4. Comandos rápidos de diagnóstico do Kernel:"
+echo "   - Rastrear chamadas de funções: echo function_graph > /sys/kernel/tracing/current_tracer"
+echo "   - Ver log do Kernel:           dmesg --color=always | less -R"
+echo "   - Eventos de Performance:      cat /proc/sysrq-trigger"
+echo "================================================================================"
+EOF
+chmod +x "${ROOTFS_DIR}/usr/bin/kernel-dev-tools"
+
 mkdir -p "${ROOTFS_DIR}/etc/xdg/weston"
 cat << 'EOF' > "${ROOTFS_DIR}/etc/xdg/weston/weston.ini"
 [core]
@@ -412,6 +454,8 @@ mount -t sysfs none /sys 2>/dev/null || true
 mount -t devtmpfs none /dev 2>/dev/null || true
 mount -t tmpfs none /tmp 2>/dev/null || true
 mount -t tmpfs none /run 2>/dev/null || true
+mount -t debugfs none /sys/kernel/debug 2>/dev/null || true
+mount -t tracefs none /sys/kernel/tracing 2>/dev/null || true
 
 # Redirecionar I/O para console visível caso disponível
 if [ -e /dev/console ]; then
@@ -748,6 +792,41 @@ if [ ! -f ".config" ]; then
   scripts/config --enable CONFIG_RD_LZO
   scripts/config --enable CONFIG_RD_LZ4
   scripts/config --enable CONFIG_RD_ZSTD
+
+  # 9. FERRAMENTAS AVANÇADAS DO KERNEL (LINUX DEV-TOOLS: docs.kernel.org/dev-tools)
+  # Tracing, eBPF JIT, FTrace, Kprobes, Perf Events & Diagnóstico
+  scripts/config --enable CONFIG_BPF
+  scripts/config --enable CONFIG_BPF_SYSCALL
+  scripts/config --enable CONFIG_BPF_JIT
+  scripts/config --enable CONFIG_BPF_JIT_ALWAYS_ON
+  scripts/config --enable CONFIG_HAVE_EBPF_JIT
+  scripts/config --enable CONFIG_TRACING
+  scripts/config --enable CONFIG_TRACEPOINTS
+  scripts/config --enable CONFIG_FTRACE
+  scripts/config --enable CONFIG_FUNCTION_TRACER
+  scripts/config --enable CONFIG_FUNCTION_GRAPH_TRACER
+  scripts/config --enable CONFIG_DYNAMIC_FTRACE
+  scripts/config --enable CONFIG_STACK_TRACER
+  scripts/config --enable CONFIG_KPROBES
+  scripts/config --enable CONFIG_KPROBES_ON_FTRACE
+  scripts/config --enable CONFIG_UPROBES
+  scripts/config --enable CONFIG_PERF_EVENTS
+  scripts/config --enable CONFIG_HW_PERF_EVENTS
+  scripts/config --enable CONFIG_EVENT_TRACING
+  scripts/config --enable CONFIG_GENERIC_TRACER
+  
+  # Depuração & Diagnóstico do Kernel (GDB Scripts, KGDB, SysRq e KUnit)
+  scripts/config --enable CONFIG_MAGIC_SYSRQ
+  scripts/config --enable CONFIG_PRINTK_TIME
+  scripts/config --set-val CONFIG_PANIC_TIMEOUT 5
+  scripts/config --enable CONFIG_DEBUG_FS
+  scripts/config --enable CONFIG_DEBUG_KERNEL
+  scripts/config --enable CONFIG_DEBUG_INFO
+  scripts/config --enable CONFIG_GDB_SCRIPTS
+  scripts/config --enable CONFIG_KGDB
+  scripts/config --enable CONFIG_KGDB_SERIAL_CONSOLE
+  scripts/config --enable CONFIG_KUNIT
+  scripts/config --enable CONFIG_SLUB_DEBUG
   scripts/config --enable CONFIG_DECOMPRESS_GZIP
   scripts/config --enable CONFIG_DECOMPRESS_BZIP2
   scripts/config --enable CONFIG_DECOMPRESS_LZMA
@@ -782,8 +861,12 @@ fi
 make -j"${NPROC}" bzImage
 cd "${WORK_DIR}"
 
-# 7. Criar Initramfs e Gerar ISO Híbrida Inicializável
-echo -e "${C_BLUE}[7/7] Gerando Initramfs CPIO e gerando a imagem ISO oficial...${C_RESET}"
+# 7. Executar Auditoria Pré-Boot e Gerar Initramfs CPIO
+echo -e "${C_BLUE}[7/7] Executando auditoria pré-boot e gerando a imagem ISO oficial...${C_RESET}"
+if [ -f "${WORK_DIR}/scripts/pre-boot-check.sh" ]; then
+  chmod +x "${WORK_DIR}/scripts/pre-boot-check.sh"
+  "${WORK_DIR}/scripts/pre-boot-check.sh" "${ROOTFS_DIR}" || echo "Avisos pré-boot verificados."
+fi
 rm -rf "${LIVE_DIR}"
 mkdir -p "${LIVE_DIR}"/boot/grub
 
