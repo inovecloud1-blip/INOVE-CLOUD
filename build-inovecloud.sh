@@ -67,10 +67,10 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   curl wget tar xz-utils cpio python3 busybox-static \
   flatpak bubblewrap dbus ostree apt dpkg isc-dhcp-client udhcpc \
   wpasupplicant wireless-tools bluez bluez-tools \
-  weston xwayland libinput-bin udev kmod \
+  weston xwayland libinput-bin udev kmod libpixman-1-0 libgl1-mesa-dri libgl1-mesa-glx libegl1-mesa \
   alsa-utils pulseaudio cups cups-client cups-bsd ghostscript \
   mesa-va-drivers mesa-vulkan-drivers fbset \
-  plymouth plymouth-themes
+  plymouth plymouth-themes fonts-dejavu-core adwaita-icon-theme
 
 # 2. Estruturação Completa dos Diretórios do Sistema
 echo -e "${C_BLUE}[2/7] Criando árvore de diretórios do InoveCloud OS...${C_RESET}"
@@ -236,6 +236,51 @@ for prog in "${CORE_BINARIES[@]}"; do
   fi
 done
 
+# Copiar Módulos Dinâmicos e Backends do Weston (DRM, FBDev, Headless, Wayland, X11, Shell)
+for weston_libdir in /usr/lib/x86_64-linux-gnu/weston /usr/lib64/weston /usr/lib/weston /usr/libexec/weston*; do
+  if [ -d "$weston_libdir" ]; then
+    mkdir -p "${ROOTFS_DIR}${weston_libdir}"
+    cp -a "$weston_libdir"/* "${ROOTFS_DIR}${weston_libdir}/" 2>/dev/null || true
+    for wso in "${ROOTFS_DIR}${weston_libdir}"/*.so; do
+      if [ -f "$wso" ]; then
+        for lib in $(ldd "$wso" 2>/dev/null | grep -o '/lib[^ ]*' || true); do
+          if [ -f "$lib" ] && [ ! -f "${ROOTFS_DIR}${lib}" ]; then
+            mkdir -p "$(dirname "${ROOTFS_DIR}${lib}")"
+            cp -L "$lib" "${ROOTFS_DIR}${lib}" 2>/dev/null || true
+          fi
+        done
+      fi
+    done
+  fi
+done
+
+# Copiar Drivers Gráficos Mesa DRI/Vulkan (Intel, AMD, Nouveau, VMWare, Swrast/Software)
+for dri_dir in /usr/lib/x86_64-linux-gnu/dri /usr/lib64/dri /usr/lib/dri; do
+  if [ -d "$dri_dir" ]; then
+    mkdir -p "${ROOTFS_DIR}${dri_dir}"
+    cp -a "$dri_dir"/* "${ROOTFS_DIR}${dri_dir}/" 2>/dev/null || true
+    for drilib in "${ROOTFS_DIR}${dri_dir}"/*.so; do
+      if [ -f "$drilib" ]; then
+        for lib in $(ldd "$drilib" 2>/dev/null | grep -o '/lib[^ ]*' || true); do
+          if [ -f "$lib" ] && [ ! -f "${ROOTFS_DIR}${lib}" ]; then
+            mkdir -p "$(dirname "${ROOTFS_DIR}${lib}")"
+            cp -L "$lib" "${ROOTFS_DIR}${lib}" 2>/dev/null || true
+          fi
+        done
+      fi
+    done
+  fi
+done
+
+# Copiar Fontes do Sistema e Ícones Essenciais
+mkdir -p "${ROOTFS_DIR}/usr/share/fonts" "${ROOTFS_DIR}/usr/share/icons"
+if [ -d /usr/share/fonts ]; then
+  cp -a /usr/share/fonts/* "${ROOTFS_DIR}/usr/share/fonts/" 2>/dev/null || true
+fi
+if [ -d /usr/share/icons ]; then
+  cp -a /usr/share/icons/* "${ROOTFS_DIR}/usr/share/icons/" 2>/dev/null || true
+fi
+
 # Configurar repositório do APT Linux
 cat << 'EOF' > "${ROOTFS_DIR}/etc/apt/sources.list"
 deb http://deb.debian.org/debian trixie main contrib non-free non-free-firmware
@@ -326,17 +371,28 @@ cat << 'EOF' > "${ROOTFS_DIR}/usr/bin/inove-gui"
 export XDG_RUNTIME_DIR=/tmp/runtime-inove
 export WAYLAND_DISPLAY=wayland-0
 export WESTON_DISABLE_DRM_MASTER=1
-mkdir -p "$XDG_RUNTIME_DIR"
+mkdir -p "$XDG_RUNTIME_DIR" /var/log
 chmod 0700 "$XDG_RUNTIME_DIR"
 
-echo "[INOVE-GUI] Carregando compositor gráfico InoveCloud OS..."
-if [ -e /dev/dri/card0 ] && weston --backend=drm-backend.so --continue-without-input --log=/var/log/weston.log 2>/dev/null; then
+echo "[INOVE-GUI] Carregando compositor gráfico InoveCloud OS (Liquid Glass)..."
+
+# 1. Tentativa Primária: DRM Direto com Aceleração por Hardware ou Pixman
+if weston --backend=drm-backend.so --continue-without-input --log=/var/log/weston.log 2>&1; then
   exit 0
-elif [ -e /dev/fb0 ] && weston --backend=fbdev-backend.so --continue-without-input --log=/var/log/weston.log 2>/dev/null; then
-  exit 0
-else
-  weston --continue-without-input --log=/var/log/weston.log 2>/dev/null || true
 fi
+
+# 2. Tentativa Secundária: DRM com Renderizador de Software Pixman (Compatível com qualquer GPU)
+if weston --backend=drm-backend.so --use-pixman --continue-without-input --log=/var/log/weston.log 2>&1; then
+  exit 0
+fi
+
+# 3. Tentativa Terciária: Framebuffer /dev/fb0
+if [ -e /dev/fb0 ] && weston --backend=fbdev-backend.so --continue-without-input --log=/var/log/weston.log 2>&1; then
+  exit 0
+fi
+
+# 4. Fallback Universal: Inicialização Padrão
+weston --continue-without-input --log=/var/log/weston.log 2>&1 || true
 EOF
 chmod +x "${ROOTFS_DIR}/usr/bin/inove-gui"
 
