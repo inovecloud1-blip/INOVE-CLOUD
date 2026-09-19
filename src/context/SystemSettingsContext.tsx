@@ -23,6 +23,7 @@ export interface SystemSettingsState {
   // Audio
   speakerVolume: number; // 0 to 100
   isMuted: boolean;
+  systemSoundsEnabled: boolean; // Som Pop e UI Feedback
   
   // Security & Lock Screen
   isScreenLocked: boolean;
@@ -79,6 +80,9 @@ interface SystemSettingsContextType extends SystemSettingsState {
   
   // Sound effect
   playFeedbackTone: (force?: boolean) => void;
+  playPopSound: (actionType?: 'on' | 'off' | 'click') => void;
+  toggleSystemSounds: () => void;
+  setSystemSoundsEnabled: (enabled: boolean) => void;
 }
 
 const STORAGE_KEY = 'inovecloud_system_settings_v1';
@@ -99,6 +103,7 @@ const defaultState: SystemSettingsState = {
   doNotDisturb: false,
   speakerVolume: 75,
   isMuted: false,
+  systemSoundsEnabled: true,
   isScreenLocked: false,
   userName: 'Administrador Inove',
   userEmail: 'inovecloud1@gmail.com',
@@ -168,6 +173,67 @@ export const SystemSettingsProvider: React.FC<{ children: React.ReactNode }> = (
     } catch (e) {
       // AudioContext policy
     }
+  };
+
+  // Som POP orgânico para botões de alternar (toggle), checkboxes e opções
+  const playPopSound = (actionType: 'on' | 'off' | 'click' = 'click') => {
+    if (!state.systemSoundsEnabled || state.doNotDisturb || state.isMuted || state.speakerVolume === 0) return;
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      const volumeFactor = (state.speakerVolume / 100) * 0.22;
+
+      if (actionType === 'on') {
+        // Pop agudo e ascendente ao ATIVAR uma opção (800Hz -> 1400Hz)
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(750, now);
+        osc.frequency.exponentialRampToValueAtTime(1450, now + 0.045);
+        gain.gain.setValueAtTime(volumeFactor, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.065);
+      } else if (actionType === 'off') {
+        // Pop descendente e encorpado ao DESATIVAR uma opção (1100Hz -> 500Hz)
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1100, now);
+        osc.frequency.exponentialRampToValueAtTime(450, now + 0.055);
+        gain.gain.setValueAtTime(volumeFactor * 0.9, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.075);
+      } else {
+        // Pop suave para clique em abas/menus
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(900, now);
+        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.035);
+        gain.gain.setValueAtTime(volumeFactor * 0.7, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.045);
+      }
+    } catch (e) {
+      // Navegador com áudio suspenso
+    }
+  };
+
+  const toggleSystemSounds = () => {
+    setState((prev) => {
+      const next = !prev.systemSoundsEnabled;
+      return { ...prev, systemSoundsEnabled: next };
+    });
+  };
+
+  const setSystemSoundsEnabled = (enabled: boolean) => {
+    setState((prev) => ({ ...prev, systemSoundsEnabled: enabled }));
   };
 
   const toggleWifi = () => {
@@ -375,6 +441,9 @@ export const SystemSettingsProvider: React.FC<{ children: React.ReactNode }> = (
         powerOnSystem,
         wakeFromSleep,
         playFeedbackTone,
+        playPopSound,
+        toggleSystemSounds,
+        setSystemSoundsEnabled,
       }}
     >
       {children}

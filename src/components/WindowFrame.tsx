@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { Minus, X, Maximize2, Minimize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { WindowState } from '../types';
+import { useSoundEffects } from '../context/SoundEffectsContext';
 
 interface WindowFrameProps {
   window: WindowState;
@@ -26,6 +27,7 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
   children,
   headerRightContent,
 }) => {
+  const { playPop } = useSoundEffects();
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0, winX: 0, winY: 0 });
 
@@ -89,9 +91,9 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
           layout
           initial={{
             opacity: 0,
-            scale: 0.88,
-            y: 22,
-            filter: 'blur(10px)',
+            scale: 0.86,
+            y: 28,
+            filter: 'blur(12px)',
           }}
           animate={{
             opacity: 1,
@@ -100,19 +102,21 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
             filter: 'blur(0px)',
             transition: {
               type: 'spring',
-              stiffness: 360,
-              damping: 26,
-              mass: 0.85,
+              stiffness: 380,
+              damping: 24,
+              mass: 0.8,
             },
           }}
           exit={{
             opacity: 0,
-            scale: 0.82,
-            y: 35,
-            filter: 'blur(12px)',
+            scale: 0.84,
+            y: 32,
+            filter: 'blur(14px)',
             transition: {
-              duration: 0.2,
-              ease: [0.32, 0, 0.67, 0],
+              type: 'spring',
+              stiffness: 420,
+              damping: 28,
+              mass: 0.75,
             },
           }}
           style={windowStyle}
@@ -123,7 +127,10 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
           {/* macOS Window Titlebar with Liquid Refraction */}
           <div
             onMouseDown={handleMouseDown}
-            onDoubleClick={onToggleMaximize}
+            onDoubleClick={() => {
+              playPop('click');
+              onToggleMaximize();
+            }}
             className="h-10 bg-white/5 border-b border-white/15 flex items-center justify-between px-3.5 cursor-grab active:cursor-grabbing shrink-0 select-none backdrop-blur-md"
           >
             {/* Left: Traffic light control buttons */}
@@ -134,9 +141,10 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
                 whileTap={{ scale: 0.9 }}
                 onClick={(e) => {
                   e.stopPropagation();
+                  playPop('off');
                   onClose();
                 }}
-                className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E] flex items-center justify-center text-black/60 hover:text-black transition"
+                className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E] flex items-center justify-center text-black/60 hover:text-black transition cursor-pointer"
                 title="Fechar"
               >
                 <X className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -148,9 +156,10 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
                 whileTap={{ scale: 0.9 }}
                 onClick={(e) => {
                   e.stopPropagation();
+                  playPop('off');
                   onMinimize();
                 }}
-                className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123] flex items-center justify-center text-black/60 hover:text-black transition"
+                className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123] flex items-center justify-center text-black/60 hover:text-black transition cursor-pointer"
                 title="Minimizar"
               >
                 <Minus className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -162,9 +171,10 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
                 whileTap={{ scale: 0.9 }}
                 onClick={(e) => {
                   e.stopPropagation();
+                  playPop('on');
                   onToggleMaximize();
                 }}
-                className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29] flex items-center justify-center text-black/60 hover:text-black transition"
+                className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29] flex items-center justify-center text-black/60 hover:text-black transition cursor-pointer"
                 title={window.isMaximized ? 'Restaurar tamanho' : 'Maximizar'}
               >
                 {window.isMaximized ? (

@@ -70,6 +70,8 @@ import { WALLPAPERS } from '../../data/mockData';
 import { DesktopWidgetsConfig, DockConfig, DEFAULT_DOCK_CONFIG, DockPosition, DockAlignment, DockThemeStyle, AppId } from '../../types';
 import { AppIcon } from '../desktop/AppIcon';
 import { useSystemSettings } from '../../context/SystemSettingsContext';
+import { useSoundEffects } from '../../context/SoundEffectsContext';
+import { ToggleSwitch } from '../ui/ToggleSwitch';
 
 interface SettingsAppProps {
   currentWallpaper: string;
@@ -118,6 +120,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
   initialSection = 'debian',
 }) => {
   const sysSettings = useSystemSettings();
+  const soundEffects = useSoundEffects();
   const [activeSection, setActiveSection] = useState<
     'debian' | 'wifi' | 'ethernet' | 'camera' | 'dnd' | 'bluetooth' | 'mouse' | 'display' | 'sound' | 'power' | 'themes' | 'dock' | 'user' | 'accessibility' | 'about'
   >(initialSection);
@@ -469,7 +472,10 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveSection(item.id as any)}
+                onClick={() => {
+                  soundEffects.playPop('click');
+                  setActiveSection(item.id as any);
+                }}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${
                   isActive
                     ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-600/20'
@@ -987,15 +993,14 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                 </p>
               </div>
               {/* Wi-Fi Main Switch */}
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={wifiEnabled}
-                  onChange={() => setWifiEnabled(!wifiEnabled)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-              </label>
+              <ToggleSwitch
+                checked={wifiEnabled}
+                onChange={(val) => {
+                  setWifiEnabled(val);
+                  if (sysSettings.setWifiEnabled) sysSettings.setWifiEnabled(val);
+                }}
+                activeColor="bg-cyan-500"
+              />
             </div>
 
             {wifiEnabled ? (
@@ -1164,15 +1169,11 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                   Conexão cabeada de alta velocidade direta via driver do kernel Linux com DMA Netlink.
                 </p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={sysSettings.ethernetEnabled}
-                  onChange={sysSettings.toggleEthernet}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-              </label>
+              <ToggleSwitch
+                checked={sysSettings.ethernetEnabled}
+                onChange={sysSettings.toggleEthernet}
+                activeColor="bg-emerald-500"
+              />
             </div>
 
             {sysSettings.ethernetEnabled ? (
@@ -1377,15 +1378,11 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                     <p className="text-xs text-slate-400">Ajusta o contraste, paleta e fundo do sistema e de todos os aplicativos.</p>
                   </div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={sysSettings.darkMode}
-                    onChange={sysSettings.toggleDarkMode}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
-                </label>
+                <ToggleSwitch
+                  checked={sysSettings.darkMode}
+                  onChange={sysSettings.toggleDarkMode}
+                  activeColor="bg-indigo-600"
+                />
               </div>
 
               {/* Do Not Disturb Card */}
@@ -1399,15 +1396,11 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                     <p className="text-xs text-slate-400">Silencia sons de clique, bips de feedback de áudio e oculta notificações em tela cheia.</p>
                   </div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={sysSettings.doNotDisturb}
-                    onChange={sysSettings.toggleDoNotDisturb}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
-                </label>
+                <ToggleSwitch
+                  checked={sysSettings.doNotDisturb}
+                  onChange={sysSettings.toggleDoNotDisturb}
+                  activeColor="bg-rose-500"
+                />
               </div>
 
               {/* Rules & Preferences */}
@@ -1449,15 +1442,11 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                   Conecte fones de ouvido sem fio, mouses, teclados mecânicos e controles Bluetooth.
                 </p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={bluetoothEnabled}
-                  onChange={() => setBluetoothEnabled(!bluetoothEnabled)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
-              </label>
+              <ToggleSwitch
+                checked={bluetoothEnabled}
+                onChange={setBluetoothEnabled}
+                activeColor="bg-indigo-500"
+              />
             </div>
 
             {bluetoothEnabled ? (
@@ -1625,54 +1614,38 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
             </div>
 
             {/* Natural Scrolling */}
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-white">Rolagem Natural (Estilo Touchpad / Mac)</h4>
-                <p className="text-[11px] text-slate-400">O conteúdo se move na mesma direção dos seus dedos</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={naturalScrolling}
-                  onChange={() => setNaturalScrolling(!naturalScrolling)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-              </label>
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+              <ToggleSwitch
+                label="Rolagem Natural (Estilo Touchpad / Mac)"
+                description="O conteúdo se move na mesma direção dos seus dedos"
+                checked={naturalScrolling}
+                onChange={setNaturalScrolling}
+                activeColor="bg-amber-500"
+              />
             </div>
 
             {/* Pointer Acceleration & Tap to click */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs font-bold text-white">Aceleração do Cursor</h4>
-                  <p className="text-[10px] text-slate-400">Aumenta velocidade em movimentos rápidos</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={mouseAcceleration}
-                    onChange={() => setMouseAcceleration(!mouseAcceleration)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-                </label>
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                <ToggleSwitch
+                  size="sm"
+                  label="Aceleração do Cursor"
+                  description="Aumenta velocidade em movimentos rápidos"
+                  checked={mouseAcceleration}
+                  onChange={setMouseAcceleration}
+                  activeColor="bg-amber-500"
+                />
               </div>
 
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs font-bold text-white">Toque para Clicar (Touchpad)</h4>
-                  <p className="text-[10px] text-slate-400">Toque levemente sem pressionar o botão físico</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={tapToClick}
-                    onChange={() => setTapToClick(!tapToClick)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-                </label>
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                <ToggleSwitch
+                  size="sm"
+                  label="Toque para Clicar"
+                  description="Toque levemente sem pressionar o botão"
+                  checked={tapToClick}
+                  onChange={setTapToClick}
+                  activeColor="bg-amber-500"
+                />
               </div>
             </div>
 
@@ -1770,24 +1743,13 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
 
             {/* Night Light */}
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs font-bold text-white flex items-center space-x-2">
-                    <Sun className="w-4 h-4 text-amber-400" />
-                    <span>Luz Noturna (Filtro de Luz Azul)</span>
-                  </h4>
-                  <p className="text-[11px] text-slate-400">Torna a tela com tons mais quentes para não cansar os olhos à noite</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={nightLight}
-                    onChange={() => setNightLight(!nightLight)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                </label>
-              </div>
+              <ToggleSwitch
+                label="Luz Noturna (Filtro de Luz Azul)"
+                description="Torna a tela com tons mais quentes para não cansar os olhos à noite"
+                checked={nightLight}
+                onChange={setNightLight}
+                activeColor="bg-amber-500"
+              />
               {nightLight && (
                 <div className="pt-2">
                   <div className="flex justify-between text-[11px] text-slate-400 mb-1">
@@ -1925,6 +1887,52 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Efeitos Sonoros do Sistema & Som Pop */}
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+              <ToggleSwitch
+                label="Efeitos Sonoros do Sistema & Som Pop"
+                description="Reproduz som 'Pop' animado e tátil ao ligar e desligar opções, alternar interruptores e interagir com o sistema."
+                checked={soundEffects.soundsEnabled}
+                onChange={soundEffects.setSoundsEnabled}
+                activeColor="bg-emerald-500"
+              />
+
+              {soundEffects.soundsEnabled && (
+                <div className="pt-3 border-t border-white/10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white">Demonstração & Teste de Sons Interativos:</span>
+                    <span className="text-[10px] text-emerald-400 font-mono">Web Audio API • Latência 0ms</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      onClick={() => soundEffects.playSound('pop_on')}
+                      className="p-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition flex flex-col items-center gap-1 cursor-pointer active:scale-95"
+                    >
+                      <span className="text-sm">✨</span>
+                      <span>Pop ON (Ligar)</span>
+                    </button>
+
+                    <button
+                      onClick={() => soundEffects.playSound('pop_off')}
+                      className="p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-bold transition flex flex-col items-center gap-1 cursor-pointer active:scale-95"
+                    >
+                      <span className="text-sm">💤</span>
+                      <span>Pop OFF (Desligar)</span>
+                    </button>
+
+                    <button
+                      onClick={() => soundEffects.playSound('pop_click')}
+                      className="p-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-bold transition flex flex-col items-center gap-1 cursor-pointer active:scale-95"
+                    >
+                      <span className="text-sm">👆</span>
+                      <span>Pop Clique (Aba)</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -2675,20 +2683,14 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
             </div>
 
             {/* High Contrast */}
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-white">Modo de Alto Contraste</h4>
-                <p className="text-[11px] text-slate-400">Aumenta o contraste visual entre textos e fundos (Razão WCAG AAA 7:1)</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={highContrast}
-                  onChange={() => setHighContrast(!highContrast)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
-              </label>
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+              <ToggleSwitch
+                label="Modo de Alto Contraste"
+                description="Aumenta o contraste visual entre textos e fundos (Razão WCAG AAA 7:1)"
+                checked={highContrast}
+                onChange={setHighContrast}
+                activeColor="bg-purple-600"
+              />
             </div>
 
             {/* Font Scaling */}
@@ -2732,36 +2734,26 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
 
             {/* Reduce Motion & Sticky Keys */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs font-bold text-white">Reduzir Animações</h4>
-                  <p className="text-[10px] text-slate-400">Desativa transições para evitar enjoos</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={reduceMotion}
-                    onChange={() => setReduceMotion(!reduceMotion)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
-                </label>
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                <ToggleSwitch
+                  size="sm"
+                  label="Reduzir Animações"
+                  description="Desativa transições para evitar enjoos"
+                  checked={reduceMotion}
+                  onChange={setReduceMotion}
+                  activeColor="bg-purple-600"
+                />
               </div>
 
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs font-bold text-white">Áudio Mono</h4>
-                  <p className="text-[10px] text-slate-400">Mescla canais E/D em um só</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={monoAudio}
-                    onChange={() => setMonoAudio(!monoAudio)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
-                </label>
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                <ToggleSwitch
+                  size="sm"
+                  label="Áudio Mono"
+                  description="Mescla canais E/D em um só"
+                  checked={monoAudio}
+                  onChange={setMonoAudio}
+                  activeColor="bg-purple-600"
+                />
               </div>
             </div>
           </div>

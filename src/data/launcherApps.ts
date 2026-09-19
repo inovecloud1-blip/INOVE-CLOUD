@@ -230,10 +230,21 @@ export const LAUNCHER_APPS: LauncherAppInfo[] = [
     iconName: 'Music',
     gradient: 'from-red-600 via-rose-600 to-pink-700',
   },
+  {
+    id: 'notes',
+    name: 'Notas & Código',
+    category: 'Storage & Produtividade',
+    description: 'Editor de notas rápidas, documentação Markdown e scripts de shell integrado.',
+    badge: 'Markdown',
+    badgeColor: 'bg-amber-500',
+    iconName: 'FileText',
+    gradient: 'from-amber-500 via-orange-600 to-rose-700',
+  },
 ];
 
 export const DEFAULT_DESKTOP_PINNED: AppId[] = [
   'projects',
+  'notes',
   'gallery',
   'videoplayer',
   'music',
@@ -254,6 +265,7 @@ export const DEFAULT_DESKTOP_PINNED: AppId[] = [
 
 export const DEFAULT_DOCK_PINNED: AppId[] = [
   'projects',
+  'notes',
   'gallery',
   'videoplayer',
   'music',

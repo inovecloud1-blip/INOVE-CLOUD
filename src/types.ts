@@ -21,7 +21,8 @@ export type AppId =
   | 'gallery'
   | 'videoplayer'
   | 'videoeditor'
-  | 'music';
+  | 'music'
+  | 'notes';
 
 export type AppCategory =
   | 'Infraestrutura & KVM'

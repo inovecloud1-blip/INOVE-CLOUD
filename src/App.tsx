@@ -20,7 +20,8 @@ import {
   Camera as CameraIcon,
   Image as GalleryIcon,
   Film as VideoIcon,
-  Music as MusicIcon
+  Music as MusicIcon,
+  FileText as NotesIcon
 } from 'lucide-react';
 import { MenuBar } from './components/MenuBar';
 import { Dock } from './components/Dock';
@@ -52,12 +53,14 @@ import { CameraApp } from './components/apps/CameraApp';
 import { GalleryApp } from './components/apps/GalleryApp';
 import { VideoPlayerApp } from './components/apps/VideoPlayerApp';
 import { MusicApp } from './components/apps/MusicApp';
+import { NotesApp } from './components/apps/NotesApp';
 import { AppLauncher } from './components/desktop/AppLauncher';
 import { BootVideoSplash } from './components/desktop/BootVideoSplash';
 import { LockScreen } from './components/desktop/LockScreen';
 import { PowerOverlay } from './components/desktop/PowerOverlay';
 import { PowerDialog } from './components/desktop/PowerDialog';
 import { SystemSettingsProvider, useSystemSettings } from './context/SystemSettingsContext';
+import { SoundEffectsProvider } from './context/SoundEffectsContext';
 import { DEFAULT_DESKTOP_PINNED, DEFAULT_DOCK_PINNED } from './data/launcherApps';
 
 import {
@@ -591,6 +594,16 @@ function DesktopOS() {
       zIndex: 22,
       position: { x: 140, y: 75 },
       size: { width: 920, height: 620 },
+    },
+    notes: {
+      id: 'notes',
+      title: 'Notas & Documentação — InoveCloud Notes Editor',
+      isOpen: false,
+      isMinimized: false,
+      isMaximized: false,
+      zIndex: 23,
+      position: { x: 150, y: 80 },
+      size: { width: 880, height: 580 },
     },
   });
 
@@ -1281,6 +1294,21 @@ function DesktopOS() {
             <MusicApp />
           </WindowFrame>
         </div>
+
+        {/* Notes & Markdown Editor */}
+        <div className="pointer-events-auto">
+          <WindowFrame
+            window={windows.notes}
+            icon={<NotesIcon className="w-3.5 h-3.5 text-amber-400" />}
+            onClose={() => closeWindow('notes')}
+            onMinimize={() => minimizeWindow('notes')}
+            onToggleMaximize={() => toggleMaximize('notes')}
+            onFocus={() => focusWindow('notes')}
+            onMove={(pos) => moveWindow('notes', pos)}
+          >
+            <NotesApp />
+          </WindowFrame>
+        </div>
       </main>
 
       {/* macOS Floating Glass Dock at Bottom */}
@@ -1361,7 +1389,9 @@ function DesktopOS() {
 export default function App() {
   return (
     <SystemSettingsProvider>
-      <DesktopOS />
+      <SoundEffectsProvider>
+        <DesktopOS />
+      </SoundEffectsProvider>
     </SystemSettingsProvider>
   );
 }

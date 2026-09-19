@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { AppId, SystemStats } from '../../types';
 import { useSystemSettings } from '../../context/SystemSettingsContext';
+import { useSoundEffects } from '../../context/SoundEffectsContext';
 
 interface ControlCenterProps {
   isOpen: boolean;
@@ -66,7 +67,10 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
     requestRestart,
     requestSleep,
     playFeedbackTone,
+    playPopSound,
+    systemSoundsEnabled,
   } = useSystemSettings();
+  const { playPop, playSliderTick } = useSoundEffects();
 
   if (!isOpen) return null;
 
@@ -81,15 +85,17 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
           {/* Wi-Fi Tile */}
           <div
             onClick={() => {
-              playFeedbackTone();
+              playPopSound(!wifiEnabled ? 'on' : 'off');
               toggleWifi();
             }}
-            className="p-3 liquid-glass-subcard rounded-xl flex items-center justify-between cursor-pointer hover:bg-white/10 transition"
+            className={`p-3 liquid-glass-subcard rounded-xl flex items-center justify-between cursor-pointer hover:bg-white/10 active:scale-[0.98] transition ${
+              wifiEnabled ? 'ring-1 ring-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.15)]' : ''
+            }`}
           >
             <div className="flex items-center space-x-2.5 min-w-0">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition shadow-md shrink-0 ${
-                  wifiEnabled ? 'bg-cyan-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400'
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 shadow-md shrink-0 ${
+                  wifiEnabled ? 'bg-cyan-500 text-slate-950 font-bold scale-105' : 'bg-slate-800 text-slate-400'
                 }`}
               >
                 <Wifi className="w-4 h-4" />
@@ -117,15 +123,17 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
           {/* Ethernet / Internet a Cabo Tile */}
           <div
             onClick={() => {
-              playFeedbackTone();
+              playPopSound(!ethernetEnabled ? 'on' : 'off');
               toggleEthernet();
             }}
-            className="p-3 liquid-glass-subcard rounded-xl flex items-center justify-between cursor-pointer hover:bg-white/10 transition"
+            className={`p-3 liquid-glass-subcard rounded-xl flex items-center justify-between cursor-pointer hover:bg-white/10 active:scale-[0.98] transition ${
+              ethernetEnabled && ethernetConnected ? 'ring-1 ring-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.15)]' : ''
+            }`}
           >
             <div className="flex items-center space-x-2.5 min-w-0">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition shadow-md shrink-0 ${
-                  ethernetEnabled && ethernetConnected ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400'
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 shadow-md shrink-0 ${
+                  ethernetEnabled && ethernetConnected ? 'bg-emerald-500 text-slate-950 font-bold scale-105' : 'bg-slate-800 text-slate-400'
                 }`}
               >
                 <Network className="w-4 h-4" />
@@ -156,14 +164,14 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
           {/* Dark / Light Mode */}
           <div
             onClick={() => {
-              playFeedbackTone();
+              playPopSound(!darkMode ? 'on' : 'off');
               toggleDarkMode();
             }}
-            className="p-3 liquid-glass-subcard rounded-xl flex items-center space-x-2.5 cursor-pointer hover:bg-white/10 transition"
+            className="p-3 liquid-glass-subcard rounded-xl flex items-center space-x-2.5 cursor-pointer hover:bg-white/10 active:scale-[0.98] transition"
           >
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md transition ${
-                darkMode ? 'bg-indigo-600 text-white' : 'bg-amber-400 text-slate-950'
+              className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all duration-200 ${
+                darkMode ? 'bg-indigo-600 text-white' : 'bg-amber-400 text-slate-950 scale-105'
               }`}
             >
               {darkMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
@@ -177,16 +185,16 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
           {/* Do Not Disturb / Modo Não Perturbe */}
           <div
             onClick={() => {
-              playFeedbackTone(true);
+              playPopSound(!doNotDisturb ? 'on' : 'off');
               toggleDoNotDisturb();
             }}
-            className={`p-3 liquid-glass-subcard rounded-xl flex items-center space-x-2.5 cursor-pointer hover:bg-white/10 transition ${
-              doNotDisturb ? 'border border-purple-500/50 bg-purple-950/40' : ''
+            className={`p-3 liquid-glass-subcard rounded-xl flex items-center space-x-2.5 cursor-pointer hover:bg-white/10 active:scale-[0.98] transition ${
+              doNotDisturb ? 'border border-purple-500/50 bg-purple-950/40 shadow-[0_0_15px_rgba(168,85,247,0.2)]' : ''
             }`}
           >
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md transition ${
-                doNotDisturb ? 'bg-purple-600 text-white font-bold animate-pulse' : 'bg-slate-800 text-slate-400'
+              className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all duration-200 ${
+                doNotDisturb ? 'bg-purple-600 text-white font-bold animate-pulse scale-105' : 'bg-slate-800 text-slate-400'
               }`}
             >
               {doNotDisturb ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
@@ -203,14 +211,16 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
           {/* Bluetooth Tile */}
           <div
             onClick={() => {
-              playFeedbackTone();
+              playPopSound(!bluetoothEnabled ? 'on' : 'off');
               toggleBluetooth();
             }}
-            className="p-2.5 liquid-glass-subcard rounded-xl flex items-center space-x-2.5 cursor-pointer hover:bg-white/10 transition"
+            className={`p-2.5 liquid-glass-subcard rounded-xl flex items-center space-x-2.5 cursor-pointer hover:bg-white/10 active:scale-[0.98] transition ${
+              bluetoothEnabled ? 'ring-1 ring-blue-500/40' : ''
+            }`}
           >
             <div
-              className={`w-7 h-7 rounded-full flex items-center justify-center transition shadow-md ${
-                bluetoothEnabled ? 'bg-blue-500 text-white font-bold' : 'bg-slate-800 text-slate-400'
+              className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 shadow-md ${
+                bluetoothEnabled ? 'bg-blue-500 text-white font-bold scale-105' : 'bg-slate-800 text-slate-400'
               }`}
             >
               <Bluetooth className="w-3.5 h-3.5" />
@@ -226,14 +236,16 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
           {/* GPU Turbo Acceleration */}
           <div
             onClick={() => {
-              playFeedbackTone();
+              playPopSound(!gpuTurboEnabled ? 'on' : 'off');
               toggleGpuTurbo();
             }}
-            className="p-2.5 liquid-glass-subcard rounded-xl flex items-center space-x-2.5 cursor-pointer hover:bg-white/10 transition"
+            className={`p-2.5 liquid-glass-subcard rounded-xl flex items-center space-x-2.5 cursor-pointer hover:bg-white/10 active:scale-[0.98] transition ${
+              gpuTurboEnabled ? 'ring-1 ring-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : ''
+            }`}
           >
             <div
-              className={`w-7 h-7 rounded-full flex items-center justify-center shadow-md transition ${
-                gpuTurboEnabled ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-white'
+              className={`w-7 h-7 rounded-full flex items-center justify-center shadow-md transition-all duration-200 ${
+                gpuTurboEnabled ? 'bg-amber-500 text-slate-950 font-bold scale-105' : 'bg-slate-800 text-white'
               }`}
             >
               <Zap className="w-3.5 h-3.5" />
@@ -259,7 +271,11 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
             min="20"
             max="100"
             value={screenBrightness}
-            onChange={(e) => setScreenBrightness(Number(e.target.value))}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setScreenBrightness(val);
+              playSliderTick(val / 100);
+            }}
             className="w-full h-2 bg-slate-800 rounded-lg accent-white cursor-pointer"
           />
         </div>
@@ -268,7 +284,10 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
         <div className="p-3 liquid-glass-subcard rounded-xl space-y-1.5">
           <div className="flex justify-between text-[11px] text-slate-300 font-medium">
             <button
-              onClick={toggleMute}
+              onClick={() => {
+                playPop(isMuted ? 'on' : 'off');
+                toggleMute();
+              }}
               className="flex items-center space-x-1 text-slate-300 hover:text-white transition"
               title={isMuted ? 'Desmutar' : 'Mutar'}
             >
@@ -289,7 +308,9 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
             max="100"
             value={isMuted ? 0 : speakerVolume}
             onChange={(e) => {
-              setSpeakerVolume(Number(e.target.value));
+              const val = Number(e.target.value);
+              setSpeakerVolume(val);
+              playSliderTick(val / 100);
             }}
             className="w-full h-2 bg-slate-800 rounded-lg accent-emerald-400 cursor-pointer"
           />

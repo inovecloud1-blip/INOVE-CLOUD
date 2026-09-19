@@ -381,13 +381,13 @@ chmod 0700 "$XDG_RUNTIME_DIR"
 
 echo "[INOVE-GUI] Carregando compositor gráfico InoveCloud OS (Liquid Glass)..."
 
-# 1. Tentativa Primária: DRM Direto com Aceleração por Hardware ou Pixman
-if weston --backend=drm-backend.so --continue-without-input --log=/var/log/weston.log 2>&1; then
+# 1. Tentativa Primária: DRM com Renderizador Pixman (Ampla compatibilidade VBox/QEMU/Bare-metal)
+if weston --backend=drm-backend.so --use-pixman --continue-without-input --log=/var/log/weston.log 2>&1; then
   exit 0
 fi
 
-# 2. Tentativa Secundária: DRM com Renderizador de Software Pixman (Compatível com qualquer GPU)
-if weston --backend=drm-backend.so --use-pixman --continue-without-input --log=/var/log/weston.log 2>&1; then
+# 2. Tentativa Secundária: DRM Direto com Aceleração de Hardware
+if weston --backend=drm-backend.so --continue-without-input --log=/var/log/weston.log 2>&1; then
   exit 0
 fi
 
@@ -396,7 +396,7 @@ if [ -e /dev/fb0 ] && weston --backend=fbdev-backend.so --continue-without-input
   exit 0
 fi
 
-# 4. Fallback Universal: Inicialização Padrão
+# 4. Fallback Universal: Inicialização Automática Padrão
 weston --continue-without-input --log=/var/log/weston.log 2>&1 || true
 EOF
 chmod +x "${ROOTFS_DIR}/usr/bin/inove-gui"
@@ -956,30 +956,36 @@ set gfxmode=auto
 set gfxpayload=keep
 insmod all_video
 insmod gfxterm
+insmod part_msdos
+insmod part_gpt
+insmod ext2
+insmod fat
+insmod iso9660
+insmod linux
 terminal_output gfxterm
 
-menuentry "🚀 InoveCloud OS 2026 (Live Desktop - Plymouth Splash Silencioso)" --class gnu-linux --class os {
-    linux /boot/vmlinuz quiet splash loglevel=3 rd.udev.log_priority=3 vt.global_cursor_default=0 ip=dhcp console=tty1
+menuentry "🚀 InoveCloud OS 2026 (Live Desktop - Inicialização Padrão)" --class gnu-linux --class os {
+    linux /boot/vmlinuz nomodeset loglevel=4 console=tty1 earlyprintk=vga
     initrd /boot/initramfs.igz
 }
 
-menuentry "💾 InoveCloud OS (Modo Live USB com Persistência de Dados)" --class gnu-linux --class os {
-    linux /boot/vmlinuz quiet splash persistence loglevel=3 ip=dhcp console=tty1
+menuentry "🔍 InoveCloud OS (Diagnóstico Detalhado & Verbose Boot)" --class gnu-linux --class os {
+    linux /boot/vmlinuz nomodeset ip=dhcp console=tty1 earlyprintk=vga debug loglevel=7 ignore_loglevel
+    initrd /boot/initramfs.igz
+}
+
+menuentry "⚡ InoveCloud OS (Modo KMS / Aceleração Gráfica Nativa)" --class gnu-linux --class os {
+    linux /boot/vmlinuz loglevel=4 console=tty1 earlyprintk=vga
+    initrd /boot/initramfs.igz
+}
+
+menuentry "💾 InoveCloud OS (Modo Live USB com Persistência)" --class gnu-linux --class os {
+    linux /boot/vmlinuz persistence nomodeset loglevel=4 console=tty1
     initrd /boot/initramfs.igz
 }
 
 menuentry "🛠️ InoveCloud OS (Modo Instalação no Disco SSD/NVMe)" --class gnu-linux --class os {
-    linux /boot/vmlinuz inove_mode=installer ip=dhcp console=tty1
-    initrd /boot/initramfs.igz
-}
-
-menuentry "🔍 InoveCloud OS (Diagnóstico e Hardware Verbose Boot)" --class gnu-linux --class os {
-    linux /boot/vmlinuz ip=dhcp console=tty1 earlyprintk=vga debug loglevel=7
-    initrd /boot/initramfs.igz
-}
-
-menuentry "🛡️ InoveCloud OS (Modo Seguro de Vídeo / Nomodeset)" --class gnu-linux --class os {
-    linux /boot/vmlinuz nomodeset ip=dhcp console=tty1
+    linux /boot/vmlinuz inove_mode=installer nomodeset console=tty1
     initrd /boot/initramfs.igz
 }
 
@@ -991,6 +997,12 @@ menuentry "⏻ Desligar Computador (Power Off)" {
     halt
 }
 EOF
+
+# Validação Pré-Geração de Integridade GRUB & EFI
+if [ -f "./scripts/check-grub-efi.sh" ]; then
+  echo -e "\n${C_CYAN}[VERIFICAÇÃO] Executando diagnóstico de integridade do GRUB & EFI...${C_RESET}"
+  bash "./scripts/check-grub-efi.sh" "${LIVE_DIR}" || true
+fi
 
 grub-mkrescue -o "${OUTPUT_DIR}/${ISO_NAME}" "${LIVE_DIR}"
 
