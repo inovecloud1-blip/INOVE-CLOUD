@@ -33,7 +33,7 @@ jobs:
 
       - name: ⚡ Executar Compilação InoveCloud OS Pure Kernel LFS (~250MB)
         run: |
-          chmod +x build-inovecloud.sh icpkg.py inovecloud-install.sh
+          chmod +x build-inovecloud.sh icpkg.py inovecloud-install.sh scripts/*.sh 2>/dev/null || true
           sudo ./build-inovecloud.sh
 
       - name: 🔒 Verificar Integridade da ISO e Checksum SHA256

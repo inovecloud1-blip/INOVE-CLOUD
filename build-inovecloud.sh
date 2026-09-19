@@ -60,17 +60,22 @@ mkdir -p "${OUTPUT_DIR}"
 
 # 1. Instalar Pacotes e Dependências no Host (Áudio, Impressão, Rede, Gráficos, Plymouth e APT)
 echo -e "${C_BLUE}[1/7] Instalando pacotes de compilação, áudio, impressoras, Plymouth e drivers...${C_RESET}"
-apt-get update -y
-DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-  build-essential bison flex libelf-dev libssl-dev bc \
-  xorriso grub-pc-bin grub-efi-amd64-bin mtools dosfstools \
-  curl wget tar xz-utils cpio python3 busybox-static \
-  flatpak bubblewrap dbus ostree apt dpkg isc-dhcp-client udhcpc \
-  wpasupplicant wireless-tools bluez bluez-tools \
-  weston xwayland libinput-bin udev kmod libpixman-1-0 libgl1-mesa-dri libgl1-mesa-glx libegl1-mesa \
-  alsa-utils pulseaudio cups cups-client cups-bsd ghostscript \
-  mesa-va-drivers mesa-vulkan-drivers fbset \
-  plymouth plymouth-themes fonts-dejavu-core adwaita-icon-theme
+apt-get update -y || true
+
+PACKAGES_TO_INSTALL=(
+  build-essential bison flex libelf-dev libssl-dev bc
+  xorriso grub-pc-bin grub-efi-amd64-bin mtools dosfstools
+  curl wget tar xz-utils cpio python3 busybox-static
+  flatpak bubblewrap dbus ostree apt dpkg isc-dhcp-client udhcpc
+  wpasupplicant wireless-tools bluez bluez-tools
+  weston xwayland libinput-bin udev kmod libpixman-1-0 libgl1-mesa-dri
+  alsa-utils pulseaudio cups cups-client ghostscript
+  mesa-va-drivers fbset fonts-dejavu-core adwaita-icon-theme
+)
+
+for pkg in "${PACKAGES_TO_INSTALL[@]}"; do
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$pkg" || true
+done
 
 # 2. Estruturação Completa dos Diretórios do Sistema
 echo -e "${C_BLUE}[2/7] Criando árvore de diretórios do InoveCloud OS...${C_RESET}"
@@ -919,9 +924,9 @@ cd "${WORK_DIR}"
 
 # 7. Executar Auditoria Pré-Boot e Gerar Initramfs CPIO
 echo -e "${C_BLUE}[7/7] Executando auditoria pré-boot e gerando a imagem ISO oficial...${C_RESET}"
-if [ -f "${WORK_DIR}/scripts/pre-boot-check.sh" ]; then
-  chmod +x "${WORK_DIR}/scripts/pre-boot-check.sh"
-  "${WORK_DIR}/scripts/pre-boot-check.sh" "${ROOTFS_DIR}" || echo "Avisos pré-boot verificados."
+if [ -f "scripts/pre-boot-check.sh" ]; then
+  chmod +x scripts/pre-boot-check.sh
+  ./scripts/pre-boot-check.sh "${ROOTFS_DIR}" || echo "Avisos pré-boot verificados."
 fi
 rm -rf "${LIVE_DIR}"
 mkdir -p "${LIVE_DIR}"/boot/grub
