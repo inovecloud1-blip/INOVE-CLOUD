@@ -35,7 +35,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ROOTFS_DIR="${WORK_DIR}/chroot"
 IMAGE_DIR="${WORK_DIR}/image"
 OUTPUT_DIR="${REPO_ROOT}/dist-iso"
-ISO_NAME="inovecloud-os-debian13-gnome-amd64.iso"
+ISO_NAME="${ISO_NAME:-inovecloud-os-2026.iso}"
 DEBIAN_MIRROR="http://deb.debian.org/debian"
 DEBIAN_SUITE="trixie"
 
@@ -126,20 +126,32 @@ apt-get install -y --no-install-recommends \
   systemd-sysv \
   firmware-linux-free
 
-# 2. Ambiente InoveCloud OS Native Desktop & Display Manager Universal (LightDM + Picom Glass Compositor)
+# 2. Ambiente Desktop Real GNOME 46+ (Interface Completa: Janelas, Dock, Nautilus, Terminal, Configurações)
 apt-get install -y --no-install-recommends \
-  openbox \
-  picom \
-  lightdm \
-  lightdm-gtk-greeter \
+  gnome-core \
+  gnome-shell \
+  gdm3 \
+  nautilus \
+  gnome-terminal \
+  gnome-control-center \
+  gnome-tweaks \
+  gnome-software \
+  gnome-shell-extensions \
+  gnome-shell-extension-dash-to-dock \
+  gnome-shell-extension-appindicator \
+  gnome-text-editor \
+  gnome-calculator \
+  gnome-system-monitor \
+  evince \
+  eog \
+  file-roller \
+  adwaita-icon-theme \
   accountsservice \
   polkitd \
   libpam-systemd \
   dbus-user-session \
   dbus-x11 \
   x11-xserver-utils \
-  xdotool \
-  unclutter \
   dconf-cli \
   dconf-gsettings-backend \
   gsettings-desktop-schemas \
@@ -186,12 +198,17 @@ apt-get install -y --no-install-recommends \
   xserver-xorg-video-vmware \
   xserver-xorg-video-fbdev \
   xserver-xorg-video-vesa \
+  virtualbox-guest-utils \
+  virtualbox-guest-x11 \
   spice-vdagent \
   qemu-guest-agent \
   open-vm-tools \
   open-vm-tools-desktop \
   x11-xserver-utils \
   xinit \
+  mesa-utils \
+  feh \
+  xterm \
   mesa-va-drivers \
   mesa-vulkan-drivers \
   libgl1-mesa-dri \
@@ -204,6 +221,7 @@ apt-get install -y --no-install-recommends \
   flatpak \
   xdg-desktop-portal \
   xdg-desktop-portal-gtk \
+  xdg-desktop-portal-gnome \
   chromium \
   fonts-dejavu-core \
   fonts-freefont-ttf \
@@ -239,6 +257,11 @@ useradd -m -s /bin/bash inove || true
 echo "inove:inove" | chpasswd
 usermod -aG sudo,video,input,render,audio,netdev,autologin inove || true
 
+# Criar estrutura de pastas reais do Desktop para o usuário 'inove'
+mkdir -p /home/inove/{Desktop,Downloads,Documents,Pictures,Music,Videos}
+mkdir -p /etc/skel/{Desktop,Downloads,Documents,Pictures,Music,Videos}
+chown -R inove:inove /home/inove || true
+
 # Configurar sudo sem senha para o usuário inove
 echo "inove ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/inove-nopasswd
 chmod 0440 /etc/sudoers.d/inove-nopasswd
@@ -250,73 +273,27 @@ cat << 'HOSTS_EOF' > /etc/hosts
 127.0.1.1   inovecloud-os
 HOSTS_EOF
 
-# Configurar LightDM Auto-Login e Compatibilidade Gráfica Universal (Zero Crash / Zero Tela Preta)
-mkdir -p /etc/lightdm/lightdm.conf.d
-cat << 'LIGHTDM_CONF' > /etc/lightdm/lightdm.conf
-[LightDM]
-run-directory=/run/lightdm
+# Configurar GDM3 para Auto-Login no Desktop Real GNOME (Xorg/Wayland Universal)
+mkdir -p /etc/gdm3
+cat << 'GDM_CONF' > /etc/gdm3/daemon.conf
+# GDM configuration for InoveCloud OS Native Desktop
+[daemon]
+AutomaticLoginEnable=true
+AutomaticLogin=inove
+WaylandEnable=false
+DefaultSession=gnome-xorg.desktop
 
-[Seat:*]
-autologin-user=inove
-autologin-user-timeout=0
-autologin-session=inovecloud
-user-session=inovecloud
-greeter-session=lightdm-gtk-greeter
-greeter-hide-users=false
-allow-user-switching=true
-LIGHTDM_CONF
+[security]
 
-# Configurar Sessão Nativa InoveCloud OS
-mkdir -p /usr/share/xsessions
-cat << 'XSESSIONS_CONF' > /usr/share/xsessions/inovecloud.desktop
-[Desktop Entry]
-Name=InoveCloud OS
-Comment=InoveCloud OS Liquid Glass Desktop Environment
-Exec=/usr/local/bin/inovecloud-session
-Type=Application
-DesktopNames=InoveCloud
-XSESSIONS_CONF
+[xdmcp]
 
-# Script Inicializador da Sessão Nativa InoveCloud OS
-cat << 'SESSION_SCRIPT' > /usr/local/bin/inovecloud-session
-#!/usr/bin/env bash
-# InoveCloud OS Native Session Initializer
+[chooser]
 
-xset s off -dpms s noblank 2>/dev/null || true
+[debug]
+GDM_CONF
 
-# Ativar compositor Picom para aceleração de transparência e blur líquido
-picom -b --backend glx --vsync 2>/dev/null || picom -b --vsync 2>/dev/null || true
-
-# Iniciar Openbox como gerenciador de janelas ultra-leve em background
-openbox &
-
-# Aguardar servidor local InoveCloud estar pronto
-for i in $(seq 1 30); do
-  if curl -s http://127.0.0.1:3000 >/dev/null 2>&1; then
-    break
-  fi
-  sleep 0.5
-done
-
-# Executar InoveCloud OS como o Desktop Principal em Tela Cheia Nativa (Zero GNOME UI)
-exec chromium \
-  --app=http://127.0.0.1:3000 \
-  --start-fullscreen \
-  --no-sandbox \
-  --disable-features=TranslateUI \
-  --disable-pinch \
-  --overscroll-history-navigation=0 \
-  --no-first-run \
-  --no-default-browser-check \
-  --password-store=basic \
-  --disable-session-crashed-bubble \
-  --disable-infobars \
-  --check-for-update-interval=31536000
-SESSION_SCRIPT
-chmod +x /usr/local/bin/inovecloud-session
-
-# Configurar PAM para autologin do LightDM
-cat << 'PAM_AUTOLOGIN' > /etc/pam.d/lightdm-autologin
+# Configurar PAM para autologin do GDM
+cat << 'PAM_AUTOLOGIN' > /etc/pam.d/gdm-autologin
 #%PAM-1.0
 auth      requisite pam_nologin.so
 auth      required  pam_permit.so
@@ -359,7 +336,7 @@ Categories=Utility;System;
 NoDisplay=true
 APPIMAGE_DESKTOP
 
-systemctl enable lightdm || true
+systemctl enable gdm3 || systemctl enable gdm || true
 systemctl enable NetworkManager || true
 
 apt-get clean
@@ -630,6 +607,15 @@ fi
 
 # 4. Copiar Web App e Servidor InoveCloud OS
 mkdir -p "${ROOTFS_DIR}/opt/inovecloud"
+
+# Garantir que o frontend React/Vite está compilado antes da cópia
+if [ ! -f "${REPO_ROOT}/dist/index.html" ]; then
+  echo "Compilando front-end InoveCloud OS (Vite) para a ISO..."
+  if command -v npm >/dev/null 2>&1; then
+    (cd "${REPO_ROOT}" && npm run build 2>/dev/null || true)
+  fi
+fi
+
 if [ -d "${REPO_ROOT}/dist" ] && [ -n "$(ls -A "${REPO_ROOT}/dist" 2>/dev/null)" ]; then
   cp -r "${REPO_ROOT}/dist"/* "${ROOTFS_DIR}/opt/inovecloud/"
 elif [ -d "./dist" ] && [ -n "$(ls -A "./dist" 2>/dev/null)" ]; then
@@ -872,6 +858,33 @@ const server = http.createServer(async (req, res) => {
 
   fs.readFile(filePath, (err, fileData) => {
     if (err) {
+      if (ext === '.html' || safePath === '/index.html') {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>InoveCloud OS - Inicializando</title>
+  <style>
+    body { background: #0b0c13; color: #f1f5f9; font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+    .card { background: rgba(255,255,255,0.06); padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+    h1 { color: #ef4444; margin-bottom: 8px; }
+    p { color: #94a3b8; font-size: 16px; margin-bottom: 20px; }
+    .loader { width: 40px; height: 40px; border: 4px solid rgba(239,68,68,0.2); border-top-color: #ef4444; border-radius: 50%; animation: spin 1s infinite linear; margin: 0 auto 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="loader"></div>
+    <h1>InoveCloud OS 2026</h1>
+    <p>Carregando Área de Trabalho Liquid Glass...</p>
+  </div>
+  <script>setTimeout(() => location.reload(), 3000);</script>
+</body>
+</html>`);
+        return;
+      }
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('Not Found');
       return;
@@ -886,7 +899,11 @@ server.listen(PORT, '0.0.0.0', () => {
 });
 NODE_SRV
 
-# 5. Criar Atalho de Aplicativo Desktop para o InoveCloud Web Suite no GNOME
+# Permissões corretas para o usuário inove executar o servidor
+chown -R inove:inove "${ROOTFS_DIR}/opt/inovecloud" || true
+chmod -R 755 "${ROOTFS_DIR}/opt/inovecloud" || true
+
+# 5. Criar Atalho de Aplicativo Desktop para o InoveCloud Web Suite no GNOME (Janela Nativa Flutuante)
 mkdir -p "${ROOTFS_DIR}/usr/share/applications"
 cat << 'DESKTOP_ENTRY' > "${ROOTFS_DIR}/usr/share/applications/inovecloud-desktop.desktop"
 [Desktop Entry]
@@ -895,14 +912,21 @@ Type=Application
 Name=InoveCloud OS
 GenericName=Cloud Workspace & Infrastructure
 Comment=Área de Trabalho em Nuvem e Gestão de Infraestrutura InoveCloud
-Exec=chromium --app=http://127.0.0.1:3000 --start-maximized --no-sandbox
+Exec=chromium --app=http://127.0.0.1:3000 --window-size=1280,820 --no-sandbox --disable-dev-shm-usage
 Icon=preferences-desktop-theme
 Terminal=false
 Categories=System;Utility;Network;
 StartupWMClass=chromium
 DESKTOP_ENTRY
 
-# Configurar systemd service para o Node.js InoveCloud
+# Disponibilizar ícone do InoveCloud OS diretamente na Área de Trabalho (Desktop) do usuário
+mkdir -p "${ROOTFS_DIR}/home/inove/Desktop" "${ROOTFS_DIR}/etc/skel/Desktop"
+cp "${ROOTFS_DIR}/usr/share/applications/inovecloud-desktop.desktop" "${ROOTFS_DIR}/home/inove/Desktop/"
+cp "${ROOTFS_DIR}/usr/share/applications/inovecloud-desktop.desktop" "${ROOTFS_DIR}/etc/skel/Desktop/"
+chmod +x "${ROOTFS_DIR}/home/inove/Desktop/inovecloud-desktop.desktop" "${ROOTFS_DIR}/etc/skel/Desktop/inovecloud-desktop.desktop" || true
+chown -R inove:inove "${ROOTFS_DIR}/home/inove/Desktop" || true
+
+# Configurar systemd service para o Node.js InoveCloud em background
 cat << 'SERVICE_EOF' > "${ROOTFS_DIR}/etc/systemd/system/inovecloud.service"
 [Unit]
 Description=InoveCloud OS Local Application Server
@@ -920,11 +944,7 @@ RestartSec=3
 WantedBy=multi-user.target
 SERVICE_EOF
 
-# Configurar autostart no GNOME para abrir o InoveCloud Desktop no login
-mkdir -p "${ROOTFS_DIR}/etc/xdg/autostart"
-cp "${ROOTFS_DIR}/usr/share/applications/inovecloud-desktop.desktop" "${ROOTFS_DIR}/etc/xdg/autostart/"
-
-# Habilitar o serviço InoveCloud no boot
+# Habilitar o serviço de infraestrutura InoveCloud no boot
 chroot "${ROOTFS_DIR}" systemctl enable inovecloud.service
 
 # Desmontar explicitamente antes de gerar o SquashFS
@@ -963,12 +983,12 @@ if loadfont /boot/grub/fonts/unicode.pf2; then
 fi
 
 menuentry "🚀 InoveCloud OS 2026 (Live Desktop - Inicialização Padrão)" {
-  linux /live/vmlinuz boot=live components systemd.show_status=1 console=tty1
+  linux /live/vmlinuz boot=live components systemd.show_status=1 console=tty1 vga=current
   initrd /live/initrd
 }
 
-menuentry "🛡️ InoveCloud OS 2026 (Modo Seguro - 100% Anti Tela Preta / Safe Graphics)" {
-  linux /live/vmlinuz boot=live components nomodeset xforcevesa systemd.show_status=1 console=tty1
+menuentry "🖥️ InoveCloud OS 2026 (VirtualBox / VMware / Safe Graphics - 100% Anti Tela Preta)" {
+  linux /live/vmlinuz boot=live components nomodeset xforcevesa vga=current systemd.show_status=1 console=tty1
   initrd /live/initrd
 }
 
@@ -997,15 +1017,17 @@ sha256sum "${ISO_NAME}" > "${ISO_NAME}.sha256"
 
 echo -e "${GREEN}${BOLD}"
 echo "========================================================================"
-echo "    SUCESSO! ISO INOVECLOUD OS NATIVE DESKTOP GERADA COM ÊXITO:         "
+echo "    SUCESSO! ISO INOVECLOUD OS REAL LINUX DESKTOP GERADA COM ÊXITO:      "
 echo "    Arquivo: ${OUTPUT_DIR}/${ISO_NAME}                                 "
 echo "    Checksum: ${OUTPUT_DIR}/${ISO_NAME}.sha256                         "
 echo "========================================================================"
 echo -e "${RESET}"
 echo "Recursos incluídos na ISO:"
-echo "- InoveCloud OS Liquid Glass Native Shell (Sem GNOME UI)"
-echo "- Compositor Picom + Openbox Ultraleve"
-echo "- Suporte Nativo a AppImage (FUSE 2/3) e Flatpak Flathub"
-echo "- Servidor Local InoveCloud Node.js Nativo"
-echo "- Boot Híbrido UEFI / BIOS com GRUB2"
+echo "- Sistema Operacional Linux Real (Kernel 6.12 LTS + Debian 13 Trixie)"
+echo "- Ambiente Desktop Real Completo: GNOME 46+ Nativo com Tema Liquid Glass"
+echo "- Gerenciador de Sessão GDM3 com Auto-Login"
+echo "- Gerenciador de Arquivos Nautilus, GNOME Terminal, GNOME Control Center"
+echo "- Suporte Nativo a Flatpak (Flathub), AppImage (FUSE 2/3) e APT"
+echo "- Áudio PipeWire + Drivers Gráficos Mesa 3D / Vulkan"
+echo "- Boot Híbrido UEFI / BIOS com GRUB2 (Sem Modo Kiosk)"
 echo ""

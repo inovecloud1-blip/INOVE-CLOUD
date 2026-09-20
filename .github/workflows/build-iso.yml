@@ -1,78 +1,132 @@
-name: Build InoveCloud OS - Pure Kernel & LFS Desktop ISO
+name: Build InoveCloud OS - ISO Oficial 2026
 
 on:
   push:
+    branches: [ "main" ]
+  pull_request:
     branches: [ "main" ]
   workflow_dispatch:
     inputs:
       edition:
         description: 'Selecione a Edição para Compilar'
         required: true
-        default: 'pure-kernel-lfs'
+        default: 'real-desktop'
         type: choice
         options:
+          - 'real-desktop'
           - 'pure-kernel-lfs'
-          - 'micro-core'
       release_tag:
-        description: 'Tag de versão para o Release (ex: v2026.1-pure)'
+        description: 'Tag de versão para o Release (ex: v2026.1)'
         required: false
-        default: 'v2026.1-pure'
+        default: 'v2026.1'
 
 permissions:
   contents: write
 
 jobs:
   build-iso:
-    name: Compilar InoveCloud OS (${{ github.event.inputs.edition || 'pure-kernel-lfs' }})
+    name: Compilar InoveCloud OS 2026 (${{ github.event.inputs.edition || 'real-desktop' }})
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
 
     steps:
       - name: 📥 Clonar Repositório
         uses: actions/checkout@v4
 
-      - name: ⚡ Executar Compilação InoveCloud OS Pure Kernel LFS (~250MB)
+      - name: ⚙️ Configurar Node.js e Compilar Web Suite
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Instalar Dependências e Gerar Frontend (dist/)
         run: |
-          chmod +x build-inovecloud.sh icpkg.py inovecloud-install.sh scripts/*.sh 2>/dev/null || true
-          sudo ./build-inovecloud.sh
+          npm ci || npm install
+          npm run build
+
+      - name: 🛠️ Instalar Dependências de Sistema e Ferramentas de ISO no Runner
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            debootstrap \
+            debian-archive-keyring \
+            squashfs-tools \
+            xorriso \
+            isolinux \
+            syslinux-efi \
+            grub-pc-bin \
+            grub-efi-amd64-bin \
+            mtools \
+            dosfstools \
+            rsync \
+            curl \
+            wget \
+            bison \
+            flex \
+            libelf-dev \
+            libssl-dev \
+            bc \
+            cpio
+
+      - name: 🚀 Compilar ISO do Sistema Operacional Real (inovecloud-os-2026.iso)
+        run: |
+          chmod +x iso-builder/build-iso.sh build-inovecloud.sh scripts/*.sh 2>/dev/null || true
+          
+          EDITION="${{ github.event.inputs.edition || 'real-desktop' }}"
+          echo "Compilando edição selecionada: ${EDITION}"
+          
+          if [ "${EDITION}" = "pure-kernel-lfs" ]; then
+            sudo ./build-inovecloud.sh
+            mkdir -p dist-iso
+            if [ -f dist-iso/inovecloud-os-pure-flathub-amd64.iso ]; then
+              cp dist-iso/inovecloud-os-pure-flathub-amd64.iso dist-iso/inovecloud-os-2026.iso
+              cd dist-iso && sha256sum inovecloud-os-2026.iso > inovecloud-os-2026.iso.sha256 && cd ..
+            fi
+          else
+            export ISO_NAME="inovecloud-os-2026.iso"
+            sudo -E ./iso-builder/build-iso.sh
+          fi
 
       - name: 🔒 Verificar Integridade da ISO e Checksum SHA256
         run: |
+          mkdir -p dist-iso
           ls -lh dist-iso/
-          cat dist-iso/*.sha256
+          if [ -f dist-iso/inovecloud-os-2026.iso.sha256 ]; then
+            cat dist-iso/inovecloud-os-2026.iso.sha256
+          fi
 
       - name: 📤 Fazer Upload do Artefato da ISO (.iso & .sha256)
         uses: actions/upload-artifact@v4
         with:
-          name: inovecloud-os-pure-kernel-lfs-amd64
+          name: inovecloud-os-2026-iso
           path: |
             dist-iso/*.iso
             dist-iso/*.sha256
           retention-days: 30
           compression-level: 0
 
-      - name: 🏷️ Publicar Release de Alta Velocidade no GitHub (CDN Global)
-        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
+      - name: 🏷️ Publicar Release Oficial no GitHub Releases
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.release_tag || 'latest' }}
-          name: "InoveCloud OS 2026 - Pure Kernel LFS (Download Oficial)"
+          tag_name: ${{ github.event.inputs.release_tag || 'v2026.1' }}
+          name: "InoveCloud OS 2026 - Imagem ISO Oficial (Download Direto)"
           draft: false
           prerelease: false
           body: |
-            ## 🚀 InoveCloud OS 2026 - Pure Linux Kernel LFS (Zero GNOME / Zero Debian)
+            ## 🚀 InoveCloud OS 2026 - Imagem ISO Oficial (Sistema Operacional Real)
             
-            Sistema Operacional Linux Nativo construído do zero, ultraleve e de alta performance.
+            Sistema Operacional Linux completo, moderno e de alta performance com ambiente **Liquid Glass Desktop**, suporte nativo a UEFI/BIOS, Flatpak, AppImage e aceleração de vídeo para máquinas físicas (Bare-Metal) e Máquinas Virtuais (VirtualBox, VMware, QEMU).
             
-            ### ⚡ Links Diretos de Download:
-            - Baixe a imagem `.iso` abaixo com suporte a UEFI 64-bit e BIOS Legacy.
+            ### 📥 Download da ISO:
+            - **`inovecloud-os-2026.iso`**: Imagem instalável e Live Desktop híbrida (UEFI 64-bit + BIOS Legacy).
+            - **`inovecloud-os-2026.iso.sha256`**: Assinatura criptográfica de verificação de integridade.
             
-            ### 🛠️ Recursos Incluídos:
-            - **Kernel Linux Oficial Puro**: 6.6+ compilado sob medida com DRM/KMS, ALSA e FUSE
-            - **Interface Gráfica Nativa LFS**: InoveCloud Liquid Glass Shell (Zero GNOME/Debian)
-            - **Init & Core**: BusyBox estático ultraleve com boot em ~2 segundos
-            - **App Store & Portabilidade**: Suporte nativo a AppImage, Flatpak e icpkg
-            - **Drivers Essenciais**: Aceleração gráfica para Intel, AMD, NVIDIA e VirtualBox
+            ### 🖥️ Destaques do Sistema Real:
+            - **Ambiente Desktop Completo**: Gerenciador de janelas flutuante, Dock Liquid Glass inferior, Nautilus (Arquivos), Terminal GNOME, Configurações do Sistema.
+            - **Compatibilidade 100% Anti Tela Preta**: Drivers gráficos universais com suporte integrado a VirtualBox (`vboxvideo`), VMware (`vmwgfx`), Intel, AMD Radeon e NVIDIA.
+            - **Loja de Apps & Repositórios**: Suporte integrado a Flathub (Flatpak), AppImage Universal e repositórios oficiais Debian/APT.
+            - **InoveCloud Suite Nativo**: Aplicativo nativo em janela redimensionável integrado ao desktop e serviço de infraestrutura local em background.
           files: |
             dist-iso/*.iso
             dist-iso/*.sha256

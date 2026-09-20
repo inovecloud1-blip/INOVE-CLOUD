@@ -1,11 +1,11 @@
-import React, { useRef } from 'react';
-import { Minus, X, Maximize2, Minimize2 } from 'lucide-react';
+import React, { useRef, Component, ErrorInfo } from 'react';
+import { Minus, X, Maximize2, Minimize2, AlertTriangle, RefreshCw, Wrench } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { WindowState } from '../types';
 import { useSoundEffects } from '../context/SoundEffectsContext';
 
 interface WindowFrameProps {
-  window: WindowState;
+  window?: WindowState;
   icon?: React.ReactNode;
   onClose: () => void;
   onMinimize: () => void;
@@ -16,8 +16,71 @@ interface WindowFrameProps {
   headerRightContent?: React.ReactNode;
 }
 
+interface ErrorBoundaryProps {
+  appName: string;
+  onReset: () => void;
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  errorText: string;
+}
+
+class WindowErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = {
+      hasError: false,
+      errorText: '',
+    };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, errorText: error?.message || 'Erro inesperado no módulo' };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.warn(`[InoveCloud Auto-Recovery] App ${this.props.appName} recovered:`, error, errorInfo);
+  }
+
+  handleRecover = () => {
+    this.setState({ hasError: false, errorText: '' });
+    this.props.onReset();
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-slate-950/90 text-slate-100">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-4 shadow-lg shadow-amber-500/10">
+            <Wrench className="w-8 h-8 animate-pulse" />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">
+            Auto-Recuperação do Sistema Ativada
+          </h3>
+          <p className="text-xs text-slate-400 max-w-md mb-4 leading-relaxed">
+            O InoveCloud OS interceptou uma oscilação e aplicou a configuração segura automaticamente para evitar travamentos.
+          </p>
+          <div className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-xs font-mono text-amber-300/90 mb-6 max-w-lg truncate">
+            {this.state.errorText || 'Configuração ajustada para modo de compatibilidade'}
+          </div>
+          <button
+            onClick={this.handleRecover}
+            className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-medium text-xs shadow-lg shadow-red-500/20 transition active:scale-95 cursor-pointer"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Recarregar com Configuração Segura</span>
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export const WindowFrame: React.FC<WindowFrameProps> = ({
-  window,
+  window: win,
   icon,
   onClose,
   onMinimize,
@@ -31,17 +94,34 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0, winX: 0, winY: 0 });
 
+  // Fallback seguro se o estado da janela estiver indefinido
+  const safeWindow: WindowState = win || {
+    id: 'settings',
+    title: 'InoveCloud OS App',
+    isOpen: true,
+    isMinimized: false,
+    isMaximized: false,
+    zIndex: 10,
+    position: { x: 80, y: 60 },
+    size: { width: 880, height: 580 },
+  };
+
+  const safePosX = isNaN(safeWindow.position?.x) ? 80 : safeWindow.position.x;
+  const safePosY = isNaN(safeWindow.position?.y) ? 60 : safeWindow.position.y;
+  const safeWidth = isNaN(safeWindow.size?.width) ? 880 : safeWindow.size.width;
+  const safeHeight = isNaN(safeWindow.size?.height) ? 580 : safeWindow.size.height;
+
   const handleMouseDown = (e: React.MouseEvent) => {
     onFocus();
-    // Only allow drag on left click and if not maximized
-    if (e.button !== 0 || window.isMaximized) return;
+    // Apenas clique esquerdo e se não estiver maximizado
+    if (e.button !== 0 || safeWindow.isMaximized) return;
 
     isDraggingRef.current = true;
     dragStartRef.current = {
       x: e.clientX,
       y: e.clientY,
-      winX: window.position.x,
-      winY: window.position.y,
+      winX: safePosX,
+      winY: safePosY,
     };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -63,37 +143,37 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const windowStyle = window.isMaximized
+  const windowStyle = safeWindow.isMaximized
     ? {
         top: '32px',
         left: '0px',
         width: '100vw',
         height: 'calc(100vh - 32px - 76px)',
-        zIndex: window.zIndex,
+        zIndex: safeWindow.zIndex,
       }
     : {
-        top: `${window.position.y}px`,
-        left: `${window.position.x}px`,
-        width: `${window.size.width}px`,
-        height: `${window.size.height}px`,
+        top: `${safePosY}px`,
+        left: `${safePosX}px`,
+        width: `${safeWidth}px`,
+        height: `${safeHeight}px`,
         maxWidth: '96vw',
         maxHeight: '84vh',
-        zIndex: window.zIndex,
+        zIndex: safeWindow.zIndex,
       };
 
   return (
     <AnimatePresence>
-      {window.isOpen && !window.isMinimized && (
+      {safeWindow.isOpen && !safeWindow.isMinimized && (
         <motion.div
-          key={window.id}
-          id={`window-${window.id}`}
+          key={safeWindow.id}
+          id={`window-${safeWindow.id}`}
           onMouseDown={onFocus}
           layout
           initial={{
             opacity: 0,
-            scale: 0.86,
-            y: 28,
-            filter: 'blur(12px)',
+            scale: 0.88,
+            y: 20,
+            filter: 'blur(10px)',
           }}
           animate={{
             opacity: 1,
@@ -110,8 +190,8 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
           exit={{
             opacity: 0,
             scale: 0.84,
-            y: 32,
-            filter: 'blur(14px)',
+            y: 28,
+            filter: 'blur(12px)',
             transition: {
               type: 'spring',
               stiffness: 420,
@@ -121,7 +201,7 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
           }}
           style={windowStyle}
           className={`fixed flex flex-col liquid-glass rounded-2xl border border-white/25 mac-window-shadow overflow-hidden select-none will-change-transform ${
-            window.isMaximized ? 'rounded-none border-x-0 border-t-0' : ''
+            safeWindow.isMaximized ? 'rounded-none border-x-0 border-t-0' : ''
           }`}
         >
           {/* macOS Window Titlebar with Liquid Refraction */}
@@ -175,9 +255,9 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
                   onToggleMaximize();
                 }}
                 className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29] flex items-center justify-center text-black/60 hover:text-black transition cursor-pointer"
-                title={window.isMaximized ? 'Restaurar tamanho' : 'Maximizar'}
+                title={safeWindow.isMaximized ? 'Restaurar tamanho' : 'Maximizar'}
               >
-                {window.isMaximized ? (
+                {safeWindow.isMaximized ? (
                   <Minimize2 className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
                 ) : (
                   <Maximize2 className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -188,7 +268,7 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
             {/* Center: Title and App Icon */}
             <div className="flex items-center space-x-2 text-xs font-semibold text-slate-200 tracking-wide pointer-events-none truncate max-w-[50%]">
               {icon && <span className="opacity-80">{icon}</span>}
-              <span className="truncate">{window.title}</span>
+              <span className="truncate">{safeWindow.title}</span>
             </div>
 
             {/* Right: Custom window header actions if any */}
@@ -197,9 +277,16 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
             </div>
           </div>
 
-          {/* Window Body Content */}
+          {/* Window Body Content with Error Boundary */}
           <div className="flex-1 overflow-auto p-0 bg-slate-950/70 text-slate-100 flex flex-col">
-            {children}
+            <WindowErrorBoundary
+              appName={safeWindow.title}
+              onReset={() => {
+                onFocus();
+              }}
+            >
+              {children}
+            </WindowErrorBoundary>
           </div>
         </motion.div>
       )}

@@ -663,18 +663,50 @@ function DesktopOS() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Window Management Actions
+  // System Automated Configuration & Self-Healing Action
+  const handleAutoConfigSystem = () => {
+    setDesktopPinnedApps(DEFAULT_DESKTOP_PINNED);
+    setDockPinnedApps(DEFAULT_DOCK_PINNED);
+    setShowOpenWindowsInDock(true);
+    setDockConfig(DEFAULT_DOCK_CONFIG);
+    setWidgetsConfig(DEFAULT_DESKTOP_WIDGETS_CONFIG);
+    setGpuEnabled(true);
+
+    try {
+      localStorage.setItem('inovecloud_desktop_pinned_apps', JSON.stringify(DEFAULT_DESKTOP_PINNED));
+      localStorage.setItem('inovecloud_dock_pinned_apps', JSON.stringify(DEFAULT_DOCK_PINNED));
+      localStorage.setItem('inovecloud_dock_show_windows', JSON.stringify(true));
+      localStorage.setItem('inovecloud_dock_config', JSON.stringify(DEFAULT_DOCK_CONFIG));
+      localStorage.setItem('inovecloud_desktop_widgets_config', JSON.stringify(DEFAULT_DESKTOP_WIDGETS_CONFIG));
+    } catch (e) {
+      console.warn('[Auto-Config] Cleaned & Restored settings:', e);
+    }
+  };
+
+  // Window Management Actions (Resilient & Fail-Safe)
   const focusWindow = (id: AppId) => {
     setTopZ((prev) => {
       const nextZ = prev + 1;
-      setWindows((curr) => ({
-        ...curr,
-        [id]: {
-          ...curr[id],
-          zIndex: nextZ,
+      setWindows((curr) => {
+        const win = curr[id] || {
+          id,
+          title: 'InoveCloud App',
+          isOpen: true,
           isMinimized: false,
-        },
-      }));
+          isMaximized: false,
+          zIndex: nextZ,
+          position: { x: 100, y: 70 },
+          size: { width: 880, height: 580 },
+        };
+        return {
+          ...curr,
+          [id]: {
+            ...win,
+            zIndex: nextZ,
+            isMinimized: false,
+          },
+        };
+      });
       return nextZ;
     });
     setActiveAppId(id);
@@ -683,64 +715,119 @@ function DesktopOS() {
   const openApp = (id: AppId) => {
     setTopZ((prev) => {
       const nextZ = prev + 1;
-      setWindows((curr) => ({
-        ...curr,
-        [id]: {
-          ...curr[id],
-          isOpen: true,
-          isMinimized: false,
-          zIndex: nextZ,
-        },
-      }));
+      setWindows((curr) => {
+        const existing = curr[id];
+        if (!existing) {
+          const defaultTitles: Record<string, string> = {
+            vn: 'Máquinas Virtuais (KVM)',
+            terminal: 'Terminal SSH / Shell',
+            monitor: 'Monitor de Recursos',
+            browser: 'Navegador Web Local',
+            vnc: 'Conectar PC (VNC / RDP)',
+            webapps: 'Aplicações Web & SSL',
+            idaas: 'InoveCloud IDaaS & SSO',
+            user: 'Perfil do Usuário & Contas',
+            storage: 'Meus Arquivos & Documentos',
+            projects: 'Projetos & Workspace',
+            appstore: 'Flathub & Linux Apps',
+            aiagent: 'Agente IA (DevOps & MCP)',
+            themes: 'Temas & Papéis de Parede',
+            settings: 'Configurações do PC & OS',
+            installer: 'Instalador InoveCloud OS',
+            isobuilder: 'Gerador de ISO & Live OS',
+            linuxpedia: 'LinuxPedia (API & Comandos)',
+            calculator: 'Calculadora',
+            camera: 'Câmera HD',
+            gallery: 'Galeria & Fotos Pro',
+            videoplayer: 'Player de Vídeo HD / 4K',
+            music: 'Produtor de Música & DAW',
+            notes: 'Notas & Código',
+          };
+          return {
+            ...curr,
+            [id]: {
+              id,
+              title: defaultTitles[id] || 'InoveCloud Aplicativo',
+              isOpen: true,
+              isMinimized: false,
+              isMaximized: false,
+              zIndex: nextZ,
+              position: { x: 100 + (Object.keys(curr).length % 5) * 30, y: 65 + (Object.keys(curr).length % 5) * 25 },
+              size: { width: 900, height: 600 },
+            },
+          };
+        }
+        return {
+          ...curr,
+          [id]: {
+            ...existing,
+            isOpen: true,
+            isMinimized: false,
+            zIndex: nextZ,
+          },
+        };
+      });
       return nextZ;
     });
     setActiveAppId(id);
   };
 
   const closeWindow = (id: AppId) => {
-    setWindows((curr) => ({
-      ...curr,
-      [id]: {
-        ...curr[id],
-        isOpen: false,
-      },
-    }));
+    setWindows((curr) => {
+      if (!curr[id]) return curr;
+      return {
+        ...curr,
+        [id]: {
+          ...curr[id],
+          isOpen: false,
+        },
+      };
+    });
     if (activeAppId === id) {
       setActiveAppId(null);
     }
   };
 
   const minimizeWindow = (id: AppId) => {
-    setWindows((curr) => ({
-      ...curr,
-      [id]: {
-        ...curr[id],
-        isMinimized: true,
-      },
-    }));
+    setWindows((curr) => {
+      if (!curr[id]) return curr;
+      return {
+        ...curr,
+        [id]: {
+          ...curr[id],
+          isMinimized: true,
+        },
+      };
+    });
     if (activeAppId === id) {
       setActiveAppId(null);
     }
   };
 
   const toggleMaximize = (id: AppId) => {
-    setWindows((curr) => ({
-      ...curr,
-      [id]: {
-        ...curr[id],
-        isMaximized: !curr[id].isMaximized,
-      },
-    }));
+    setWindows((curr) => {
+      if (!curr[id]) return curr;
+      return {
+        ...curr,
+        [id]: {
+          ...curr[id],
+          isMaximized: !curr[id].isMaximized,
+        },
+      };
+    });
   };
 
   const moveWindow = (id: AppId, pos: { x: number; y: number }) => {
-    setWindows((curr) => ({
-      ...curr,
-      [id]: {
-        ...curr[id],
-        position: pos,
-      },
-    }));
+    setWindows((curr) => {
+      if (!curr[id]) return curr;
+      return {
+        ...curr,
+        [id]: {
+          ...curr[id],
+          position: pos,
+        },
+      };
+    });
   };
 
   // VN Actions
@@ -1107,6 +1194,7 @@ function DesktopOS() {
               dockPinnedApps={dockPinnedApps}
               onTogglePinDock={handleTogglePinDock}
               onResetDockDefault={handleResetDockDefault}
+              onAutoConfigSystem={handleAutoConfigSystem}
             />
           </WindowFrame>
         </div>
@@ -1342,8 +1430,6 @@ function DesktopOS() {
         isOpen={isControlCenterOpen}
         onClose={() => setIsControlCenterOpen(false)}
         stats={stats}
-        gpuEnabled={gpuEnabled}
-        onToggleGpu={() => setGpuEnabled(!gpuEnabled)}
         onOpenApp={openApp}
       />
 
@@ -1360,6 +1446,7 @@ function DesktopOS() {
         onResetDockDefault={handleResetDockDefault}
         showOpenWindowsInDock={showOpenWindowsInDock}
         onToggleShowOpenWindows={handleToggleShowOpenWindows}
+        onAutoConfigSystem={handleAutoConfigSystem}
       />
 
       {/* Boot Initialization Cinematic Video Splash (Live ISO & Web Startup) */}

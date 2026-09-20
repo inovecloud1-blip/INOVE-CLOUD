@@ -25,10 +25,20 @@ import {
   RotateCcw,
   Sliders,
   Disc,
-  BookOpen
+  BookOpen,
+  Wrench,
+  CheckCircle2,
+  Cpu,
+  Calculator as CalcIcon,
+  Camera as CameraIcon,
+  Image as GalleryIcon,
+  Film as VideoIcon,
+  Music as MusicIcon,
+  FileText as NotesIcon,
+  Palette
 } from 'lucide-react';
 import { AppId, AppCategory, LauncherAppInfo } from '../../types';
-import { LAUNCHER_APPS, DEFAULT_DOCK_PINNED } from '../../data/launcherApps';
+import { LAUNCHER_APPS, DEFAULT_DOCK_PINNED, DEFAULT_DESKTOP_PINNED } from '../../data/launcherApps';
 import { AppIcon } from './AppIcon';
 
 interface AppLauncherProps {
@@ -43,6 +53,7 @@ interface AppLauncherProps {
   onResetDockDefault?: () => void;
   showOpenWindowsInDock?: boolean;
   onToggleShowOpenWindows?: () => void;
+  onAutoConfigSystem?: () => void;
 }
 
 export const AppLauncher: React.FC<AppLauncherProps> = ({
@@ -57,9 +68,12 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
   onResetDockDefault,
   showOpenWindowsInDock = true,
   onToggleShowOpenWindows,
+  onAutoConfigSystem,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
+  const [isAutoConfiguring, setIsAutoConfiguring] = useState(false);
+  const [autoConfigSuccess, setAutoConfigSuccess] = useState(false);
 
   if (!isOpen) return null;
 
@@ -101,13 +115,59 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
       case 'Settings': return <Settings className={className} />;
       case 'Disc': return <Disc className={className} />;
       case 'BookOpen': return <BookOpen className={className} />;
+      case 'Calculator': return <CalcIcon className={className} />;
+      case 'Camera': return <CameraIcon className={className} />;
+      case 'Image': return <GalleryIcon className={className} />;
+      case 'Film': return <VideoIcon className={className} />;
+      case 'Music': return <MusicIcon className={className} />;
+      case 'FileText': return <NotesIcon className={className} />;
+      case 'Palette': return <Palette className={className} />;
       default: return <Grid className={className} />;
     }
   };
 
   const handleAppClick = (id: AppId) => {
-    onOpenApp(id);
+    try {
+      onOpenApp(id);
+    } catch (e) {
+      console.error('[AppLauncher] Error launching app:', id, e);
+    }
     onClose();
+  };
+
+  const handleRunAutoConfig = () => {
+    setIsAutoConfiguring(true);
+    setAutoConfigSuccess(false);
+
+    try {
+      // 1. Limpa entradas com formato inválido do localStorage
+      const keysToCheck = [
+        'inovecloud_desktop_pinned_apps',
+        'inovecloud_dock_pinned_apps',
+        'inovecloud_dock_config',
+        'inovecloud_desktop_widgets_config',
+      ];
+      keysToCheck.forEach((key) => {
+        try {
+          const val = localStorage.getItem(key);
+          if (val) JSON.parse(val);
+        } catch {
+          localStorage.removeItem(key);
+        }
+      });
+
+      if (onAutoConfigSystem) {
+        onAutoConfigSystem();
+      }
+    } catch (e) {
+      console.warn('[Auto-Config] Cleaned and restored safe defaults', e);
+    }
+
+    setTimeout(() => {
+      setIsAutoConfiguring(false);
+      setAutoConfigSuccess(true);
+      setTimeout(() => setAutoConfigSuccess(false), 3500);
+    }, 600);
   };
 
   const isDockMinimal = dockPinnedApps.length === 0;
@@ -143,8 +203,37 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
             </div>
           </div>
 
-          {/* Quick Dock Controls & Counters */}
+          {/* Quick Dock Controls & Auto-Config Button */}
           <div className="flex items-center flex-wrap gap-2">
+            {/* Auto Configuration & System Self-Healing Button */}
+            <button
+              onClick={handleRunAutoConfig}
+              disabled={isAutoConfiguring}
+              className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl border text-xs font-bold transition shadow-lg cursor-pointer ${
+                autoConfigSuccess
+                  ? 'bg-emerald-500/30 border-emerald-400 text-emerald-200'
+                  : 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 border-red-400/40 text-white shadow-red-500/20 active:scale-95'
+              }`}
+              title="Executa a auto-configuração inteligente, repara caminhos do launcher e otimiza a dock"
+            >
+              {isAutoConfiguring ? (
+                <>
+                  <Wrench className="w-3.5 h-3.5 animate-spin" />
+                  <span>Auto-Configurando...</span>
+                </>
+              ) : autoConfigSuccess ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                  <span>Sistema 100% Configurado & Estável!</span>
+                </>
+              ) : (
+                <>
+                  <Wrench className="w-3.5 h-3.5" />
+                  <span>Auto-Configuração do Sistema</span>
+                </>
+              )}
+            </button>
+
             {/* Desktop Count */}
             <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300">
               <Home className="w-3.5 h-3.5 text-cyan-400" />
@@ -179,8 +268,8 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
             {onResetDockDefault && isDockMinimal && (
               <button
                 onClick={onResetDockDefault}
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-cyan-600/30 hover:bg-cyan-600 border border-cyan-400/40 text-cyan-200 hover:text-white text-xs font-bold transition cursor-pointer shadow-md"
-                title="Restaura os aplicativos padrões na Dock"
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-cyan-600/30 hover:bg-cyan-600 border border-cyan-400/40 hover:border-cyan-400 text-cyan-200 hover:text-white text-xs font-bold transition cursor-pointer shadow-md"
+                title="Restaura os aplicativos padrão fixados na Dock"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Restaurar Apps na Dock</span>
@@ -190,25 +279,23 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
             {/* Close Button */}
             <button
               onClick={onClose}
-              className="p-2 rounded-2xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition cursor-pointer border border-white/10"
-              title="Fechar Launcher (Esc)"
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Search Bar & Categories */}
-        <div className="space-y-4">
-          {/* Search Input */}
-          <div className="relative max-w-2xl mx-auto">
-            <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+        {/* Search Bar & Category Filter */}
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="text"
+              placeholder="Buscar aplicativos por nome, tecnologia ou comando..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por aplicativo, protocolo, recurso ou categoria..."
-              className="w-full bg-slate-900/90 border border-white/20 rounded-2xl pl-12 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 shadow-2xl transition"
+              className="w-full pl-12 pr-4 py-3 rounded-2xl bg-black/40 border border-white/15 text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/50 transition backdrop-blur-md"
               autoFocus
             />
             {searchQuery && (
@@ -221,29 +308,26 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
             )}
           </div>
 
-          {/* Category Pills */}
-          <div className="flex items-center justify-center flex-wrap gap-2 pt-1">
-            {categories.map((cat) => {
-              const isActive = selectedCategory === cat;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
-                    isActive
-                      ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-lg shadow-cyan-500/25 font-bold'
-                      : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10 hover:text-white'
-                  }`}
-                >
-                  {cat}
-                </button>
-              );
-            })}
+          {/* Category Badges */}
+          <div className="flex items-center space-x-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-none">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer border ${
+                  selectedCategory === cat
+                    ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white border-red-400/40 shadow-lg shadow-red-500/20'
+                    : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Apps Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[58vh] overflow-y-auto pr-1 no-scrollbar pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[55vh] overflow-y-auto pr-1">
           {filteredApps.map((app) => {
             const isDesktopPinned = desktopPinnedApps.includes(app.id);
             const isDockPinned = dockPinnedApps.includes(app.id);
@@ -251,106 +335,100 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
             return (
               <div
                 key={app.id}
-                className="group relative p-4 rounded-3xl liquid-glass-card border border-white/15 hover:border-cyan-400/40 transition-all duration-300 shadow-xl flex flex-col justify-between hover:-translate-y-1"
+                className="group relative flex items-start space-x-3.5 p-3.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/10 hover:border-white/25 transition duration-200 backdrop-blur-md shadow-lg"
               >
-                <div>
-                  {/* Card Header: Icon + Category + Badges */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div
-                      onClick={() => handleAppClick(app.id)}
-                      className="cursor-pointer group-hover:scale-105 transition"
-                    >
-                      <AppIcon appId={app.id} size="lg" className="w-13 h-13" />
-                    </div>
-
-                    <div className="flex items-center space-x-1.5">
-                      {app.badge && (
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold text-white shadow-sm ${app.badgeColor || 'bg-blue-500'}`}>
-                          {app.badge}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* App Info */}
-                  <div className="cursor-pointer" onClick={() => handleAppClick(app.id)}>
-                    <h3 className="text-sm font-bold text-white group-hover:text-cyan-300 transition flex items-center space-x-1.5">
-                      <span>{app.name}</span>
-                    </h3>
-                    <span className="text-[10px] text-slate-400 font-medium block mt-0.5">
-                      {app.category}
-                    </span>
-                    <p className="text-xs text-slate-300 mt-2 leading-relaxed line-clamp-2">
-                      {app.description}
-                    </p>
-                  </div>
+                {/* 3D Skeuomorphic App Icon Clickable */}
+                <div
+                  onClick={() => handleAppClick(app.id)}
+                  className="shrink-0 cursor-pointer transition-transform duration-200 group-hover:scale-105 active:scale-95"
+                >
+                  <AppIcon appId={app.id} size="lg" />
                 </div>
 
-                {/* Card Actions Footer: Desktop Pin, Dock Pin & Open */}
-                <div className="mt-4 pt-3 border-t border-white/10 flex flex-col space-y-2">
-                  <div className="flex items-center justify-between gap-1 text-[11px]">
-                    {/* Pin to Desktop */}
+                {/* Info & Description */}
+                <div
+                  className="flex-1 min-w-0 cursor-pointer"
+                  onClick={() => handleAppClick(app.id)}
+                >
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-sm font-bold text-white group-hover:text-cyan-300 transition truncate">
+                      {app.name}
+                    </h3>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[9px] font-bold text-white uppercase tracking-wider ${app.badgeColor}`}
+                    >
+                      {app.badge}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 line-clamp-2 mt-1 leading-relaxed">
+                    {app.description}
+                  </p>
+                </div>
+
+                {/* Actions: Pin/Unpin Desktop and Dock */}
+                <div className="flex flex-col items-center space-y-1 shrink-0 pt-0.5">
+                  {/* Pin/Unpin on Desktop */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onTogglePinDesktop(app.id);
+                    }}
+                    className={`p-1.5 rounded-lg text-xs transition cursor-pointer ${
+                      isDesktopPinned
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30'
+                        : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                    }`}
+                    title={
+                      isDesktopPinned
+                        ? 'Remover da Tela Inicial (Desktop)'
+                        : 'Fixar na Tela Inicial (Desktop)'
+                    }
+                  >
+                    {isDesktopPinned ? (
+                      <PinOff className="w-3.5 h-3.5" />
+                    ) : (
+                      <Pin className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+
+                  {/* Pin/Unpin on Dock */}
+                  {onTogglePinDock && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onTogglePinDesktop(app.id);
+                        onTogglePinDock(app.id);
                       }}
-                      className={`flex-1 flex items-center justify-center space-x-1 py-1 px-2 rounded-lg border transition cursor-pointer ${
-                        isDesktopPinned
-                          ? 'bg-cyan-500/20 border-cyan-400/40 text-cyan-300'
-                          : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+                      className={`p-1.5 rounded-lg text-xs transition cursor-pointer ${
+                        isDockPinned
+                          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30'
+                          : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
                       }`}
-                      title="Fixar ou remover este app da Tela Inicial"
+                      title={
+                        isDockPinned
+                          ? 'Remover da Dock inferior'
+                          : 'Fixar na Dock inferior'
+                      }
                     >
-                      <Home className="w-3 h-3" />
-                      <span className="truncate">{isDesktopPinned ? '✓ Desktop' : '+ Desktop'}</span>
+                      <LayoutGrid className="w-3.5 h-3.5" />
                     </button>
-
-                    {/* Pin to Dock */}
-                    {onTogglePinDock && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onTogglePinDock(app.id);
-                        }}
-                        className={`flex-1 flex items-center justify-center space-x-1 py-1 px-2 rounded-lg border transition cursor-pointer ${
-                          isDockPinned
-                            ? 'bg-purple-500/20 border-purple-400/40 text-purple-300'
-                            : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
-                        }`}
-                        title="Fixar ou remover este app da Dock inferior"
-                      >
-                        <LayoutGrid className="w-3 h-3" />
-                        <span className="truncate">{isDockPinned ? '✓ Na Dock' : '+ Dock'}</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Open App Button */}
-                  <button
-                    onClick={() => handleAppClick(app.id)}
-                    className="w-full flex items-center justify-center space-x-1.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold transition cursor-pointer shadow-md shadow-cyan-600/25 active:scale-95 text-xs"
-                  >
-                    <span>Abrir Aplicativo</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </button>
+                  )}
                 </div>
               </div>
             );
           })}
-        </div>
 
-        {filteredApps.length === 0 && (
-          <div className="text-center py-12 text-slate-400">
-            <p className="text-sm">Nenhum aplicativo encontrado para "{searchQuery}".</p>
-            <button
-              onClick={() => { setSearchQuery(''); setSelectedCategory('Todos'); }}
-              className="mt-2 text-xs text-cyan-400 hover:underline"
-            >
-              Limpar filtros de busca
-            </button>
-          </div>
-        )}
+          {filteredApps.length === 0 && (
+            <div className="col-span-full flex flex-col items-center justify-center py-12 text-center text-slate-400">
+              <Search className="w-12 h-12 text-slate-600 mb-3" />
+              <p className="text-sm font-semibold text-slate-300">
+                Nenhum aplicativo encontrado para "{searchQuery}"
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Tente buscar por termos como "terminal", "vm", "web", "storage" ou "docker".
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

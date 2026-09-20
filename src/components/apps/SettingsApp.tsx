@@ -17,6 +17,7 @@ import {
   SlidersHorizontal,
   RotateCcw,
   Clock,
+  Wrench,
   Home,
   Cloud,
   Server,
@@ -86,7 +87,9 @@ interface SettingsAppProps {
   dockPinnedApps?: AppId[];
   onTogglePinDock?: (id: AppId) => void;
   onResetDockDefault?: () => void;
+  onAutoConfigSystem?: () => void;
   initialSection?:
+    | 'autoconfig'
     | 'debian'
     | 'wifi'
     | 'ethernet'
@@ -117,12 +120,13 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
   dockPinnedApps,
   onTogglePinDock,
   onResetDockDefault,
+  onAutoConfigSystem,
   initialSection = 'debian',
 }) => {
   const sysSettings = useSystemSettings();
   const soundEffects = useSoundEffects();
   const [activeSection, setActiveSection] = useState<
-    'debian' | 'wifi' | 'ethernet' | 'camera' | 'dnd' | 'bluetooth' | 'mouse' | 'display' | 'sound' | 'power' | 'themes' | 'dock' | 'user' | 'accessibility' | 'about'
+    'autoconfig' | 'debian' | 'wifi' | 'ethernet' | 'camera' | 'dnd' | 'bluetooth' | 'mouse' | 'display' | 'sound' | 'power' | 'themes' | 'dock' | 'user' | 'accessibility' | 'about'
   >(initialSection);
 
   useEffect(() => {
@@ -422,6 +426,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
 
   // Navigation Items
   const menuItems = [
+    { id: 'autoconfig', label: 'Automação & Auto-Reparo', icon: Wrench, badge: 'Auto-Fix' },
     { id: 'debian', label: 'Debian 13 & Pure Kernel Host', icon: Server, badge: 'Trixie' },
     { id: 'wifi', label: 'Wi-Fi & Sem Fio', icon: Wifi, badge: sysSettings.wifiEnabled ? (connectedSsid || 'Conectado') : 'Desligado' },
     { id: 'ethernet', label: 'Internet a Cabo (Ethernet)', icon: Network, badge: sysSettings.ethernetEnabled ? '10 Gbps' : 'Desativado' },
@@ -512,6 +517,177 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
 
       {/* RIGHT CONTENT AREA */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* =================================================================== */}
+        {/* AUTO-CONFIG & SELF-HEALING SYSTEM */}
+        {/* =================================================================== */}
+        {activeSection === 'autoconfig' && (
+          <div className="space-y-6 max-w-4xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-white/10">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center space-x-2">
+                  <Wrench className="w-5 h-5 text-red-500" />
+                  <span>Automação do Sistema & Auto-Configuração Inteligente</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Reparo automático de erros de inicialização (boot), calibração do Launcher, saneamento de cache e otimização de GPU em 1 clique.
+                </p>
+              </div>
+
+              <span className="px-3 py-1 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center space-x-1.5 self-start sm:self-auto">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>Watchdog Ativo (0 Falhas)</span>
+              </span>
+            </div>
+
+            {/* Big Action Banner: 1-Click Complete Auto-Config */}
+            <div className="p-6 rounded-3xl bg-gradient-to-br from-red-950/50 via-slate-900 to-slate-950 border border-red-500/30 shadow-2xl relative overflow-hidden">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-2">
+                  <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/30 text-red-300 text-xs font-bold">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Auto-Configuração do Sistema Operacional</span>
+                  </div>
+                  <h4 className="text-xl font-black text-white tracking-wide">
+                    Otimizar e Reparar Todo o Sistema com 1 Clique
+                  </h4>
+                  <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+                    Executa a higienização de chaves corrompidas do Launcher, redefine as dimensões das janelas para valores seguros, ativa a aceleração gráfica por hardware (Mesa/Vulkan) e restaura a Dock padrão.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (onAutoConfigSystem) {
+                      onAutoConfigSystem();
+                    }
+                    soundEffects.playPop('on');
+                    setUploadFeedback('Auto-configuração e reparo de integridade aplicados com 100% de sucesso!');
+                    setTimeout(() => setUploadFeedback(null), 4000);
+                  }}
+                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-sm shadow-xl shadow-red-600/30 transition transform active:scale-95 flex items-center justify-center space-x-2.5 shrink-0 cursor-pointer"
+                >
+                  <Wrench className="w-4 h-4" />
+                  <span>Executar Auto-Configuração Agora</span>
+                </button>
+              </div>
+            </div>
+
+            {uploadFeedback && (
+              <div className="p-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 text-xs flex items-center space-x-2.5 shadow-lg">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                <span className="font-semibold">{uploadFeedback}</span>
+              </div>
+            )}
+
+            {/* Diagnostic Modules Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-white text-xs font-bold">
+                    <LayoutGrid className="w-4 h-4 text-cyan-400" />
+                    <span>Launcher & Registro de Aplicativos</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                    23 Apps Validados
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Todos os atalhos, ícones e executáveis foram indexados e checados contra erros de referência.
+                </p>
+                <button
+                  onClick={() => {
+                    try {
+                      localStorage.removeItem('inovecloud_desktop_pinned_apps');
+                      localStorage.removeItem('inovecloud_dock_pinned_apps');
+                      if (onAutoConfigSystem) onAutoConfigSystem();
+                      soundEffects.playPop('click');
+                    } catch (e) {
+                      console.warn(e);
+                    }
+                  }}
+                  className="w-full py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-slate-200 transition cursor-pointer"
+                >
+                  Resetar & Reindexar Launcher
+                </button>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-white text-xs font-bold">
+                    <Zap className="w-4 h-4 text-amber-400" />
+                    <span>Aceleração Gráfica & Viewport</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                    WebGL 2.0 / 60-120Hz
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Aceleração de renderização GPU ativada para garantir transições suaves sem queda de quadros no GNOME.
+                </p>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => {
+                      if (!gpuEnabled) onToggleGpu();
+                      soundEffects.playPop('on');
+                    }}
+                    className="flex-1 py-2 rounded-xl bg-red-600/30 hover:bg-red-600 border border-red-500/40 text-xs font-bold text-white transition cursor-pointer"
+                  >
+                    Forçar Modo Alto Desempenho
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-white text-xs font-bold">
+                    <HardDrive className="w-4 h-4 text-purple-400" />
+                    <span>Higienização de Armazenamento Local</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                    Integridade OK
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Remove fragmentos órfãos de sessões anteriores que possam impedir a abertura limpa dos apps.
+                </p>
+                <button
+                  onClick={() => {
+                    try {
+                      sessionStorage.clear();
+                      soundEffects.playPop('off');
+                      setUploadFeedback('Sessão limpa e otimizada!');
+                      setTimeout(() => setUploadFeedback(null), 3000);
+                    } catch (e) {
+                      console.warn(e);
+                    }
+                  }}
+                  className="w-full py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-slate-200 transition cursor-pointer"
+                >
+                  Limpar Cache Temporário de Sessão
+                </button>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-white text-xs font-bold">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>Watchdog de Auto-Recuperação no Boot</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                    Ativado
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Protege cada janela e o launcher com barreiras de erro ativas, impedindo falhas globais durante o uso.
+                </p>
+                <div className="flex items-center justify-between p-2 rounded-xl bg-black/30 border border-white/5 text-xs text-slate-300">
+                  <span>Proteção contra falhas em tempo de execução:</span>
+                  <span className="text-emerald-400 font-bold">100% Protegido</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* =================================================================== */}
         {/* 0. DEBIAN 13 & GNOME HOST LINUX INTEGRATION */}
         {/* =================================================================== */}

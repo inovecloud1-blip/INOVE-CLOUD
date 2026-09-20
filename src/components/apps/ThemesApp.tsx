@@ -444,7 +444,7 @@ export const ThemesApp: React.FC<ThemesAppProps> = ({
                         ? 'border-2 ring-2 ring-offset-2 ring-offset-slate-950 bg-slate-900/90'
                         : 'border-white/10 bg-slate-900/50 hover:border-white/30'
                     }`}
-                    style={isSelected ? { borderColor: preset.accentColor, ringColor: preset.accentColor } : {}}
+                    style={isSelected ? { borderColor: preset.accentColor, outlineColor: preset.accentColor } : {}}
                   >
                     {/* Theme Wallpaper Header with Gradient Strip */}
                     <div className="relative h-36 w-full overflow-hidden">

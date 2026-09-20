@@ -189,18 +189,107 @@ make olddefconfig
 echo -e "\n${C_BLUE}[4/5] Compilando o Kernel Linux (bzImage & módulos) com ${NPROC} threads...${C_RESET}"
 make -j"${NPROC}" bzImage modules
 
-# 5. Exportar Binários & Módulos
-echo -e "\n${C_BLUE}[5/5] Exportando Kernel e Módulos para ${OUT_DIR}...${C_RESET}"
+# 5. Gerar Script de Arranque /init com Auto-Fallback DRM/KMS & Empacotar Initramfs
+echo -e "\n${C_BLUE}[5/6] Injetando script de arranque /init com auto-fallback gráfico (DRM/KMS/VESA)...${C_RESET}"
+INITRAMFS_DIR="${WORK_DIR}/initramfs_root"
+rm -rf "${INITRAMFS_DIR}"
+mkdir -p "${INITRAMFS_DIR}"/{bin,sbin,dev,proc,sys,tmp,run,mnt,etc,lib,lib64}
+
+# Criar script /init com auto-fallback resiliente contra tela preta
+cat << 'EOF_INIT' > "${INITRAMFS_DIR}/init"
+#!/bin/sh
+# ==============================================================================
+# InoveCloud OS - Inove Init & Auto-Fallback DRM/KMS/VESA
+# Garante inicialização gráfica sem tela preta em Bare-Metal, VirtualBox, VMware e QEMU
+# ==============================================================================
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+
+# Monta sistemas de arquivos virtuais
+mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
+mount -t proc proc /proc 2>/dev/null || true
+mount -t sysfs sysfs /sys 2>/dev/null || true
+mount -t tmpfs tmpfs /run 2>/dev/null || true
+mount -t tmpfs tmpfs /tmp 2>/dev/null || true
+
+# Redirecionar I/O para console se disponível
+if [ -e /dev/console ]; then
+  exec 0</dev/console 1>/dev/console 2>/dev/console
+fi
+
+echo "================================================================================"
+echo " 🚀 INOVECLOUD OS - INICIALIZANDO KERNEL 6.12+ (DRM/KMS AUTO-FALLBACK)"
+echo "================================================================================"
+
+# Detecção e Carregamento Proativo de Módulos de Vídeo
+CMDLINE=$(cat /proc/cmdline 2>/dev/null || echo "")
+
+if echo "$CMDLINE" | grep -q "nomodeset"; then
+  echo "[VIDEO-INIT] Modo seguro detectado (nomodeset). Utilizando SimpleDRM / VESA Framebuffer."
+else
+  # Detecta hipervisor ou GPU
+  if grep -qi "virtualbox" /sys/class/dmi/id/product_name 2>/dev/null || lspci 2>/dev/null | grep -qi "virtualbox"; then
+    echo "[VIDEO-INIT] Ambiente VirtualBox detectado. Inicializando driver DRM vboxvideo..."
+    modprobe vboxvideo 2>/dev/null || true
+  elif grep -qi "vmware" /sys/class/dmi/id/product_name 2>/dev/null || lspci 2>/dev/null | grep -qi "vmware"; then
+    echo "[VIDEO-INIT] Ambiente VMware detectado. Inicializando driver DRM vmwgfx..."
+    modprobe vmwgfx 2>/dev/null || true
+  elif grep -qi "qemu\|kvm" /sys/class/dmi/id/product_name 2>/dev/null || lspci 2>/dev/null | grep -qi "qxl\|bochs"; then
+    echo "[VIDEO-INIT] Ambiente QEMU/KVM detectado. Inicializando drivers bochs/qxl/virtio-gpu..."
+    modprobe bochs 2>/dev/null || modprobe qxl 2>/dev/null || modprobe virtio-gpu 2>/dev/null || true
+  fi
+fi
+
+# Fallback para Framebuffer padrão se DRM não estiver disponível
+if [ ! -d /sys/class/drm ] || [ -z "$(ls -A /sys/class/drm 2>/dev/null)" ]; then
+  echo "[VIDEO-FALLBACK] DRM não detectado. Ativando SimpleDRM / FBDEV..."
+  modprobe simpledrm 2>/dev/null || true
+fi
+
+# Se houver um sistema raiz montável via root= ou live, troca de raiz (switch_root)
+if [ -n "$CMDLINE" ] && echo "$CMDLINE" | grep -q "root="; then
+  ROOT_DEV=$(echo "$CMDLINE" | sed -e 's/.*root=\([^ ]*\).*/\1/')
+  echo "[BOOT] Montando partição raiz: $ROOT_DEV..."
+  mkdir -p /newroot
+  mount "$ROOT_DEV" /newroot 2>/dev/null || sleep 2
+  if [ -x /newroot/sbin/init ] || [ -x /newroot/lib/systemd/systemd ]; then
+    echo "[BOOT] Efetuando switch_root para o sistema principal..."
+    exec switch_root /newroot ${INIT:-/sbin/init}
+  fi
+fi
+
+# Fallback interativo caso não encontre disco particionado
+echo "[INOVE-INIT] Sistema de arranque rápido pronto."
+if [ -x /bin/sh ]; then
+  exec /bin/sh
+elif [ -x /bin/busybox ]; then
+  exec /bin/busybox sh
+fi
+
+while true; do sleep 1; done
+EOF_INIT
+chmod +x "${INITRAMFS_DIR}/init"
+
+# Cria nós essenciais em /dev dentro do initramfs
+mknod -m 622 "${INITRAMFS_DIR}/dev/console" c 5 1 2>/dev/null || true
+mknod -m 666 "${INITRAMFS_DIR}/dev/null" c 1 3 2>/dev/null || true
+mknod -m 666 "${INITRAMFS_DIR}/dev/zero" c 1 5 2>/dev/null || true
+mknod -m 666 "${INITRAMFS_DIR}/dev/tty1" c 4 1 2>/dev/null || true
+
+# Empacota o Initramfs com cpio e zstd/gzip
+(cd "${INITRAMFS_DIR}" && find . -print0 | cpio --null --create --format=newc | gzip -9 > "${OUT_DIR}/initramfs-6.12-inovecloud.img")
+
+# 6. Exportar Binários & Módulos
+echo -e "\n${C_BLUE}[6/6] Exportando Kernel, Initramfs e Módulos para ${OUT_DIR}...${C_RESET}"
 mkdir -p "${OUT_DIR}/modules"
 
 cp arch/x86/boot/bzImage "${OUT_DIR}/vmlinuz-6.12-inovecloud"
 make INSTALL_MOD_PATH="${OUT_DIR}/modules" modules_install
 
 echo -e "\n${C_GREEN}${C_BOLD}================================================================================${C_RESET}"
-echo -e "${C_GREEN}${C_BOLD}   ✓ KERNEL LINUX 6.12+ COMPILADO COM SUCESSO!                                  ${C_RESET}"
+echo -e "${C_GREEN}${C_BOLD}   ✓ KERNEL LINUX 6.12+ E INOVE INIT COMPILADOS COM SUCESSO!                    ${C_RESET}"
 echo -e "   - Imagem do Kernel : ${C_BOLD}${OUT_DIR}/vmlinuz-6.12-inovecloud${C_RESET}"
+echo -e "   - Initramfs Fallback: ${C_BOLD}${OUT_DIR}/initramfs-6.12-inovecloud.img${C_RESET}"
 echo -e "   - Módulos          : ${C_BOLD}${OUT_DIR}/modules/lib/modules/${KERNEL_VERSION}${C_RESET}"
-echo -e "   - Tamanho Final    : $(du -h "${OUT_DIR}/vmlinuz-6.12-inovecloud" | cut -f1)"
 echo -e "   - Suporte DRM/KMS  : Intel, AMD, NVIDIA, VirtualBox, VMware, QEMU (Ativo)"
-echo -e "   - Inove Init & App : Suporte FUSE (AppImage) e Namespaces (Flatpak/Chrome)"
+echo -e "   - Auto-Fallback    : SimpleDRM, FBDEV, VESA e Inove Init Proativo (Anti Tela Preta)"
 echo -e "${C_GREEN}${C_BOLD}================================================================================${C_RESET}\n"
