@@ -73,6 +73,7 @@ import { AppIcon } from '../desktop/AppIcon';
 import { useSystemSettings } from '../../context/SystemSettingsContext';
 import { useSoundEffects } from '../../context/SoundEffectsContext';
 import { ToggleSwitch } from '../ui/ToggleSwitch';
+import { UmbrelSettingsView } from './UmbrelSettingsView';
 
 interface SettingsAppProps {
   currentWallpaper: string;
@@ -125,6 +126,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
 }) => {
   const sysSettings = useSystemSettings();
   const soundEffects = useSoundEffects();
+  const [uiMode, setUiMode] = useState<'umbrel' | 'classic'>('umbrel');
   const [activeSection, setActiveSection] = useState<
     'autoconfig' | 'debian' | 'wifi' | 'ethernet' | 'camera' | 'dnd' | 'bluetooth' | 'mouse' | 'display' | 'sound' | 'power' | 'themes' | 'dock' | 'user' | 'accessibility' | 'about'
   >(initialSection);
@@ -455,8 +457,70 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
     { id: 'about', label: 'Sobre o PC & Sistema', icon: Info, badge: 'v2026.1' },
   ];
 
+  if (uiMode === 'umbrel') {
+    return (
+      <div className="relative w-full h-full flex flex-col">
+        {/* Floating UI Mode Switcher */}
+        <div className="absolute top-4 right-4 z-40 flex items-center space-x-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-xl">
+          <span className="text-[10px] font-semibold text-slate-400">Modo:</span>
+          <button
+            onClick={() => setUiMode('umbrel')}
+            className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r from-orange-600 to-rose-600 text-white shadow cursor-pointer"
+          >
+            umbrelOS 2.0 Glass
+          </button>
+          <button
+            onClick={() => {
+              setUiMode('classic');
+              soundEffects.playPop('click');
+            }}
+            className="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-slate-400 hover:text-white transition cursor-pointer"
+          >
+            Debian GNOME
+          </button>
+        </div>
+
+        <UmbrelSettingsView
+          currentWallpaper={currentWallpaper}
+          onSelectWallpaper={onSelectWallpaper}
+          gpuEnabled={gpuEnabled}
+          onToggleGpu={onToggleGpu}
+          widgetsConfig={widgetsConfig}
+          onUpdateWidgetsConfig={onUpdateWidgetsConfig}
+          onResetWidgetsConfig={onResetWidgetsConfig}
+          dockConfig={dockConfig}
+          onUpdateDockConfig={onUpdateDockConfig}
+          dockPinnedApps={dockPinnedApps}
+          onTogglePinDock={onTogglePinDock}
+          onResetDockDefault={onResetDockDefault}
+          onAutoConfigSystem={onAutoConfigSystem}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-full bg-slate-950 text-slate-100 overflow-hidden font-sans">
+    <div className="relative flex h-full bg-slate-950 text-slate-100 overflow-hidden font-sans">
+      {/* Floating UI Mode Switcher for Classic Mode */}
+      <div className="absolute top-3 right-4 z-40 flex items-center space-x-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-xl">
+        <span className="text-[10px] font-semibold text-slate-400">Modo:</span>
+        <button
+          onClick={() => {
+            setUiMode('umbrel');
+            soundEffects.playPop('click');
+          }}
+          className="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-slate-400 hover:text-white transition cursor-pointer"
+        >
+          umbrelOS 2.0 Glass
+        </button>
+        <button
+          onClick={() => setUiMode('classic')}
+          className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-600 text-white shadow cursor-pointer"
+        >
+          Debian GNOME
+        </button>
+      </div>
+
       {/* LEFT SIDEBAR NAVIGATION */}
       <div className="w-64 border-r border-white/10 bg-slate-900/60 flex flex-col p-3 shrink-0">
         <div className="flex items-center space-x-2.5 px-3 py-3 mb-2 border-b border-white/10">

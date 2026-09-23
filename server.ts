@@ -9,6 +9,11 @@ const PORT = 3000;
 
 app.use(express.json());
 
+// 0. API: Health Check endpoints
+app.get(['/api/health', '/health', '/healthz'], (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // In-memory process registry for launched local apps
 const runningProcesses = new Map<string, any>();
 
@@ -888,23 +893,28 @@ app.post('/api/iso/build', (req, res) => {
 
 // Setup Vite middleware in dev or static serving in production
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
+  try {
+    if (process.env.NODE_ENV !== 'production') {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`InoveCloud OS Web Desktop Server running at http://0.0.0.0:${PORT}`);
-  });
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`InoveCloud OS Web Desktop Server running at http://0.0.0.0:${PORT}`);
+    });
+  } catch (error) {
+    console.error('[SERVER ERROR] Failed to start server:', error);
+    process.exit(1);
+  }
 }
 
 startServer();
