@@ -15,6 +15,11 @@ on:
         options:
           - 'real-desktop'
           - 'pure-kernel-lfs'
+      compile_kernel:
+        description: 'Compilar Kernel Linux do zero (LFS Custom Kernel)?'
+        required: false
+        default: false
+        type: boolean
       release_tag:
         description: 'Tag de versão para o Release (ex: v2026.1)'
         required: false
@@ -33,21 +38,29 @@ jobs:
       - name: 📥 Clonar Repositório
         uses: actions/checkout@v4
 
-      - name: ⚙️ Configurar Node.js e Compilar Web Suite
+      - name: ⚙️ Configurar Node.js (v20)
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: 📦 Instalar Dependências e Gerar Frontend (dist/)
+      - name: 📦 Instalar Dependências Node e Gerar Frontend (dist/)
         run: |
-          npm ci || npm install
+          echo "Instalando dependências Node.js e construindo o bundle de produção..."
+          npm install --no-audit --no-fund
           npm run build
 
-      - name: 🛠️ Instalar Dependências de Sistema e Ferramentas de ISO no Runner
+      - name: 🛠️ Instalar Dependências de Compilação de Kernel e Ferramentas de ISO
         run: |
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential \
+            bison \
+            flex \
+            libelf-dev \
+            libssl-dev \
+            bc \
+            cpio \
             debootstrap \
             debian-archive-keyring \
             squashfs-tools \
@@ -61,39 +74,56 @@ jobs:
             rsync \
             curl \
             wget \
-            bison \
-            flex \
-            libelf-dev \
-            libssl-dev \
-            bc \
-            cpio
+            tar \
+            xz-utils \
+            python3 \
+            busybox-static \
+            libncurses-dev
 
-      - name: 🚀 Compilar ISO do Sistema Operacional Real (inovecloud-os-2026.iso)
+      - name: 🐧 Compilação do Kernel Linux e Geração do Sistema Operacional Real
         run: |
           chmod +x iso-builder/build-iso.sh build-inovecloud.sh scripts/*.sh 2>/dev/null || true
           
           EDITION="${{ github.event.inputs.edition || 'real-desktop' }}"
-          echo "Compilando edição selecionada: ${EDITION}"
+          COMPILE_KERNEL="${{ github.event.inputs.compile_kernel || 'false' }}"
           
-          if [ "${EDITION}" = "pure-kernel-lfs" ]; then
+          echo "========================================================================"
+          echo " Edição Selecionada: ${EDITION}"
+          echo " Compilar Kernel Custom: ${COMPILE_KERNEL}"
+          echo "========================================================================"
+          
+          mkdir -p dist-iso
+          
+          if [ "${EDITION}" = "pure-kernel-lfs" ] || [ "${COMPILE_KERNEL}" = "true" ]; then
+            echo "Iniciando compilação do Kernel Linux puro e montagem do rootfs LFS..."
             sudo ./build-inovecloud.sh
-            mkdir -p dist-iso
             if [ -f dist-iso/inovecloud-os-pure-flathub-amd64.iso ]; then
               cp dist-iso/inovecloud-os-pure-flathub-amd64.iso dist-iso/inovecloud-os-2026.iso
-              cd dist-iso && sha256sum inovecloud-os-2026.iso > inovecloud-os-2026.iso.sha256 && cd ..
             fi
           else
+            echo "Iniciando compilação do Debian 13 Liquid Glass com GNOME 46 e Suporte Universal..."
             export ISO_NAME="inovecloud-os-2026.iso"
             sudo -E ./iso-builder/build-iso.sh
           fi
 
-      - name: 🔒 Verificar Integridade da ISO e Checksum SHA256
+      - name: 🔒 Verificar Integridade da ISO e Gerar Checksum SHA256
         run: |
           mkdir -p dist-iso
-          ls -lh dist-iso/
-          if [ -f dist-iso/inovecloud-os-2026.iso.sha256 ]; then
-            cat dist-iso/inovecloud-os-2026.iso.sha256
-          fi
+          cd dist-iso
+          
+          # Gerar hashes para todas as imagens ISO encontradas
+          for iso_file in *.iso; do
+            if [ -f "${iso_file}" ]; then
+              echo "Gerando SHA256 para ${iso_file}..."
+              sha256sum "${iso_file}" > "${iso_file}.sha256"
+            fi
+          done
+          
+          echo "--- Conteúdo do Diretório de Saída ---"
+          ls -lh
+          echo "--- Checksums SHA256 ---"
+          cat *.sha256 2>/dev/null || true
+          cd ..
 
       - name: 📤 Fazer Upload do Artefato da ISO (.iso & .sha256)
         uses: actions/upload-artifact@v4

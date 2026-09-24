@@ -467,7 +467,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
             onClick={() => setUiMode('umbrel')}
             className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r from-orange-600 to-rose-600 text-white shadow cursor-pointer"
           >
-            umbrelOS 2.0 Glass
+            InoveCloud OS Glass
           </button>
           <button
             onClick={() => {
@@ -511,7 +511,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
           }}
           className="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-slate-400 hover:text-white transition cursor-pointer"
         >
-          umbrelOS 2.0 Glass
+          InoveCloud OS Glass
         </button>
         <button
           onClick={() => setUiMode('classic')}

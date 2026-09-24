@@ -105,6 +105,8 @@ echo "==> Baixando e verificando integridade SHA256 de pacotes do Kernel e Firmw
 apt-get install -y --download-only --no-install-recommends \
   linux-image-amd64 \
   live-boot \
+  live-config \
+  live-config-systemd \
   systemd-sysv \
   firmware-linux-free
 
@@ -123,6 +125,8 @@ echo "✓ Todos os pacotes de Kernel e Firmware tiveram a integridade SHA256 con
 apt-get install -y --no-install-recommends \
   linux-image-amd64 \
   live-boot \
+  live-config \
+  live-config-systemd \
   systemd-sysv \
   firmware-linux-free
 
@@ -338,6 +342,10 @@ APPIMAGE_DESKTOP
 
 systemctl enable gdm3 || systemctl enable gdm || true
 systemctl enable NetworkManager || true
+systemctl enable open-vm-tools || true
+systemctl enable spice-vdagent || true
+systemctl enable qemu-guest-agent || true
+systemctl enable virtualbox-guest-utils || true
 
 apt-get clean
 rm -rf /var/lib/apt/lists/*

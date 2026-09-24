@@ -376,11 +376,26 @@ export const MenuBar: React.FC<MenuBarProps> = ({
           </div>
         </div>
 
-        {/* Spotlight Search Icon */}
+        {/* Global Search Pill Bar in MenuBar */}
         <button
           onClick={onToggleSpotlight}
-          className="p-1 rounded hover:bg-white/10 text-white/80 hover:text-white transition cursor-pointer"
-          title="Busca Rápida (Cmd+K)"
+          className="flex items-center space-x-2 px-2.5 py-0.5 rounded-full bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white border border-white/15 hover:border-white/30 transition cursor-pointer shadow-sm group"
+          title="Busca Global no InoveCloud OS (Arquivos, Ajustes, Nós e Apps) - Pressione ⌘K"
+        >
+          <Search className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+          <span className="text-[11px] font-medium hidden sm:inline text-slate-300 group-hover:text-white">
+            Buscar arquivos, ajustes ou nós...
+          </span>
+          <kbd className="hidden md:inline-flex items-center px-1.5 py-0.2 rounded bg-black/40 text-[9px] font-mono text-cyan-300/90 border border-white/10">
+            ⌘K
+          </kbd>
+        </button>
+
+        {/* Spotlight Search Icon for compact mobile */}
+        <button
+          onClick={onToggleSpotlight}
+          className="sm:hidden p-1 rounded hover:bg-white/10 text-white/80 hover:text-white transition cursor-pointer"
+          title="Busca Global (⌘K)"
         >
           <Search className="w-3.5 h-3.5" />
         </button>

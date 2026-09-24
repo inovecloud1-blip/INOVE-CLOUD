@@ -636,20 +636,22 @@ export const Dock: React.FC<DockProps> = ({
                     : position === 'top'
                     ? 'top center'
                     : 'bottom center',
-                  transition: 'transform 90ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+                  transition: 'transform 120ms cubic-bezier(0.25, 1, 0.5, 1)',
                 }}
               >
                 <button
                   onClick={onToggleLauncher}
-                  className="relative flex items-center justify-center rounded-2xl p-2 cursor-pointer shadow-lg active:scale-95 bg-gradient-to-tr from-fuchsia-600 via-purple-600 to-indigo-700 border border-white/30 hover:shadow-purple-500/50"
+                  className={`relative flex items-center justify-center rounded-2xl p-2 cursor-pointer shadow-lg bg-gradient-to-tr from-fuchsia-600 via-purple-600 to-indigo-700 border border-white/30 hover:border-white/60 hover:shadow-[0_0_25px_rgba(168,85,247,0.55)] hover:brightness-110 active:scale-90 transition-all duration-200 ease-out transform ${
+                    position === 'bottom' ? 'hover:-translate-y-1.5' : position === 'top' ? 'hover:translate-y-1.5' : position === 'left' ? 'hover:translate-x-1.5' : 'hover:-translate-x-1.5'
+                  } hover:scale-105`}
                   style={{
                     width: `${iconSize}px`,
                     height: `${iconSize}px`,
-                    filter: 'drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35))',
+                    filter: 'drop-shadow(0 6px 14px rgba(0, 0, 0, 0.4))',
                   }}
                   title="Launcher de Aplicativos"
                 >
-                  <LayoutGrid className="w-6 h-6 text-white drop-shadow-md" />
+                  <LayoutGrid className="w-6 h-6 text-white drop-shadow-md group-hover:rotate-12 transition-transform duration-300" />
                 </button>
               </div>
 
@@ -735,23 +737,31 @@ export const Dock: React.FC<DockProps> = ({
                       : position === 'top'
                       ? 'top center'
                       : 'bottom center',
-                    transition: 'transform 90ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+                    transition: 'transform 120ms cubic-bezier(0.25, 1, 0.5, 1)',
                   }}
                 >
                   <button
                     onClick={() => handleAppClick(item.id)}
                     onContextMenu={(e) => handleContextMenu(e, item.id)}
-                    className="relative cursor-pointer active:scale-95 transition-transform duration-150 block"
+                    className={`relative cursor-pointer active:scale-90 transition-all duration-200 ease-out transform block ${
+                      position === 'bottom'
+                        ? 'hover:-translate-y-1.5'
+                        : position === 'top'
+                        ? 'hover:translate-y-1.5'
+                        : position === 'left'
+                        ? 'hover:translate-x-1.5'
+                        : 'hover:-translate-x-1.5'
+                    } hover:scale-110 hover:brightness-110 hover:drop-shadow-[0_10px_20px_rgba(56,189,248,0.3)]`}
                     style={{ width: `${iconSize}px`, height: `${iconSize}px` }}
                   >
-                    <AppIcon appId={item.id} size="md" className="w-full h-full" />
+                    <AppIcon appId={item.id} size="md" className="w-full h-full transition-transform duration-200" />
 
                     {/* Badge notification */}
                     {item.badge && (
                       <span
                         className={`absolute -top-1 -right-1 px-1.5 py-0.2 ${
                           item.badgeColor || 'bg-red-500'
-                        } text-white text-[9px] font-black rounded-full border border-white/60 shadow-md z-20`}
+                        } text-white text-[9px] font-black rounded-full border border-white/60 shadow-md z-20 transition-transform duration-200 group-hover:scale-110`}
                       >
                         {item.badge}
                       </span>

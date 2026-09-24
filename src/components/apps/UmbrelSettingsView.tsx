@@ -84,7 +84,7 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
   // User Profile
-  const [deviceName, setDeviceName] = useState("Felipe's Umbrel");
+  const [deviceName, setDeviceName] = useState("Felipe's InoveCloud");
   const [isEditingName, setIsEditingName] = useState(false);
   const [userInitial, setUserInitial] = useState('F');
   const [selectedLanguage, setSelectedLanguage] = useState('Português');
@@ -109,13 +109,13 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
 
   // File Sharing state
   const [smbEnabled, setSmbEnabled] = useState(true);
-  const [smbShareName, setSmbShareName] = useState('umbrel-storage');
+  const [smbShareName, setSmbShareName] = useState('inovecloud-storage');
   const [smbGuestAccess, setSmbGuestAccess] = useState(false);
 
   // Users Management state
   const [usersList, setUsersList] = useState([
-    { id: '1', name: 'Felipe (Admin)', role: 'Administrador', email: 'felipe@umbrel.local', initial: 'F', color: 'from-amber-500 to-rose-500' },
-    { id: '2', name: 'Convidado', role: 'Acesso Limitado', email: 'guest@umbrel.local', initial: 'C', color: 'from-blue-500 to-indigo-500' },
+    { id: '1', name: 'Felipe (Admin)', role: 'Administrador', email: 'felipe@inovecloud.local', initial: 'F', color: 'from-amber-500 to-rose-500' },
+    { id: '2', name: 'Convidado', role: 'Acesso Limitado', email: 'guest@inovecloud.local', initial: 'C', color: 'from-blue-500 to-indigo-500' },
   ]);
   const [newUserName, setNewUserName] = useState('');
   const [newUserRole, setNewUserRole] = useState('Acesso Limitado');
@@ -151,7 +151,7 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
     soundEffects.playPop('click');
     setTimeout(() => {
       setUpdateChecking(false);
-      setUpdateFeedback('O umbrelOS 2.0 / InoveCloud OS está atualizado para a versão mais recente.');
+      setUpdateFeedback('O InoveCloud OS está atualizado para a versão mais recente.');
       setTimeout(() => setUpdateFeedback(null), 4000);
     }, 1800);
   };
@@ -166,7 +166,7 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
         id: Date.now().toString(),
         name: newUserName.trim(),
         role: newUserRole,
-        email: `${newUserName.toLowerCase().replace(/\s+/g, '')}@umbrel.local`,
+        email: `${newUserName.toLowerCase().replace(/\s+/g, '')}@inovecloud.local`,
         initial,
         color: 'from-emerald-500 to-teal-500',
       },
@@ -193,7 +193,7 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
       id: 'wallpaper',
       category: 'sistema',
       title: 'Papel de parede',
-      description: 'Seu papel de parede e tema do Umbrel',
+      description: 'Seu papel de parede e tema do InoveCloud OS',
       icon: ImageIcon,
       iconGradient: 'from-amber-600 to-orange-600',
       actionType: 'wallpaper_strip',
@@ -213,7 +213,7 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
       id: 'idioma',
       category: 'conta',
       title: 'Idioma',
-      description: 'Escolha seu idioma preferido do umbrelOS',
+      description: 'Escolha seu idioma preferido do InoveCloud OS',
       icon: Globe,
       iconGradient: 'from-orange-600 to-amber-700',
       actionType: 'dropdown',
@@ -253,7 +253,7 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
       id: 'backups',
       category: 'armazenamento',
       title: 'Backups',
-      description: 'Faça backup dos seus arquivos, apps e dados para outro Umbrel, NAS ou disco externo',
+      description: 'Faça backup dos seus arquivos, apps e dados para outro servidor InoveCloud, NAS ou disco externo',
       icon: History,
       iconGradient: 'from-amber-600 to-rose-600',
       actionType: 'backup_buttons',
@@ -263,11 +263,11 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
       id: 'migracao',
       category: 'sistema',
       title: 'Assistente de Migração',
-      description: 'Transfira todos os seus aplicativos e dados de um Raspberry Pi para Umbrel Home ou Umbrel Pro',
+      description: 'Transfira todos os seus aplicativos e dados de servidores legados ou Raspberry Pi para o InoveCloud OS',
       icon: ArrowRightLeft,
       iconGradient: 'from-orange-600 to-amber-600',
       actionType: 'chevron',
-      keywords: 'migracao raspberry pi transferencia importar dados umbrel home pro pc',
+      keywords: 'migracao raspberry pi transferencia importar dados inovecloud backup pc',
     },
     {
       id: 'solucionar_auto',
@@ -389,7 +389,7 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
             <div className="space-y-2.5 text-xs text-slate-300">
               <div className="flex items-center justify-between py-1 border-b border-white/5">
                 <span className="text-slate-400">Em execução</span>
-                <span className="font-semibold text-white">umbrelOS 2.0 Beta 2</span>
+                <span className="font-semibold text-white">InoveCloud OS 2026.1 LTS</span>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-white/5">
                 <span className="text-slate-400">Dispositivo</span>
@@ -702,7 +702,7 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
           <div className="p-4 sm:p-5 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-black/20">
             <div className="text-xs text-slate-400 flex items-center space-x-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>InoveCloud / umbrelOS 2.0 LTS (Pure Debian 13 Kernel)</span>
+              <span>InoveCloud OS 2026.1 LTS (Pure Debian 13 Kernel)</span>
             </div>
 
             <div className="flex items-center space-x-3">
@@ -974,7 +974,7 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
                   <h4 className="text-sm font-bold text-white">Transferência Sem Perda de Dados</h4>
                   <p className="text-xs text-slate-400 leading-relaxed">
-                    Conecte o seu Raspberry Pi ou disco antigo pela rede local para importar automaticamente todos os contêineres Docker, banco de dados e arquivos para o InoveCloud / UmbrelOS.
+                    Conecte o seu Raspberry Pi ou servidor legado pela rede local para importar automaticamente todos os contêineres Docker, banco de dados e arquivos para o InoveCloud OS.
                   </p>
                 </div>
                 <button
