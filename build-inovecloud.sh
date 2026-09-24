@@ -1008,6 +1008,10 @@ grub-mkrescue -o "${OUTPUT_DIR}/${ISO_NAME}" "${LIVE_DIR}"
 
 cd "${OUTPUT_DIR}"
 sha256sum "${ISO_NAME}" > "${ISO_NAME}.sha256"
+chmod -R a+rwX "${OUTPUT_DIR}" 2>/dev/null || true
+if [ -n "${SUDO_USER:-}" ]; then
+  chown -R "${SUDO_USER}:${SUDO_USER}" "${OUTPUT_DIR}" 2>/dev/null || true
+fi
 cd - > /dev/null
 
 echo -e "\n${C_GREEN}================================================================================${C_RESET}"

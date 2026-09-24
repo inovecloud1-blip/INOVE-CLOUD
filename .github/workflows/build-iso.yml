@@ -98,7 +98,7 @@ jobs:
             echo "Iniciando compilação do Kernel Linux puro e montagem do rootfs LFS..."
             sudo ./build-inovecloud.sh
             if [ -f dist-iso/inovecloud-os-pure-flathub-amd64.iso ]; then
-              cp dist-iso/inovecloud-os-pure-flathub-amd64.iso dist-iso/inovecloud-os-2026.iso
+              sudo cp dist-iso/inovecloud-os-pure-flathub-amd64.iso dist-iso/inovecloud-os-2026.iso
             fi
           else
             echo "Iniciando compilação do Debian 13 Liquid Glass com GNOME 46 e Suporte Universal..."
@@ -106,8 +106,14 @@ jobs:
             sudo -E ./iso-builder/build-iso.sh
           fi
 
+          # Garantir permissões de leitura/escrita para o usuário runner do GitHub Actions
+          sudo chown -R $USER:$USER dist-iso 2>/dev/null || true
+          sudo chmod -R a+rwX dist-iso 2>/dev/null || true
+
       - name: 🔒 Verificar Integridade da ISO e Gerar Checksum SHA256
         run: |
+          sudo chown -R $USER:$USER dist-iso 2>/dev/null || true
+          sudo chmod -R a+rwX dist-iso 2>/dev/null || true
           mkdir -p dist-iso
           cd dist-iso
           

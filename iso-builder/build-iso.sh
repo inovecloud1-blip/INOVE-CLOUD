@@ -1058,6 +1058,12 @@ grub-mkrescue -o "${OUTPUT_DIR}/${ISO_NAME}" "${IMAGE_DIR}"
 cd "${OUTPUT_DIR}"
 sha256sum "${ISO_NAME}" > "${ISO_NAME}.sha256"
 
+# Ajustar permissões para permitir que usuários não-root manipulem os arquivos gerados
+chmod -R a+rwX "${OUTPUT_DIR}" 2>/dev/null || true
+if [ -n "${SUDO_USER:-}" ]; then
+  chown -R "${SUDO_USER}:${SUDO_USER}" "${OUTPUT_DIR}" 2>/dev/null || true
+fi
+
 echo -e "${GREEN}${BOLD}"
 echo "========================================================================"
 echo "    SUCESSO! ISO INOVECLOUD OS REAL LINUX DESKTOP GERADA COM ÊXITO:      "

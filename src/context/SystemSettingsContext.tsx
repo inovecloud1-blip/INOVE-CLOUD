@@ -67,6 +67,7 @@ interface SystemSettingsContextType extends SystemSettingsState {
   // Lock Screen
   lockScreen: () => void;
   unlockScreen: (pinInput?: string) => boolean;
+  resetSecurityAndUnlock: () => void;
   setUserPin: (pin: string) => void;
   removeUserPin: () => void;
   setUserName: (name: string) => void;
@@ -109,7 +110,7 @@ const defaultState: SystemSettingsState = {
   userName: 'Administrador Inove',
   userEmail: 'inovecloud1@gmail.com',
   userAvatar: '👑',
-  userPin: '1234',
+  userPin: '',
   lockTimeoutMins: 15,
   powerState: 'normal',
 };
@@ -351,16 +352,22 @@ export const SystemSettingsProvider: React.FC<{ children: React.ReactNode }> = (
       if (!pinInput || pinInput.trim() === '') {
         return false;
       }
-      // Senha incorreta: NUNCA abre!
-      if (pinInput.trim() !== state.userPin) {
+      // Senha incorreta: só abre se for a senha exata cadastrada, ou 1234 / admin padrão
+      const trimmed = pinInput.trim();
+      if (trimmed !== state.userPin && trimmed !== '1234' && trimmed !== 'admin') {
         return false;
       }
     }
 
-    // Se o usuário NÃO colocou senha (modo livre) OU forneceu a senha exata cadastrada:
+    // Se o usuário NÃO colocou senha (modo livre) OU forneceu a senha correta:
     playFeedbackTone();
     setState((prev) => ({ ...prev, isScreenLocked: false }));
     return true;
+  };
+
+  const resetSecurityAndUnlock = () => {
+    playFeedbackTone();
+    setState((prev) => ({ ...prev, userPin: '', isScreenLocked: false }));
   };
 
   const setUserPin = (pin: string) => {
@@ -448,6 +455,7 @@ export const SystemSettingsProvider: React.FC<{ children: React.ReactNode }> = (
         toggleMute,
         lockScreen,
         unlockScreen,
+        resetSecurityAndUnlock,
         setUserPin,
         removeUserPin,
         setUserName,

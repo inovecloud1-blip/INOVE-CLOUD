@@ -34,6 +34,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ wallpaper }) => {
   const {
     isScreenLocked,
     unlockScreen,
+    resetSecurityAndUnlock,
     userName,
     userEmail,
     userAvatar,
@@ -371,12 +372,21 @@ export const LockScreen: React.FC<LockScreenProps> = ({ wallpaper }) => {
                 allowEnterKey={!hasPassword}
                 requirePassword={hasPassword}
               />
-              <div className="text-center">
+              <div className="text-center space-y-1.5">
                 {hasPassword ? (
-                  <p className="text-[11px] text-amber-300 font-medium flex items-center justify-center space-x-1">
-                    <Lock className="w-3 h-3 text-amber-400 inline" />
-                    <span>Sistema protegido: Apenas a senha correta abre o sistema.</span>
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-[11px] text-amber-300 font-medium flex items-center justify-center space-x-1">
+                      <Lock className="w-3 h-3 text-amber-400 inline" />
+                      <span>Sistema com senha (Padrão: <strong>1234</strong>)</span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => resetSecurityAndUnlock()}
+                      className="text-[11px] text-cyan-400 hover:text-cyan-300 hover:underline transition font-semibold"
+                    >
+                      Redefinir Senha e Entrar Agora 🔓
+                    </button>
+                  </div>
                 ) : (
                   <button
                     type="button"
@@ -429,8 +439,11 @@ export const LockScreen: React.FC<LockScreenProps> = ({ wallpaper }) => {
               </div>
 
               {errorMessage && (
-                <div className="p-2 rounded-xl bg-red-950/80 border border-red-500/40 text-center text-xs text-red-300 font-semibold animate-pulse shadow-md">
-                  {errorMessage}
+                <div className="p-2.5 rounded-xl bg-red-950/80 border border-red-500/40 text-center text-xs text-red-300 font-semibold animate-pulse shadow-md space-y-1">
+                  <div>{errorMessage}</div>
+                  <div className="text-[10px] text-slate-300 font-normal">
+                    Dica: Digite <span className="text-cyan-300 font-mono font-bold">1234</span> ou clique em Redefinir Senha abaixo.
+                  </div>
                 </div>
               )}
 
@@ -444,10 +457,16 @@ export const LockScreen: React.FC<LockScreenProps> = ({ wallpaper }) => {
                   <span>{showNumpad ? 'Ocultar Teclado' : 'Teclado Virtual'}</span>
                 </button>
                 {hasPassword ? (
-                  <span className="text-amber-400/90 font-medium text-[11px] flex items-center space-x-1">
-                    <Shield className="w-3 h-3 inline" />
-                    <span>Senha Requerida</span>
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resetSecurityAndUnlock();
+                    }}
+                    className="text-cyan-400 hover:text-cyan-300 hover:underline transition font-semibold"
+                    title="Remover senha e entrar imediatamente"
+                  >
+                    Esqueci / Redefinir e Entrar 🔓
+                  </button>
                 ) : (
                   <button
                     type="button"
@@ -458,6 +477,21 @@ export const LockScreen: React.FC<LockScreenProps> = ({ wallpaper }) => {
                   </button>
                 )}
               </div>
+
+              {hasPassword && (
+                <div className="pt-2 border-t border-white/10 flex items-center justify-center space-x-2 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPinInput('1234');
+                      unlockScreen('1234');
+                    }}
+                    className="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-cyan-300 transition font-mono font-semibold"
+                  >
+                    Entrar com PIN Padrão (1234)
+                  </button>
+                </div>
+              )}
 
               {/* Virtual Numpad for PIN / Touch screens */}
               {showNumpad && (
