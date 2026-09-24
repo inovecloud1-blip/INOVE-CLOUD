@@ -257,6 +257,39 @@ export const FLATHUB_APPS: FlathubAppDetail[] = [
     ]
   },
   {
+    id: 'chromium',
+    appId: 'org.chromium.Chromium',
+    name: 'Chromium',
+    tagline: 'Open-source web browser project',
+    description: 'Navegador de código aberto de alta velocidade que serve de base para o Google Chrome, Brave e Edge. 100% livre de telemetria proprietária e pré-instalado nativamente no InoveCloud OS.',
+    category: 'Internet',
+    version: '128.0.6613.119',
+    developer: 'The Chromium Authors',
+    size: '98 MB',
+    rating: 4.8,
+    reviewsCount: 5400,
+    downloads: '21.3M',
+    installed: true,
+    packageManager: 'apt',
+    executable: 'chromium',
+    verified: true,
+    license: 'BSD-3-Clause',
+    releaseDate: '08 Setembro 2026',
+    memoryUsage: '310 MB RAM',
+    iconType: 'chromium',
+    features: ['Código 100% aberto e auditável', 'Aceleração de hardware VA-API e Vulkan', 'Compatível com extensões Chrome Web Store'],
+    permissions: ['Acesso à Rede', 'Aceleração Gráfica', 'Áudio'],
+    screenshots: [
+      {
+        title: 'Navegação Pura e Rápida',
+        description: 'Mecanismo Blink com suporte aos mais modernos padrões da web (WebGPU, WASM).',
+        caption: 'Interface limpa do Chromium no InoveCloud OS',
+        type: 'ui_mock',
+        themeColor: '#1A73E8'
+      }
+    ]
+  },
+  {
     id: 'brave',
     appId: 'com.brave.Browser',
     name: 'Brave',
@@ -385,6 +418,53 @@ export const FLATHUB_APPS: FlathubAppDetail[] = [
         caption: 'Player leve com aceleração por hardware ativada',
         type: 'media',
         themeColor: '#FF8800'
+      }
+    ]
+  },
+  {
+    id: 'davinci-resolve',
+    appId: 'com.blackmagicdesign.Resolve',
+    name: 'DaVinci Resolve',
+    tagline: 'Professional video editing, color, VFX and audio',
+    description: 'A solução definitiva de pós-produção que combina edição profissional em 8K, gradação de cores avançada com nós, efeitos visuais Fusion e pós-produção de áudio Fairlight em um único aplicativo de alto desempenho para Linux com aceleração OpenCL e GPU.',
+    category: 'Áudio e Vídeo',
+    version: '19.0.3',
+    developer: 'Blackmagic Design',
+    developerUrl: 'https://www.blackmagicdesign.com/products/davinciresolve',
+    size: '2.4 GB',
+    rating: 4.9,
+    reviewsCount: 14200,
+    downloads: '18.4M',
+    installed: false,
+    packageManager: 'flatpak',
+    executable: 'davinci-resolve',
+    verified: true,
+    license: 'Proprietary / Free Edition',
+    releaseDate: '15 Setembro 2026',
+    memoryUsage: '3.8 GB RAM',
+    iconType: 'davinci-resolve',
+    hotTrending: true,
+    features: [
+      'Motor de cores e nó de correção primária/secundária premiado de Hollywood',
+      'Efeitos visuais integrados com Fusion 3D e renderização acelerada por GPU',
+      'Mixagem e masterização de som estúdio profissional Fairlight até 2.000 faixas',
+      'Renderização de exportação com aceleração nativa OpenCL, CUDA e Vulkan'
+    ],
+    permissions: ['Aceleração de GPU (Direct3D / Vulkan / OpenCL)', 'Áudio PipeWire de baixa latência', 'Acesso aos Discos e Armazenamento'],
+    screenshots: [
+      {
+        title: 'Linha do Tempo e Edição Multicâmera',
+        description: 'Timeline de edição responsiva com reprodução fluida de arquivos ProRes, Blackmagic RAW e H.265/AV1.',
+        caption: 'Página de Edição e Corte do DaVinci Resolve no InoveCloud OS',
+        type: 'editor',
+        themeColor: '#E53935'
+      },
+      {
+        title: 'Página de Cores e Gradação HDR',
+        description: 'Gradação de nós, curvas espectrais e escopos de forma de onda em tempo real.',
+        caption: 'Espaço de cores DaVinci YRGB Color Managed',
+        type: 'dashboard',
+        themeColor: '#43A047'
       }
     ]
   },

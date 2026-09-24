@@ -19,9 +19,14 @@ import {
   ShieldCheck,
   Layers,
   Activity,
-  Award
+  Award,
+  KeyRound,
+  Eye,
+  EyeOff,
+  AlertTriangle
 } from 'lucide-react';
 import { UserProfile } from '../../types';
+import { useSystemSettings } from '../../context/SystemSettingsContext';
 
 interface SshKey {
   id: string;
@@ -71,6 +76,39 @@ export const UserApp: React.FC<UserAppProps> = ({ onLockScreen }) => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [notification, setNotification] = useState<string | null>(null);
+
+  // System settings password management
+  const { userPin, setUserPin, removeUserPin, lockScreen } = useSystemSettings();
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [showPinText, setShowPinText] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
+
+  const hasPassword = Boolean(userPin && userPin.trim().length > 0);
+
+  const handleSavePin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPin.trim()) {
+      setPinError('A senha não pode ser vazia.');
+      return;
+    }
+    if (newPin !== confirmPin) {
+      setPinError('As senhas digitadas não coincidem.');
+      return;
+    }
+    setUserPin(newPin.trim());
+    setShowPinModal(false);
+    setNewPin('');
+    setConfirmPin('');
+    setPinError(null);
+    triggerNotify('🔒 Senha configurada! O sistema agora só abrirá se a senha for digitada.');
+  };
+
+  const handleRemovePin = () => {
+    removeUserPin();
+    triggerNotify('🔓 Senha removida! Modo livre ativado (desbloqueio por mouse ou Enter).');
+  };
 
   // SSH Keys
   const [sshKeys, setSshKeys] = useState<SshKey[]>([
@@ -357,6 +395,197 @@ export const UserApp: React.FC<UserAppProps> = ({ onLockScreen }) => {
             <div className="font-semibold text-emerald-400 mt-0.5">Ativo (YubiKey + TOTP)</div>
           </div>
         </div>
+      </div>
+
+      {/* Security & Lock Screen Password Section */}
+      <div className="p-5 rounded-3xl liquid-glass-card border border-white/15 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-white/10 flex-wrap gap-2">
+          <div className="flex items-center space-x-2.5">
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+              hasPassword 
+                ? 'bg-amber-500/20 border border-amber-400/30 text-amber-300' 
+                : 'bg-emerald-500/20 border border-emerald-400/30 text-emerald-300'
+            }`}>
+              <Shield className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                Segurança, Senha & Privacidade da Tela de Bloqueio
+              </h3>
+              <p className="text-[10px] text-slate-400">
+                Controle se o sistema exige senha rigorosa ou se permite acesso rápido com mouse / Enter
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            {hasPassword ? (
+              <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center space-x-1">
+                <Lock className="w-3 h-3" />
+                <span>Protegido por Senha</span>
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center space-x-1">
+                <Sparkles className="w-3 h-3" />
+                <span>Modo Livre (Sem Senha)</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Current status explanation */}
+        <div className={`p-4 rounded-2xl border text-xs leading-relaxed space-y-2 ${
+          hasPassword 
+            ? 'bg-amber-950/20 border-amber-500/30 text-amber-200/90' 
+            : 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200/90'
+        }`}>
+          {hasPassword ? (
+            <div>
+              <p className="font-semibold text-white flex items-center space-x-1.5 mb-1">
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Privacidade Rigorosa Ativa:</span>
+              </p>
+              <p>
+                Este sistema possui senha cadastrada. Quando a tela for bloqueada, ela <strong>NÃO abre</strong> se o usuário tentar deslizar o mouse ou pressionar Enter sem digitar a senha correta. O acesso só é liberado com a senha exata.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p className="font-semibold text-white flex items-center space-x-1.5 mb-1">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Modo Rápido sem Senha:</span>
+              </p>
+              <p>
+                Nenhuma senha está cadastrada no momento. Você pode entrar e desbloquear a tela livremente deslizando o mouse da esquerda para a direita ou apenas pressionando a tecla <strong>Enter ↵</strong>.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Action Controls */}
+        <div className="flex items-center justify-between flex-wrap gap-3 pt-1">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => {
+                setNewPin('');
+                setConfirmPin('');
+                setPinError(null);
+                setShowPinModal(true);
+              }}
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition cursor-pointer shadow-md shadow-cyan-600/20"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>{hasPassword ? 'Alterar Senha' : 'Criar Senha de Proteção'}</span>
+            </button>
+
+            {hasPassword && (
+              <button
+                onClick={handleRemovePin}
+                className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-300 text-xs font-bold transition cursor-pointer"
+                title="Remover senha para habilitar desbloqueio direto por mouse ou Enter"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Remover Senha (Usar Modo Livre)</span>
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={() => lockScreen()}
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition cursor-pointer"
+          >
+            <Lock className="w-3.5 h-3.5 text-amber-400" />
+            <span>Bloquear Agora para Testar</span>
+          </button>
+        </div>
+
+        {/* Modal: Define or Change Password */}
+        {showPinModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
+            <div className="w-full max-w-sm rounded-3xl p-6 bg-slate-900 border border-white/20 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <div className="flex items-center space-x-2">
+                  <div className="w-7 h-7 rounded-xl bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-cyan-300">
+                    <KeyRound className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-sm font-bold text-white">
+                    {hasPassword ? 'Alterar Senha' : 'Criar Senha'}
+                  </h4>
+                </div>
+                <button
+                  onClick={() => setShowPinModal(false)}
+                  className="text-slate-400 hover:text-white text-sm"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSavePin} className="space-y-3.5">
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Digite sua nova senha. Uma vez cadastrada, a tela de bloqueio exigirá esta senha e não abrirá apenas deslizando ou dando Enter.
+                </p>
+
+                <div className="space-y-2">
+                  <label className="text-[11px] font-semibold text-slate-300 block">
+                    Nova Senha / PIN:
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPinText ? 'text' : 'password'}
+                      value={newPin}
+                      onChange={(e) => setNewPin(e.target.value)}
+                      placeholder="Digite a nova senha..."
+                      className="w-full px-3 py-2 pr-10 rounded-xl bg-slate-950 border border-white/20 text-white text-xs focus:outline-none focus:border-cyan-400"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPinText(!showPinText)}
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-white"
+                    >
+                      {showPinText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[11px] font-semibold text-slate-300 block">
+                    Confirmar Senha:
+                  </label>
+                  <input
+                    type={showPinText ? 'text' : 'password'}
+                    value={confirmPin}
+                    onChange={(e) => setConfirmPin(e.target.value)}
+                    placeholder="Repita a nova senha..."
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/20 text-white text-xs focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+
+                {pinError && (
+                  <div className="p-2 rounded-xl bg-red-500/20 border border-red-500/30 text-xs text-red-300 font-medium">
+                    {pinError}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end space-x-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPinModal(false)}
+                    className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 text-xs font-semibold transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition shadow-md"
+                  >
+                    Salvar Senha
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* SSH Keys Management Section */}

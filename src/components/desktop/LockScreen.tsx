@@ -19,9 +19,12 @@ import {
   Globe,
   HelpCircle,
   Sparkles,
-  UserCheck
+  UserCheck,
+  MousePointer,
+  KeyRound
 } from 'lucide-react';
 import { useSystemSettings } from '../../context/SystemSettingsContext';
+import { SlideToUnlock } from '../ui/SlideToUnlock';
 
 interface LockScreenProps {
   wallpaper: string;
@@ -34,6 +37,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ wallpaper }) => {
     userName,
     userEmail,
     userAvatar,
+    userPin,
     wifiEnabled,
     connectedSsid,
     speakerVolume,
@@ -50,8 +54,12 @@ export const LockScreen: React.FC<LockScreenProps> = ({ wallpaper }) => {
   const [pinInput, setPinInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorShake, setErrorShake] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [showNumpad, setShowNumpad] = useState(false);
+
+  const hasPassword = Boolean(userPin && userPin.trim().length > 0);
+  const [unlockMethod, setUnlockMethod] = useState<'slide' | 'password'>(() => (hasPassword ? 'password' : 'slide'));
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Live Clock & Date in Portuguese
@@ -85,21 +93,90 @@ export const LockScreen: React.FC<LockScreenProps> = ({ wallpaper }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // Auto focus password input when locked
+  // Update default unlock mode and focus when lock state changes
   useEffect(() => {
     if (isScreenLocked) {
       setPinInput('');
-      const timer = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 300);
-      return () => clearTimeout(timer);
+      setErrorMessage(null);
+      setUnlockMethod(hasPassword ? 'password' : 'slide');
+      if (hasPassword) {
+        const timer = setTimeout(() => {
+          inputRef.current?.focus();
+        }, 300);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [isScreenLocked]);
+  }, [isScreenLocked, hasPassword]);
+
+  // Global listener: Pressionar ENTER
+  // Se NÃO tiver senha: abre o sistema.
+  // Se TIVER senha: exige que a senha correta seja digitada e valida!
+  useEffect(() => {
+    if (!isScreenLocked || isUnlocking) return;
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        const activeTag = document.activeElement?.tagName.toLowerCase();
+        const activeInput = document.activeElement as HTMLInputElement;
+
+        // Se o sistema possui senha:
+        if (hasPassword) {
+          // Se o usuário já está com foco no input e tem texto digitado, o form cuidará
+          if (activeTag === 'input' && activeInput?.value && activeInput.value.trim().length > 0) {
+            return;
+          }
+
+          // Se tentou dar Enter com campo vazio ou no modo slide: BLOQUEIA!
+          e.preventDefault();
+          setErrorShake(true);
+          setErrorMessage('🔒 Acesso negado: Este sistema exige senha para ser aberto!');
+          setTimeout(() => setErrorShake(false), 700);
+          setUnlockMethod('password');
+          setTimeout(() => inputRef.current?.focus(), 150);
+          return;
+        }
+
+        // Se o usuário NÃO cadastrou senha: abre diretamente!
+        e.preventDefault();
+        handleDirectUnlock();
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [isScreenLocked, isUnlocking, pinInput, hasPassword]);
 
   if (!isScreenLocked) return null;
 
+  const handleDirectUnlock = () => {
+    // Se o sistema possui senha configurada, BLOQUEIA o acesso direto!
+    if (hasPassword) {
+      setErrorShake(true);
+      setErrorMessage('🔒 Segurança e Privacidade: Digite a senha cadastrada para entrar.');
+      setTimeout(() => setErrorShake(false), 700);
+      setUnlockMethod('password');
+      setTimeout(() => inputRef.current?.focus(), 150);
+      return;
+    }
+
+    setIsUnlocking(true);
+    playFeedbackTone();
+    setTimeout(() => {
+      unlockScreen('');
+      setIsUnlocking(false);
+    }, 250);
+  };
+
   const handleUnlockAttempt = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+
+    if (hasPassword && (!pinInput || pinInput.trim() === '')) {
+      setErrorShake(true);
+      setErrorMessage('🔒 Por favor, digite sua senha.');
+      setTimeout(() => setErrorShake(false), 700);
+      inputRef.current?.focus();
+      return;
+    }
     
     setIsUnlocking(true);
     const success = unlockScreen(pinInput);
@@ -107,10 +184,12 @@ export const LockScreen: React.FC<LockScreenProps> = ({ wallpaper }) => {
     if (!success) {
       setIsUnlocking(false);
       setErrorShake(true);
-      setTimeout(() => setErrorShake(false), 600);
+      setErrorMessage('🔒 Senha incorreta! Acesso bloqueado para proteger seus dados.');
+      setTimeout(() => setErrorShake(false), 800);
       setPinInput('');
       inputRef.current?.focus();
     } else {
+      setErrorMessage(null);
       setTimeout(() => {
         setIsUnlocking(false);
       }, 300);
@@ -209,7 +288,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ wallpaper }) => {
           </p>
         </div>
 
-        {/* User Card & Password Input */}
+        {/* User Card & Unlock Controls */}
         <div
           className={`w-full max-w-sm rounded-3xl p-6 liquid-glass border border-white/20 shadow-2xl space-y-4 backdrop-blur-3xl transition-transform duration-300 ${
             errorShake ? 'animate-shake ring-2 ring-red-500' : ''
@@ -229,89 +308,178 @@ export const LockScreen: React.FC<LockScreenProps> = ({ wallpaper }) => {
               <h2 className="text-base font-bold text-white tracking-wide">{userName || 'Administrador Inove'}</h2>
               <p className="text-xs text-slate-300">{userEmail || 'inovecloud1@gmail.com'}</p>
             </div>
+
+            {/* Security Status Badge */}
+            {hasPassword ? (
+              <div className="flex items-center justify-center space-x-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-semibold">
+                <Shield className="w-3.5 h-3.5 text-amber-400" />
+                <span>Privacidade Ativa: Protegido por Senha</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Modo Sem Senha: Deslize ou dê Enter</span>
+              </div>
+            )}
           </div>
 
-          {/* Password / PIN Form */}
-          <form onSubmit={handleUnlockAttempt} className="space-y-3">
-            <div className="relative flex items-center">
-              <div className="absolute left-3.5 text-slate-400">
-                <Lock className="w-4 h-4" />
-              </div>
-              <input
-                ref={inputRef}
-                type={showPassword ? 'text' : 'password'}
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value)}
-                placeholder="Digite a senha ou pressione Entrar..."
-                className="w-full pl-10 pr-20 py-2.5 rounded-xl bg-slate-900/70 border border-white/20 text-white placeholder-slate-400 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent shadow-inner transition"
+          {/* Unlock Method Selector (Deslizar Mouse vs Senha/PIN) */}
+          <div className="flex items-center p-1 rounded-2xl bg-slate-900/80 border border-white/10 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setUnlockMethod('slide')}
+              className={`flex-1 py-1.5 px-2 rounded-xl flex items-center justify-center space-x-1.5 transition ${
+                unlockMethod === 'slide'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold shadow-md shadow-cyan-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <MousePointer className="w-3.5 h-3.5" />
+              <span>Deslizar Mouse</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setUnlockMethod('password')}
+              className={`flex-1 py-1.5 px-2 rounded-xl flex items-center justify-center space-x-1.5 transition ${
+                unlockMethod === 'password'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold shadow-md shadow-cyan-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Senha / PIN</span>
+            </button>
+          </div>
+
+          {/* METHOD 1: SLIDE TO UNLOCK (@evilbuttons/slide-to-detonate pattern) */}
+          {unlockMethod === 'slide' && (
+            <div className="space-y-3 pt-1">
+              <SlideToUnlock
+                onConfirm={handleDirectUnlock}
+                onUnlock={handleDirectUnlock}
+                onBlocked={() => {
+                  setErrorShake(true);
+                  setErrorMessage('🔒 Acesso negado: Este sistema exige senha para ser aberto!');
+                  setTimeout(() => setErrorShake(false), 800);
+                  setUnlockMethod('password');
+                  setTimeout(() => inputRef.current?.focus(), 150);
+                }}
+                label={hasPassword ? '🔒 Senha Obrigatória (Arraste)' : 'Deslize o mouse para desbloquear'}
+                successLabel={hasPassword ? 'Senha Necessária!' : 'Desbloqueado!'}
+                threshold={0.8}
+                variant={hasPassword ? 'detonate' : 'unlock'}
+                allowEnterKey={!hasPassword}
+                requirePassword={hasPassword}
               />
-              <div className="absolute right-2 flex items-center space-x-1">
+              <div className="text-center">
+                {hasPassword ? (
+                  <p className="text-[11px] text-amber-300 font-medium flex items-center justify-center space-x-1">
+                    <Lock className="w-3 h-3 text-amber-400 inline" />
+                    <span>Sistema protegido: Apenas a senha correta abre o sistema.</span>
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleDirectUnlock}
+                    className="text-[11px] text-cyan-400 hover:text-cyan-300 hover:underline transition font-semibold"
+                  >
+                    Entrar direto sem senha (Pressione Enter ↵)
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* METHOD 2: TRADITIONAL PASSWORD / PIN */}
+          {unlockMethod === 'password' && (
+            <form onSubmit={handleUnlockAttempt} className="space-y-3">
+              <div className="relative flex items-center">
+                <div className="absolute left-3.5 text-slate-400">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  ref={inputRef}
+                  type={showPassword ? 'text' : 'password'}
+                  value={pinInput}
+                  onChange={(e) => {
+                    setPinInput(e.target.value);
+                    if (errorMessage) setErrorMessage(null);
+                  }}
+                  placeholder={hasPassword ? 'Digite sua senha cadastrada...' : 'Sem senha: dê Enter ou digite nova senha...'}
+                  className="w-full pl-10 pr-20 py-2.5 rounded-xl bg-slate-900/70 border border-white/20 text-white placeholder-slate-400 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent shadow-inner transition"
+                />
+                <div className="absolute right-2 flex items-center space-x-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition"
+                    title={showPassword ? 'Ocultar senha' : 'Ver senha'}
+                  >
+                    {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUnlocking}
+                    className="p-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold transition shadow-md active:scale-95 disabled:opacity-50"
+                    title="Desbloquear sessão"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {errorMessage && (
+                <div className="p-2 rounded-xl bg-red-950/80 border border-red-500/40 text-center text-xs text-red-300 font-semibold animate-pulse shadow-md">
+                  {errorMessage}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between text-[11px] text-slate-300 pt-1">
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition"
-                  title={showPassword ? 'Ocultar senha' : 'Ver senha'}
+                  onClick={() => setShowNumpad(!showNumpad)}
+                  className="flex items-center space-x-1 hover:text-cyan-300 transition"
                 >
-                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  <Keyboard className="w-3.5 h-3.5" />
+                  <span>{showNumpad ? 'Ocultar Teclado' : 'Teclado Virtual'}</span>
                 </button>
-                <button
-                  type="submit"
-                  disabled={isUnlocking}
-                  className="p-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold transition shadow-md active:scale-95 disabled:opacity-50"
-                  title="Desbloquear sessão"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {errorShake && (
-              <div className="text-center text-xs text-red-400 font-semibold animate-pulse">
-                Senha incorreta. (Dica padrão: 1234 ou pressione Entrar)
-              </div>
-            )}
-
-            <div className="flex items-center justify-between text-[11px] text-slate-300 pt-1">
-              <button
-                type="button"
-                onClick={() => setShowNumpad(!showNumpad)}
-                className="flex items-center space-x-1 hover:text-cyan-300 transition"
-              >
-                <Keyboard className="w-3.5 h-3.5" />
-                <span>{showNumpad ? 'Ocultar Teclado' : 'Teclado Virtual'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setPinInput('');
-                  unlockScreen();
-                }}
-                className="text-cyan-400 hover:text-cyan-300 hover:underline transition font-semibold"
-              >
-                Entrar com 1-Clique
-              </button>
-            </div>
-
-            {/* Virtual Numpad for PIN / Touch screens */}
-            {showNumpad && (
-              <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-white/10 animate-fade-in">
-                {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map((btn) => (
+                {hasPassword ? (
+                  <span className="text-amber-400/90 font-medium text-[11px] flex items-center space-x-1">
+                    <Shield className="w-3 h-3 inline" />
+                    <span>Senha Requerida</span>
+                  </span>
+                ) : (
                   <button
-                    key={btn}
                     type="button"
-                    onClick={() => {
-                      if (btn === 'C') setPinInput('');
-                      else if (btn === '⌫') handleNumpadBackspace();
-                      else handleNumpadPress(btn);
-                    }}
-                    className="py-2 rounded-xl bg-white/10 hover:bg-white/20 active:bg-cyan-500 active:text-slate-950 text-white font-bold text-sm transition shadow-sm"
+                    onClick={handleDirectUnlock}
+                    className="text-cyan-400 hover:text-cyan-300 hover:underline transition font-semibold"
                   >
-                    {btn}
+                    Entrar sem Senha (Enter ↵)
                   </button>
-                ))}
+                )}
               </div>
-            )}
-          </form>
+
+              {/* Virtual Numpad for PIN / Touch screens */}
+              {showNumpad && (
+                <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-white/10 animate-fade-in">
+                  {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map((btn) => (
+                    <button
+                      key={btn}
+                      type="button"
+                      onClick={() => {
+                        if (btn === 'C') setPinInput('');
+                        else if (btn === '⌫') handleNumpadBackspace();
+                        else handleNumpadPress(btn);
+                      }}
+                      className="py-2 rounded-xl bg-white/10 hover:bg-white/20 active:bg-cyan-500 active:text-slate-950 text-white font-bold text-sm transition shadow-sm"
+                    >
+                      {btn}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </form>
+          )}
         </div>
       </main>
 

@@ -68,6 +68,7 @@ interface SystemSettingsContextType extends SystemSettingsState {
   lockScreen: () => void;
   unlockScreen: (pinInput?: string) => boolean;
   setUserPin: (pin: string) => void;
+  removeUserPin: () => void;
   setUserName: (name: string) => void;
   
   // Power
@@ -342,10 +343,21 @@ export const SystemSettingsProvider: React.FC<{ children: React.ReactNode }> = (
   };
 
   const unlockScreen = (pinInput?: string): boolean => {
-    // If PIN is provided and doesn't match and user has a pin configured
-    if (state.userPin && pinInput && pinInput.trim() !== '' && pinInput.trim() !== state.userPin && pinInput.trim() !== '1234' && pinInput.trim() !== 'admin') {
-      return false;
+    const hasPassword = Boolean(state.userPin && state.userPin.trim().length > 0);
+
+    // Se o usuário configurou senha:
+    if (hasPassword) {
+      // Sem senha fornecida ou campo vazio: NUNCA abre!
+      if (!pinInput || pinInput.trim() === '') {
+        return false;
+      }
+      // Senha incorreta: NUNCA abre!
+      if (pinInput.trim() !== state.userPin) {
+        return false;
+      }
     }
+
+    // Se o usuário NÃO colocou senha (modo livre) OU forneceu a senha exata cadastrada:
     playFeedbackTone();
     setState((prev) => ({ ...prev, isScreenLocked: false }));
     return true;
@@ -353,6 +365,10 @@ export const SystemSettingsProvider: React.FC<{ children: React.ReactNode }> = (
 
   const setUserPin = (pin: string) => {
     setState((prev) => ({ ...prev, userPin: pin }));
+  };
+
+  const removeUserPin = () => {
+    setState((prev) => ({ ...prev, userPin: '' }));
   };
 
   const setUserName = (name: string) => {
@@ -433,6 +449,7 @@ export const SystemSettingsProvider: React.FC<{ children: React.ReactNode }> = (
         lockScreen,
         unlockScreen,
         setUserPin,
+        removeUserPin,
         setUserName,
         requestShutdown,
         requestRestart,

@@ -134,6 +134,36 @@ export const RealAppIcon: React.FC<RealAppIconProps> = ({
         </div>
       );
 
+    // 7.1. CHROMIUM BROWSER
+    case 'chromium':
+      return (
+        <div className={`${className} ${rounded} bg-white flex items-center justify-center p-2 shrink-0 shadow-md`}>
+          <svg viewBox="0 0 100 100" className="w-full h-full">
+            <circle cx="50" cy="50" r="42" fill="#1A73E8" />
+            <path d="M 50 50 L 86.4 50 A 42 42 0 0 1 50 92 L 29 55.6 Z" fill="#4285F4" />
+            <path d="M 50 50 L 29 55.6 A 42 42 0 0 1 50 8 L 71 44.4 Z" fill="#8AB4F8" />
+            <circle cx="50" cy="50" r="22" fill="#FFFFFF" />
+            <circle cx="50" cy="50" r="16" fill="#1967D2" />
+          </svg>
+        </div>
+      );
+
+    // 7.2. DAVINCI RESOLVE
+    case 'davinci':
+    case 'davinci-resolve':
+      return (
+        <div className={`${className} ${rounded} bg-[#111318] flex items-center justify-center p-2 shrink-0 shadow-md border border-white/10`}>
+          <svg viewBox="0 0 100 100" className="w-full h-full">
+            {/* 3 Petals/Fans of DaVinci Resolve */}
+            <path d="M50 50 C50 25 32 15 25 25 C18 35 25 50 50 50 Z" fill="#E53935" />
+            <path d="M50 50 C75 50 85 32 75 25 C65 18 50 25 50 50 Z" fill="#43A047" />
+            <path d="M50 50 C50 75 68 85 75 75 C82 65 75 50 50 50 Z" fill="#1E88E5" />
+            <circle cx="50" cy="50" r="8" fill="#111318" />
+            <circle cx="50" cy="50" r="4" fill="#FFFFFF" />
+          </svg>
+        </div>
+      );
+
     // 8. BRAVE
     case 'brave':
       return (

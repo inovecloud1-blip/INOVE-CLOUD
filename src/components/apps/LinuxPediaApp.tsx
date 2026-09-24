@@ -258,6 +258,72 @@ ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:ssh`,
     outputSample: `CONTAINER ID   IMAGE                COMMAND                  STATUS         PORTS
 7c2a1b9f8e0d   inovecloud:latest    "node server.js"         Up 2 hours     0.0.0.0:3000->3000/tcp`,
   },
+  {
+    id: 'apt-package-manager',
+    name: 'apt & dpkg (Instalação de Apps Linux .deb)',
+    category: 'Pacotes & Repositórios',
+    summary: 'Gerenciador oficial Debian para instalar navegadores, softwares e pacotes .deb no InoveCloud OS',
+    syntax: 'sudo apt install [pacote] / sudo dpkg -i [arquivo.deb]',
+    example: 'wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt install -f -y',
+    description: 'O InoveCloud OS é baseado em Debian 13 (Trixie), o que garante suporte total e nativo a qualquer aplicativo Linux compilado para Debian/Ubuntu. Você pode instalar o Google Chrome oficial (.deb), Chromium nativo (`sudo apt install chromium`), Firefox (`sudo apt install firefox-esr`) e milhares de ferramentas pelo repositório oficial.',
+    flags: [
+      { flag: 'install -y', desc: 'Instala o pacote e todas as suas dependências automaticamente sem solicitar confirmação.' },
+      { flag: 'update', desc: 'Sincroniza os índices de pacotes mais recentes dos repositórios oficiais.' },
+      { flag: 'dpkg -i', desc: 'Instala diretamente um pacote binário .deb baixado da internet.' },
+      { flag: 'install -f', desc: 'Corrige e instala automaticamente qualquer dependência faltante após um dpkg -i.' },
+    ],
+    outputSample: `Reading package lists... Done
+Building dependency tree... Done
+The following NEW packages will be installed:
+  google-chrome-stable (128.0.6613.137)
+0 upgraded, 1 newly installed, 0 to remove.
+Unpacking google-chrome-stable (128.0.6613.137)...
+Setting up google-chrome-stable (128.0.6613.137)...
+Processing triggers for desktop-file-utils...
+[InoveCloud OS] ✓ Google Chrome instalado e adicionado ao menu de aplicativos!`,
+  },
+  {
+    id: 'flatpak-flathub',
+    name: 'flatpak (Flathub Store & Sandbox)',
+    category: 'Pacotes & Repositórios',
+    summary: 'Instalação universal de apps isolados (DaVinci Resolve, Firefox, Chrome, Steam, Discord)',
+    syntax: 'flatpak install flathub [app_id] / flatpak run [app_id]',
+    example: 'flatpak install flathub org.mozilla.firefox com.blackmagicdesign.Resolve com.google.Chrome',
+    description: 'O Flathub é o maior catálogo universal de softwares para Linux do mundo e já vem 100% pré-configurado no InoveCloud OS. Ele permite instalar versões atualizadas de aplicativos com suas próprias bibliotecas isoladas sem quebrar o sistema base.',
+    flags: [
+      { flag: 'install flathub [id]', desc: 'Baixa e instala o aplicativo diretamente dos servidores do Flathub.' },
+      { flag: 'run [id]', desc: 'Executa a aplicação em um ambiente seguro com sandbox.' },
+      { flag: 'update', desc: 'Atualiza todos os aplicativos Flatpak instalados para a versão mais recente.' },
+      { flag: 'list', desc: 'Exibe todos os aplicativos e runtimes instalados no computador.' },
+    ],
+    outputSample: `Looking for matches...
+Required runtime for com.blackmagicdesign.Resolve/x86_64/stable (runtime/org.freedesktop.Platform/x86_64/23.08) found in remote flathub
+Do you want to install it? [Y/n]: y
+Installing 1/2… org.freedesktop.Platform 100% [====================] 230 MB
+Installing 2/2… com.blackmagicdesign.Resolve 100% [====================] 2.4 GB
+Installation complete. Executing: flatpak run com.blackmagicdesign.Resolve`,
+  },
+  {
+    id: 'davinci-resolve-guide',
+    name: 'DaVinci Resolve no InoveCloud OS',
+    category: 'Pacotes & Repositórios',
+    summary: 'Configuração e execução de edição de vídeo profissional 8K com OpenCL e aceleração por GPU',
+    syntax: 'chmod +x DaVinci_Resolve_Linux.run && ./DaVinci_Resolve_Linux.run -i',
+    example: 'sudo apt install -y ocl-icd-libopencl1 libgl1-mesa-dri && ./DaVinci_Resolve_19.0_Linux.run',
+    description: 'O DaVinci Resolve roda nativamente no InoveCloud OS. Por possuir o Kernel Linux 6.x puro e drivers Mesa com suporte a OpenCL (ocl-icd-libopencl1) e aceleração gráfica por hardware (VA-API/Vulkan), você pode utilizar tanto o instalador oficial da Blackmagic (.run) quanto a versão empacotada via Flatpak.',
+    flags: [
+      { flag: 'ocl-icd-libopencl1', desc: 'Biblioteca ICD necessária para o DaVinci detectar o motor OpenCL de GPU.' },
+      { flag: 'vulkan-tools', desc: 'Diagnóstico e aceleração de shader para renderização fluida da timeline.' },
+      { flag: 'pipewire-jack', desc: 'Suporte a áudio de ultrabaixa latência para a suíte Fairlight.' },
+      { flag: 'makeresolvedeb', desc: 'Utilitário comunitário para converter o instalador oficial em um pacote .deb nativo.' },
+    ],
+    outputSample: `[DaVinci Resolve Hardware Check]
+✓ GPU Detected: Dedicated Acceleration Support (Vulkan / OpenGL 4.6 / OpenCL 3.0)
+✓ OpenCL ICD Runtime: Available (/etc/OpenCL/vendors)
+✓ Audio Subsystem: PipeWire Low-Latency Audio Server Ready
+✓ Video Processing Engine: Fairlight & Fusion Node Pipeline Initialized
+DaVinci Resolve Studio 19.0 pronto para edição!`,
+  },
 ];
 
 export const LinuxPediaApp: React.FC = () => {
@@ -271,6 +337,7 @@ export const LinuxPediaApp: React.FC = () => {
 
   const categories = [
     'Todos',
+    'Pacotes & Repositórios',
     'Engenharia de SOs & OSDev',
     'Processos & Systemd',
     'Virtualização & Kiosk',

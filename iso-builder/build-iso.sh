@@ -173,12 +173,52 @@ apt-get install -y --no-install-recommends \
   appstream || apt-get install -y --no-install-recommends libfuse2 fuse3 zsync desktop-file-utils zenity binutils file
 
 # 4. Áudio PipeWire, Rede, Drivers Mesa 3D & Xorg, Flatpak, Bluetooth e Multimídia
+# 4.1. Pilha Gráfica Base Xorg, Mesa 3D, DRM/KMS e Hipervisores Oficiais
+echo "==> [4.1] Instalando Servidor Gráfico Xorg, Drivers de Vídeo e Aceleração 3D Mesa..."
+apt-get install -y --no-install-recommends \
+  xserver-xorg \
+  xserver-xorg-core \
+  xserver-xorg-input-all \
+  xserver-xorg-input-libinput \
+  xserver-xorg-video-all \
+  x11-xserver-utils \
+  xinit \
+  mesa-utils \
+  mesa-va-drivers \
+  mesa-vulkan-drivers \
+  libgl1-mesa-dri \
+  vulkan-tools \
+  feh \
+  xterm
+
+echo "==> [4.2] Instalando Ferramentas de Hipervisores e Convidado (VMware, QEMU, KVM, SPICE)..."
+apt-get install -y --no-install-recommends \
+  open-vm-tools \
+  open-vm-tools-desktop \
+  spice-vdagent \
+  qemu-guest-agent || true
+
+# Suporte nativo ao VirtualBox:
+# No Linux 6.x do Debian 13, os módulos vboxguest, vboxsf e vboxvideo já vêm integrados no próprio Kernel Linux.
+# Tentamos instalar os utilitários de espaço de usuário caso existam no espelho, sem nunca travar o build:
+echo "==> [4.3] Configurando Suporte Universal para VirtualBox..."
+apt-get install -y --no-install-recommends virtualbox-guest-utils virtualbox-guest-x11 2>/dev/null || true
+
+# Configurar carregamento automático dos módulos nativos do VirtualBox do Kernel Linux
+mkdir -p /etc/modules-load.d
+cat << 'VBOX_MODS' > /etc/modules-load.d/virtualbox.conf
+# Módulos de virtualização integrados no Kernel Linux para VirtualBox
+vboxguest
+vboxvideo
+vboxsf
+VBOX_MODS
+
+echo "==> [4.4] Instalando Áudio PipeWire de Baixa Latência, Rede e Bluetooth..."
 apt-get install -y --no-install-recommends \
   pipewire \
   wireplumber \
   pipewire-pulse \
   pipewire-alsa \
-  pipewire-audio \
   pavucontrol \
   network-manager \
   bluez \
@@ -189,34 +229,10 @@ apt-get install -y --no-install-recommends \
   sudo \
   pciutils \
   usbutils \
-  gparted \
-  xserver-xorg \
-  xserver-xorg-core \
-  xserver-xorg-input-all \
-  xserver-xorg-input-libinput \
-  xserver-xorg-video-all \
-  xserver-xorg-video-intel \
-  xserver-xorg-video-nouveau \
-  xserver-xorg-video-amdgpu \
-  xserver-xorg-video-qxl \
-  xserver-xorg-video-vmware \
-  xserver-xorg-video-fbdev \
-  xserver-xorg-video-vesa \
-  virtualbox-guest-utils \
-  virtualbox-guest-x11 \
-  spice-vdagent \
-  qemu-guest-agent \
-  open-vm-tools \
-  open-vm-tools-desktop \
-  x11-xserver-utils \
-  xinit \
-  mesa-utils \
-  feh \
-  xterm \
-  mesa-va-drivers \
-  mesa-vulkan-drivers \
-  libgl1-mesa-dri \
-  vulkan-tools \
+  gparted
+
+echo "==> [4.5] Instalando Codecs Multimídia, Navegador Chromium e Flatpak..."
+apt-get install -y --no-install-recommends \
   ffmpeg \
   gstreamer1.0-plugins-good \
   gstreamer1.0-plugins-bad \
@@ -226,12 +242,13 @@ apt-get install -y --no-install-recommends \
   xdg-desktop-portal \
   xdg-desktop-portal-gtk \
   xdg-desktop-portal-gnome \
-  chromium \
+  chromium
+
+echo "==> [4.6] Instalando Pacotes de Fontes, Temas e Ferramentas do Sistema..."
+apt-get install -y --no-install-recommends \
   fonts-dejavu-core \
   fonts-freefont-ttf \
   fonts-noto-color-emoji \
-  fonts-inter \
-  fonts-roboto \
   papirus-icon-theme \
   ca-certificates \
   nodejs \
@@ -242,12 +259,21 @@ apt-get install -y --no-install-recommends \
   build-essential \
   rsync \
   htop \
-  btop \
-  fastfetch \
   unzip \
   p7zip-full \
   tar \
   gzip
+
+# 4.7 Pacotes Opcionais Adicionais (Instalados de forma resiliente para compatibilidade total de apps Linux e PC Fraco)
+for opt_pkg in firefox-esr gdebi-core ocl-icd-libopencl1 libxcb-cursor0 zram-tools btop fastfetch neofetch fonts-inter fonts-inter-variable fonts-roboto firmware-linux firmware-misc-nonfree; do
+  apt-get install -y --no-install-recommends "$opt_pkg" 2>/dev/null || true
+done
+
+# Otimização para Computadores Fracos / Baixa Memória RAM (ZRAM com compressão zstd)
+if [ -f /etc/default/zramswap ]; then
+  sed -i 's/^#*ALGO=.*/ALGO=zstd/' /etc/default/zramswap || true
+  sed -i 's/^#*PERCENT=.*/PERCENT=60/' /etc/default/zramswap || true
+fi
 
 # Alias / wrapper para compatibilidade com comando neofetch
 ln -sf /usr/bin/fastfetch /usr/local/bin/neofetch || true
@@ -342,10 +368,11 @@ APPIMAGE_DESKTOP
 
 systemctl enable gdm3 || systemctl enable gdm || true
 systemctl enable NetworkManager || true
-systemctl enable open-vm-tools || true
-systemctl enable spice-vdagent || true
-systemctl enable qemu-guest-agent || true
-systemctl enable virtualbox-guest-utils || true
+systemctl enable zramswap 2>/dev/null || true
+systemctl enable open-vm-tools 2>/dev/null || true
+systemctl enable spice-vdagent 2>/dev/null || true
+systemctl enable qemu-guest-agent 2>/dev/null || true
+systemctl enable virtualbox-guest-utils 2>/dev/null || true
 
 apt-get clean
 rm -rf /var/lib/apt/lists/*
@@ -953,7 +980,7 @@ WantedBy=multi-user.target
 SERVICE_EOF
 
 # Habilitar o serviço de infraestrutura InoveCloud no boot
-chroot "${ROOTFS_DIR}" systemctl enable inovecloud.service
+chroot "${ROOTFS_DIR}" systemctl enable inovecloud.service || true
 
 # Desmontar explicitamente antes de gerar o SquashFS
 cleanup
@@ -962,9 +989,17 @@ trap - EXIT
 echo -e "${YELLOW}[6/7] Empacotando SquashFS e preparando estrutura de Boot GRUB EFI + BIOS...${RESET}"
 mkdir -p "${IMAGE_DIR}/live" "${IMAGE_DIR}/boot/grub"
 
-# Copiar kernel e initrd para o diretório de boot da ISO
-cp "${ROOTFS_DIR}/boot"/vmlinuz-* "${IMAGE_DIR}/live/vmlinuz"
-cp "${ROOTFS_DIR}/boot"/initrd.img-* "${IMAGE_DIR}/live/initrd"
+# Copiar kernel e initrd para o diretório de boot da ISO de forma determinística
+KERNEL_IMG=$(ls -1 "${ROOTFS_DIR}/boot"/vmlinuz-* 2>/dev/null | sort -V | tail -n 1)
+INITRD_IMG=$(ls -1 "${ROOTFS_DIR}/boot"/initrd.img-* 2>/dev/null | sort -V | tail -n 1)
+if [ -z "${KERNEL_IMG}" ] || [ -z "${INITRD_IMG}" ]; then
+  echo -e "${RED}[ERRO] Kernel (vmlinuz) ou initrd não encontrados em ${ROOTFS_DIR}/boot!${RESET}"
+  exit 1
+fi
+echo "==> Usando Kernel Linux: ${KERNEL_IMG}"
+echo "==> Usando Initrd: ${INITRD_IMG}"
+cp "${KERNEL_IMG}" "${IMAGE_DIR}/live/vmlinuz"
+cp "${INITRD_IMG}" "${IMAGE_DIR}/live/initrd"
 
 # Criar o SquashFS comprimido com XZ (alta compressão)
 mksquashfs "${ROOTFS_DIR}" "${IMAGE_DIR}/live/filesystem.squashfs" \
