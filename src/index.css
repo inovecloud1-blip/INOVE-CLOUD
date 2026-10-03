@@ -274,3 +274,48 @@
   --flux-to: #74e1ff;
 }
 
+/* Progress Glow & Shimmer Keyframes for Installer & Build Pipelines */
+@keyframes progressShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@keyframes glowPulseSubtle {
+  0%, 100% {
+    opacity: 0.8;
+    filter: drop-shadow(0 0 10px currentColor);
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 22px currentColor);
+  }
+}
+
+@keyframes laserLeadSpark {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 1;
+  }
+}
+
+.animate-progress-shimmer {
+  animation: progressShimmer 2.2s infinite linear;
+}
+
+.animate-glow-pulse {
+  animation: glowPulseSubtle 2s ease-in-out infinite;
+}
+
+.animate-lead-spark {
+  animation: laserLeadSpark 1.2s ease-in-out infinite;
+}
+
+

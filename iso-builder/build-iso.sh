@@ -181,6 +181,12 @@ apt-get install -y --no-install-recommends \
   xserver-xorg-input-all \
   xserver-xorg-input-libinput \
   xserver-xorg-video-all \
+  xserver-xorg-video-fbdev \
+  xserver-xorg-video-vesa \
+  xserver-xorg-video-intel \
+  xserver-xorg-video-amdgpu \
+  xserver-xorg-video-ati \
+  xserver-xorg-video-nouveau \
   x11-xserver-utils \
   xinit \
   mesa-utils \
@@ -189,28 +195,30 @@ apt-get install -y --no-install-recommends \
   libgl1-mesa-dri \
   vulkan-tools \
   feh \
-  xterm
+  xterm \
+  lightdm \
+  lightdm-gtk-greeter
 
-echo "==> [4.2] Instalando Ferramentas de Hipervisores e Convidado (VMware, QEMU, KVM, SPICE)..."
+echo "==> [4.2] Instalando Ferramentas de Hipervisores e Convidado (VMware, QEMU, KVM, SPICE, VirtualBox)..."
 apt-get install -y --no-install-recommends \
   open-vm-tools \
   open-vm-tools-desktop \
   spice-vdagent \
   qemu-guest-agent || true
 
-# Suporte nativo ao VirtualBox:
-# No Linux 6.x do Debian 13, os módulos vboxguest, vboxsf e vboxvideo já vêm integrados no próprio Kernel Linux.
-# Tentamos instalar os utilitários de espaço de usuário caso existam no espelho, sem nunca travar o build:
-echo "==> [4.3] Configurando Suporte Universal para VirtualBox..."
+# Suporte nativo ao VirtualBox
 apt-get install -y --no-install-recommends virtualbox-guest-utils virtualbox-guest-x11 2>/dev/null || true
 
-# Configurar carregamento automático dos módulos nativos do VirtualBox do Kernel Linux
+# Configurar carregamento automático dos módulos de vídeo e virtualização
 mkdir -p /etc/modules-load.d
 cat << 'VBOX_MODS' > /etc/modules-load.d/virtualbox.conf
-# Módulos de virtualização integrados no Kernel Linux para VirtualBox
+# Módulos de virtualização integrados no Kernel Linux para VirtualBox e Hipervisores
 vboxguest
 vboxvideo
 vboxsf
+virtio_gpu
+bochs_drm
+vmwgfx
 VBOX_MODS
 
 echo "==> [4.4] Instalando Áudio PipeWire de Baixa Latência, Rede e Bluetooth..."
@@ -221,6 +229,7 @@ apt-get install -y --no-install-recommends \
   pipewire-alsa \
   pavucontrol \
   network-manager \
+  network-manager-gnome \
   bluez \
   bluez-tools \
   iproute2 \
@@ -229,7 +238,9 @@ apt-get install -y --no-install-recommends \
   sudo \
   pciutils \
   usbutils \
-  gparted
+  gparted \
+  calamares \
+  calamares-settings-debian || true
 
 echo "==> [4.5] Instalando Codecs Multimídia, Navegador Chromium e Flatpak..."
 apt-get install -y --no-install-recommends \
@@ -264,8 +275,8 @@ apt-get install -y --no-install-recommends \
   tar \
   gzip
 
-# 4.7 Pacotes Opcionais Adicionais (Instalados de forma resiliente para compatibilidade total de apps Linux e PC Fraco)
-for opt_pkg in firefox-esr gdebi-core ocl-icd-libopencl1 libxcb-cursor0 zram-tools btop fastfetch neofetch fonts-inter fonts-inter-variable fonts-roboto firmware-linux firmware-misc-nonfree; do
+# 4.7 Pacotes Opcionais Adicionais (Firmwares oficiais para evitar tela preta em placas reais)
+for opt_pkg in firefox-esr gdebi-core ocl-icd-libopencl1 libxcb-cursor0 zram-tools btop fastfetch neofetch fonts-inter fonts-inter-variable fonts-roboto firmware-linux firmware-linux-nonfree firmware-misc-nonfree firmware-amd-graphics firmware-realtek firmware-iwlwifi firmware-atheros intel-microcode amd64-microcode; do
   apt-get install -y --no-install-recommends "$opt_pkg" 2>/dev/null || true
 done
 
@@ -283,9 +294,10 @@ flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.f
 
 # Criar grupo de autologin e usuário 'inove' para sessão live
 groupadd -r autologin || true
+groupadd -r nopasswdlogin || true
 useradd -m -s /bin/bash inove || true
 echo "inove:inove" | chpasswd
-usermod -aG sudo,video,input,render,audio,netdev,autologin inove || true
+usermod -aG sudo,video,input,render,audio,netdev,autologin,nopasswdlogin,plugdev inove || true
 
 # Criar estrutura de pastas reais do Desktop para o usuário 'inove'
 mkdir -p /home/inove/{Desktop,Downloads,Documents,Pictures,Music,Videos}
@@ -303,7 +315,7 @@ cat << 'HOSTS_EOF' > /etc/hosts
 127.0.1.1   inovecloud-os
 HOSTS_EOF
 
-# Configurar GDM3 para Auto-Login no Desktop Real GNOME (Xorg/Wayland Universal)
+# Configurar GDM3 e LightDM com Autologin Resiliente (100% à prova de falhas)
 mkdir -p /etc/gdm3
 cat << 'GDM_CONF' > /etc/gdm3/daemon.conf
 # GDM configuration for InoveCloud OS Native Desktop
@@ -311,7 +323,7 @@ cat << 'GDM_CONF' > /etc/gdm3/daemon.conf
 AutomaticLoginEnable=true
 AutomaticLogin=inove
 WaylandEnable=false
-DefaultSession=gnome-xorg.desktop
+DefaultSession=gnome
 
 [security]
 
@@ -322,16 +334,37 @@ DefaultSession=gnome-xorg.desktop
 [debug]
 GDM_CONF
 
-# Configurar PAM para autologin do GDM
+# Configurar PAM para Autologin no Padrão Debian (Compatível com GDM3 e LightDM sem travar tela)
 cat << 'PAM_AUTOLOGIN' > /etc/pam.d/gdm-autologin
 #%PAM-1.0
 auth      requisite pam_nologin.so
 auth      required  pam_permit.so
 auth      required  pam_env.so readenv=1
-account   include   system-login
-password  include   system-login
-session   include   system-login
+@include common-account
+@include common-session
+@include common-password
 PAM_AUTOLOGIN
+
+# Configurar LightDM como gerenciador alternativo e autologin
+mkdir -p /etc/lightdm/lightdm.conf.d
+cat << 'LIGHTDM_CONF' > /etc/lightdm/lightdm.conf.d/01-inovecloud-autologin.conf
+[Seat:*]
+autologin-user=inove
+autologin-user-timeout=0
+user-session=gnome
+greeter-session=lightdm-gtk-greeter
+xserver-command=X -core
+LIGHTDM_CONF
+
+cat << 'PAM_LIGHTDM' > /etc/pam.d/lightdm-autologin
+#%PAM-1.0
+auth      requisite pam_nologin.so
+auth      required  pam_permit.so
+auth      required  pam_env.so readenv=1
+@include common-account
+@include common-session
+@include common-password
+PAM_LIGHTDM
 
 # Configurar AppImage Runner Universal e Integração de Arquivos .AppImage
 cat << 'APPIMAGE_RUNNER' > /usr/local/bin/inove-appimage-runner
@@ -1017,6 +1050,7 @@ set color_highlight=black/light-cyan
 set menu_color_normal=white/blue
 set menu_color_highlight=light-cyan/blue
 
+insmod all_video
 insmod font
 if loadfont /boot/grub/fonts/unicode.pf2; then
   insmod gfxterm
@@ -1026,27 +1060,27 @@ if loadfont /boot/grub/fonts/unicode.pf2; then
 fi
 
 menuentry "🚀 InoveCloud OS 2026 (Live Desktop - Inicialização Padrão)" {
-  linux /live/vmlinuz boot=live components systemd.show_status=1 console=tty1 vga=current
+  linux /live/vmlinuz boot=live components username=inove hostname=inovecloud-os quiet splash systemd.show_status=1
   initrd /live/initrd
 }
 
-menuentry "🖥️ InoveCloud OS 2026 (VirtualBox / VMware / Safe Graphics - 100% Anti Tela Preta)" {
-  linux /live/vmlinuz boot=live components nomodeset xforcevesa vga=current systemd.show_status=1 console=tty1
+menuentry "🖥️ InoveCloud OS 2026 (Modo Gráfico Seguro / Safe Graphics / VirtualBox / VMware)" {
+  linux /live/vmlinuz boot=live components username=inove hostname=inovecloud-os nomodeset xforcevesa systemd.show_status=1
   initrd /live/initrd
 }
 
-menuentry "🔍 InoveCloud OS 2026 (Modo Diagnóstico e Logs Visíveis)" {
-  linux /live/vmlinuz boot=live components debug nosplash systemd.show_status=1 console=tty1
+menuentry "🔍 InoveCloud OS 2026 (Modo Diagnóstico e Logs Visíveis de Boot)" {
+  linux /live/vmlinuz boot=live components username=inove hostname=inovecloud-os debug nosplash systemd.show_status=1 console=tty1
   initrd /live/initrd
 }
 
-menuentry "💾 InoveCloud OS (Modo Live USB com Persistência de Dados)" {
-  linux /live/vmlinuz boot=live persistence components systemd.show_status=1 console=tty1
+menuentry "💾 InoveCloud OS 2026 (Modo Live USB com Persistência de Dados)" {
+  linux /live/vmlinuz boot=live persistence components username=inove hostname=inovecloud-os quiet splash systemd.show_status=1
   initrd /live/initrd
 }
 
-menuentry "🛠️ InoveCloud OS (Modo Instalação no Disco SSD/NVMe)" {
-  linux /live/vmlinuz boot=live inove_mode=installer components systemd.show_status=1 console=tty1
+menuentry "🛠️ InoveCloud OS 2026 (Instalador Direto no Disco SSD/NVMe)" {
+  linux /live/vmlinuz boot=live inove_mode=installer components username=inove hostname=inovecloud-os systemd.show_status=1
   initrd /live/initrd
 }
 GRUB_CFG

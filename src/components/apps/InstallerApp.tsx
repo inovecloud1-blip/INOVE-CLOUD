@@ -115,6 +115,7 @@ export const InstallerApp: React.FC<InstallerAppProps> = ({
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
+  const [displayProgress, setDisplayProgress] = useState<number>(0);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   const [speedMultiplier, setSpeedMultiplier] = useState<number>(1);
   const [selectedDisk, setSelectedDisk] = useState<string>('/dev/nvme0n1');
@@ -125,6 +126,7 @@ export const InstallerApp: React.FC<InstallerAppProps> = ({
 
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef<boolean>(true);
+  const progressAnimRef = useRef<number | null>(null);
 
   // Efeito para rolagem automática para a última linha
   useEffect(() => {
@@ -133,6 +135,28 @@ export const InstallerApp: React.FC<InstallerAppProps> = ({
     }
   }, [logs]);
 
+  // Animação de interpolação ultra-suave (Lerp) para a barra de progresso com glow
+  useEffect(() => {
+    let animationFrameId: number;
+
+    const animateProgress = () => {
+      setDisplayProgress((prev) => {
+        const diff = progress - prev;
+        if (Math.abs(diff) < 0.15) {
+          return progress;
+        }
+        // Fator de suavização (lerp suave)
+        const step = diff * 0.12;
+        return Number((prev + step).toFixed(2));
+      });
+
+      animationFrameId = requestAnimationFrame(animateProgress);
+    };
+
+    animationFrameId = requestAnimationFrame(animateProgress);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [progress]);
+
   // Motor de execução de debootstrap / apt-get install em tempo real
   useEffect(() => {
     if (!isRunning || isPaused) return;
@@ -140,6 +164,7 @@ export const InstallerApp: React.FC<InstallerAppProps> = ({
     if (currentStepIndex >= DEBOOTSTRAP_STEPS.length) {
       setIsRunning(false);
       setIsComplete(true);
+      setProgress(100);
       if (onInstallationFinished) {
         onInstallationFinished();
       }
@@ -147,7 +172,7 @@ export const InstallerApp: React.FC<InstallerAppProps> = ({
     }
 
     const step = DEBOOTSTRAP_STEPS[currentStepIndex];
-    const delay = Math.max(80, Math.floor(450 / speedMultiplier));
+    const delay = Math.max(70, Math.floor(420 / speedMultiplier));
 
     const timer = setTimeout(() => {
       const now = new Date();
@@ -175,6 +200,7 @@ export const InstallerApp: React.FC<InstallerAppProps> = ({
     if (isRunning) return;
     setIsComplete(false);
     setProgress(0);
+    setDisplayProgress(0);
     setCurrentStepIndex(0);
     setLogs([
       {
@@ -197,6 +223,7 @@ export const InstallerApp: React.FC<InstallerAppProps> = ({
     setIsRunning(false);
     setIsPaused(false);
     setProgress(0);
+    setDisplayProgress(0);
     setCurrentStepIndex(0);
     setIsComplete(false);
     setLogs([
@@ -388,35 +415,222 @@ export const InstallerApp: React.FC<InstallerAppProps> = ({
         </div>
       </div>
 
-      {/* Progress Bar with Realistic Stage Badges */}
-      <div className="px-4 py-2.5 bg-slate-950 border-b border-white/5 space-y-1.5">
-        <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center space-x-2">
-            <span className="text-slate-400 font-medium">Progresso Global:</span>
-            <span className="font-bold text-cyan-400">{progress}%</span>
-            {progress < 25 && <span className="text-slate-500">• Particionamento & Tabela GPT</span>}
-            {progress >= 25 && progress < 50 && <span className="text-amber-400">• debootstrap Debian 13 Base</span>}
-            {progress >= 50 && progress < 75 && <span className="text-blue-400">• apt-get install Kernel 6.12 & Módulos</span>}
-            {progress >= 75 && progress < 95 && <span className="text-purple-400">• GNOME Shell, Liquid Glass & Flatpak</span>}
-            {progress >= 95 && progress < 100 && <span className="text-cyan-400">• Configurando GRUB Bootloader</span>}
-            {progress === 100 && <span className="text-emerald-400 font-bold">• Instalação 100% Concluída!</span>}
-          </div>
-          <span className="text-[11px] text-slate-500 font-mono">
-            Linhas no console: {logs.length}
-          </span>
-        </div>
+      {/* Dynamic Animated Progress Bar with Debootstrap/Apt-get Neon Glow */}
+      {(() => {
+        const stage = (() => {
+          if (progress >= 100) {
+            return {
+              phase: 5,
+              name: 'Instalação Concluída',
+              badge: '100% Pronto',
+              gradient: 'from-emerald-500 via-green-400 to-teal-300',
+              glowColor: 'rgba(16, 185, 129, 0.9)',
+              glowShadow: '0 0 24px rgba(16, 185, 129, 0.85), 0 0 45px rgba(52, 211, 153, 0.4)',
+              pillClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+              icon: CheckCircle2,
+              subtitle: 'Partições GPT, Debian 13 Base, Kernel 6.12 e GRUB gravados com sucesso!',
+            };
+          }
+          if (progress >= 92) {
+            return {
+              phase: 5,
+              name: 'Configuração do GRUB Bootloader',
+              badge: 'Etapa 5/5: GRUB EFI',
+              gradient: 'from-cyan-500 via-teal-400 to-emerald-400',
+              glowColor: 'rgba(20, 184, 166, 0.85)',
+              glowShadow: '0 0 22px rgba(20, 184, 166, 0.8), 0 0 35px rgba(45, 212, 191, 0.35)',
+              pillClass: 'bg-teal-500/20 text-teal-300 border-teal-500/40',
+              icon: Disc,
+              subtitle: 'Gravando entrada NVRAM UEFI (0001 InoveCloudOS) e gerando grub.cfg...',
+            };
+          }
+          if (progress >= 70) {
+            return {
+              phase: 4,
+              name: 'GNOME Shell & Liquid Glass Theme',
+              badge: 'Etapa 4/5: Desktop Glass',
+              gradient: 'from-rose-500 via-red-500 to-pink-400',
+              glowColor: 'rgba(244, 63, 94, 0.85)',
+              glowShadow: '0 0 22px rgba(244, 63, 94, 0.8), 0 0 38px rgba(251, 113, 133, 0.35)',
+              pillClass: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+              icon: Sparkles,
+              subtitle: 'Instalando GNOME 46, Dock Transparente, Wallpapers 8K e Flathub...',
+            };
+          }
+          if (progress >= 48) {
+            return {
+              phase: 3,
+              name: 'apt-get install Kernel 6.12 & Módulos',
+              badge: 'Etapa 3/5: Kernel & DRM/KMS',
+              gradient: 'from-indigo-600 via-purple-500 to-fuchsia-400',
+              glowColor: 'rgba(168, 85, 247, 0.85)',
+              glowShadow: '0 0 24px rgba(168, 85, 247, 0.85), 0 0 40px rgba(192, 132, 252, 0.4)',
+              pillClass: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+              icon: Cpu,
+              subtitle: 'Baixando linux-image-6.12, gerando initramfs ZSTD e drivers de aceleração 3D...',
+            };
+          }
+          if (progress >= 24) {
+            return {
+              phase: 2,
+              name: 'debootstrap Debian 13 Base (Trixie)',
+              badge: 'Etapa 2/5: debootstrap',
+              gradient: 'from-amber-500 via-orange-400 to-yellow-300',
+              glowColor: 'rgba(245, 158, 11, 0.85)',
+              glowShadow: '0 0 24px rgba(245, 158, 11, 0.85), 0 0 40px rgba(251, 191, 36, 0.4)',
+              pillClass: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+              icon: Package,
+              subtitle: 'Extraindo pacotes base (libc6, dpkg, systemd, bash, coreutils, sed, tar)...',
+            };
+          }
+          return {
+            phase: 1,
+            name: 'Particionamento GPT & Estrutura EFI',
+            badge: 'Etapa 1/5: Disco & GPT',
+            gradient: 'from-blue-600 via-cyan-500 to-teal-400',
+            glowColor: 'rgba(6, 182, 212, 0.8)',
+            glowShadow: '0 0 20px rgba(6, 182, 212, 0.8), 0 0 35px rgba(56, 189, 248, 0.35)',
+            pillClass: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+            icon: HardDrive,
+            subtitle: 'Criando tabela GPT, partição EFI FAT32 e formatando sistema de arquivos...',
+          };
+        })();
 
-        <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-800">
-          <div
-            className={`h-full rounded-full transition-all duration-300 ${
-              progress === 100
-                ? 'bg-gradient-to-r from-green-500 to-emerald-400 shadow-[0_0_12px_rgba(34,197,94,0.8)]'
-                : 'bg-gradient-to-r from-blue-600 via-cyan-400 to-teal-300 shadow-[0_0_10px_rgba(6,182,212,0.7)]'
-            }`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
+        const StageIcon = stage.icon;
+
+        const STEPS_SUMMARY = [
+          { id: 1, label: 'GPT/EFI', min: 0, max: 23 },
+          { id: 2, label: 'debootstrap', min: 24, max: 47 },
+          { id: 3, label: 'apt-get Kernel', min: 48, max: 69 },
+          { id: 4, label: 'GNOME Glass', min: 70, max: 91 },
+          { id: 5, label: 'GRUB EFI', min: 92, max: 100 },
+        ];
+
+        return (
+          <div className="px-4 py-3 bg-[#070b16] border-b border-white/10 space-y-2.5 relative overflow-hidden">
+            {/* Top Stage Badges Bar */}
+            <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
+              <div className="flex items-center space-x-2.5">
+                <div
+                  className={`w-6 h-6 rounded-lg flex items-center justify-center border transition-all duration-300 ${stage.pillClass}`}
+                  style={{ boxShadow: `0 0 12px ${stage.glowColor}` }}
+                >
+                  <StageIcon className={`w-3.5 h-3.5 ${isRunning ? 'animate-pulse' : ''}`} />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-bold text-white tracking-tight">{stage.name}</span>
+                    <span className={`px-2 py-0.2 rounded-full text-[10px] font-bold border ${stage.pillClass}`}>
+                      {stage.badge}
+                    </span>
+                    {isRunning && (
+                      <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
+                        • {displayProgress < 100 ? `${displayProgress.toFixed(1)}%` : '100%'}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400 truncate max-w-md sm:max-w-xl">
+                    {stage.subtitle}
+                  </p>
+                </div>
+              </div>
+
+              {/* Step Flow Indicators */}
+              <div className="flex items-center space-x-1 sm:space-x-1.5">
+                {STEPS_SUMMARY.map((st) => {
+                  const isDone = progress > st.max;
+                  const isCurrent = progress >= st.min && progress <= st.max;
+                  return (
+                    <div
+                      key={st.id}
+                      className={`flex items-center space-x-1 px-2 py-0.5 rounded-md text-[10px] font-semibold border transition-all duration-300 ${
+                        isDone
+                          ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                          : isCurrent
+                          ? `${stage.pillClass} shadow-[0_0_10px_rgba(255,255,255,0.15)] font-bold scale-105`
+                          : 'bg-slate-900/60 text-slate-500 border-slate-800'
+                      }`}
+                    >
+                      {isDone ? (
+                        <Check className="w-2.5 h-2.5 text-emerald-400" />
+                      ) : (
+                        <span className="w-1.5 h-1.5 rounded-full bg-current opacity-75" />
+                      )}
+                      <span className="hidden md:inline">{st.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Dynamic Glass Track & Glowing Fill with Shimmer & Leading Spark */}
+            <div className="relative py-1">
+              {/* Glow Aura Shadow Layer */}
+              <div
+                className="absolute inset-x-0 top-1 h-3.5 rounded-full opacity-60 blur-md pointer-events-none transition-all duration-500"
+                style={{
+                  background: `linear-gradient(90deg, transparent, ${stage.glowColor}, transparent)`,
+                  width: `${Math.min(100, Math.max(8, displayProgress))}%`,
+                }}
+              />
+
+              {/* Progress Container Track */}
+              <div className="w-full h-3 bg-slate-950/90 rounded-full p-[2px] border border-white/15 relative overflow-hidden backdrop-blur-md shadow-inner">
+                {/* Background Grid Pattern */}
+                <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:16px_100%] pointer-events-none opacity-40" />
+
+                {/* Animated Gradient Fill Bar */}
+                <div
+                  className={`h-full rounded-full relative transition-all duration-150 ease-out bg-gradient-to-r ${stage.gradient}`}
+                  style={{
+                    width: `${displayProgress}%`,
+                    boxShadow: stage.glowShadow,
+                  }}
+                >
+                  {/* Streaming Shimmer Light Wave */}
+                  <div className="absolute inset-0 overflow-hidden rounded-full pointer-events-none">
+                    <div className="w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-progress-shimmer" />
+                  </div>
+
+                  {/* Leading Laser Spark Orb */}
+                  {displayProgress > 1 && displayProgress < 99.5 && isRunning && (
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 flex items-center justify-center pointer-events-none">
+                      <div className="w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_12px_#ffffff] animate-lead-spark" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Metrics Bar */}
+            <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono pt-0.5">
+              <div className="flex items-center space-x-3">
+                <span className="flex items-center space-x-1 text-slate-300">
+                  <span className="text-slate-500">Disco:</span>
+                  <span className="text-cyan-300 font-semibold">{selectedDisk}</span>
+                </span>
+                <span className="hidden sm:inline text-slate-600">|</span>
+                <span className="hidden sm:flex items-center space-x-1">
+                  <span className="text-slate-500">Taxa I/O:</span>
+                  <span className="text-emerald-400 font-semibold">
+                    {isRunning ? (speedMultiplier === 5 ? '88.4 MB/s' : speedMultiplier === 2 ? '34.2 MB/s' : '18.6 MB/s') : '0.0 MB/s'}
+                  </span>
+                </span>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <span className="text-slate-400">Progresso:</span>
+                <span
+                  className="font-bold text-xs"
+                  style={{ color: stage.glowColor }}
+                >
+                  {displayProgress.toFixed(1)}%
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Main Terminal Window Emulator (xterm.js look & feel) */}
       <div className="flex-1 p-4 overflow-y-auto font-mono text-xs leading-relaxed bg-[#050811] text-slate-200 select-text">
