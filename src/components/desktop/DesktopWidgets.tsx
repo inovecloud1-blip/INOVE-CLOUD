@@ -550,16 +550,20 @@ export const DesktopWidgets: React.FC<DesktopWidgetsProps> = ({
             </button>
 
             <div>
-              <div className="flex items-center space-x-2">
-                <h1 className="text-base font-extrabold text-white tracking-wide drop-shadow-md">
+              <div className="flex items-center space-x-2.5">
+                <h1 className="text-base font-extrabold text-white tracking-tight drop-shadow-md">
                   InoveCloud OS
                 </h1>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                  Liquid Glass UI
+                <span className="text-xs text-cyan-400 font-semibold">
+                  2026.1 LTS
+                </span>
+                <span className="text-slate-600 font-mono text-xs">·</span>
+                <span className="text-xs text-slate-300">
+                  Kernel 6.12
                 </span>
               </div>
-              <p className="text-[11px] text-white/80 font-medium drop-shadow">
-                Workspace em Nuvem & Infraestrutura Hypervisor KVM
+              <p className="text-[11px] text-slate-300 font-medium drop-shadow">
+                Sistema Operacional Linux Nativo com Interface Liquid Glass
               </p>
             </div>
           </div>
@@ -568,21 +572,16 @@ export const DesktopWidgets: React.FC<DesktopWidgetsProps> = ({
           <div className="flex items-center space-x-2">
             <div
               onClick={() => onOpenApp('monitor')}
-              className="pointer-events-auto cursor-pointer liquid-glass-pill px-4 py-2 rounded-2xl flex items-center space-x-3 text-xs text-white shadow-2xl transition"
+              className="pointer-events-auto cursor-pointer px-3.5 py-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 flex items-center space-x-3 text-xs text-white shadow-xl transition backdrop-blur-xl"
             >
-              <div className="flex items-center space-x-1.5">
+              <div className="flex items-center space-x-1.5 font-mono tabular-nums text-slate-200">
                 <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="font-semibold">{stats.cpuUsage}% CPU</span>
+                <span>{stats.cpuUsage}% CPU</span>
               </div>
-              <div className="w-px h-3.5 bg-white/20" />
-              <div className="flex items-center space-x-1.5">
-                <Server className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="font-semibold">{stats.vnsRunning} VNs</span>
-              </div>
-              <div className="w-px h-3.5 bg-white/20" />
-              <div className="flex items-center space-x-1.5 text-emerald-300">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>SSL ON</span>
+              <span className="text-slate-600">·</span>
+              <div className="flex items-center space-x-1.5 font-mono tabular-nums text-slate-200">
+                <HardDrive className="w-3.5 h-3.5 text-indigo-400" />
+                <span>{stats.ramUsage}% RAM</span>
               </div>
             </div>
 

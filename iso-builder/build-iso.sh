@@ -638,7 +638,7 @@ picture-uri='file:///usr/share/backgrounds/inovecloud/cyber-red.jpg'
 
 [org/gnome/shell]
 enabled-extensions=['dash-to-dock@vswitch.org', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com']
-favorite-apps=['org.gnome.Nautilus.desktop', 'org.gnome.Terminal.desktop', 'chromium.desktop', 'org.gnome.Software.desktop', 'gnome-control-center.desktop', 'inovecloud-desktop.desktop']
+favorite-apps=['inovecloud-installer.desktop', 'inove-info.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Terminal.desktop', 'chromium.desktop', 'org.gnome.Software.desktop', 'gnome-control-center.desktop']
 
 [org/gnome/shell/extensions/user-theme]
 name='InoveCloud-Glass'
@@ -673,347 +673,143 @@ if [ -f "${SCRIPT_DIR}/post-install-flathub.sh" ]; then
   chmod +x "${ROOTFS_DIR}/usr/local/bin/inovecloud-flathub-setup"
 fi
 
-# 4. Copiar Web App e Servidor InoveCloud OS
-mkdir -p "${ROOTFS_DIR}/opt/inovecloud"
+## 4. Configuração Nativa da Identidade do InoveCloud OS (Distribuição Linux Pura)
+echo "==> Configurando Identidade Nativa do Sistema Operacional (/etc/os-release, /etc/issue)..."
 
-# Garantir que o frontend React/Vite está compilado antes da cópia
-if [ ! -f "${REPO_ROOT}/dist/index.html" ]; then
-  echo "Compilando front-end InoveCloud OS (Vite) para a ISO..."
-  if command -v npm >/dev/null 2>&1; then
-    (cd "${REPO_ROOT}" && npm run build 2>/dev/null || true)
-  fi
+cat << 'OS_RELEASE' > "${ROOTFS_DIR}/etc/os-release"
+NAME="InoveCloud OS"
+VERSION="2026.1 LTS"
+ID=inovecloud
+ID_LIKE=debian
+PRETTY_NAME="InoveCloud OS 2026.1 LTS"
+VERSION_ID="2026.1"
+HOME_URL="https://inovecloud.com"
+SUPPORT_URL="https://inovecloud.com/support"
+BUG_REPORT_URL="https://inovecloud.com/bugs"
+LOGO=inovecloud-logo
+OS_RELEASE
+
+cat << 'LSB_RELEASE' > "${ROOTFS_DIR}/etc/lsb-release"
+DISTRIB_ID=InoveCloudOS
+DISTRIB_RELEASE=2026.1
+DISTRIB_CODENAME=liquid
+DISTRIB_DESCRIPTION="InoveCloud OS 2026.1 LTS"
+LSB_RELEASE
+
+echo "InoveCloud OS 2026.1 LTS \n \l" > "${ROOTFS_DIR}/etc/issue"
+echo "InoveCloud OS 2026.1 LTS" > "${ROOTFS_DIR}/etc/issue.net"
+
+# 5. Instalar Utilitários Nativos do InoveCloud OS em /usr/local/bin
+echo "==> Instalando Gerenciador de Pacotes icpkg e Ferramentas Nativas do Sistema..."
+mkdir -p "${ROOTFS_DIR}/usr/local/bin"
+
+# 5.1 ICPKG - Gerenciador Oficial Nativo de Pacotes InoveCloud OS
+if [ -f "${REPO_ROOT}/icpkg.py" ]; then
+  cp "${REPO_ROOT}/icpkg.py" "${ROOTFS_DIR}/usr/local/bin/icpkg"
+  chmod +x "${ROOTFS_DIR}/usr/local/bin/icpkg"
 fi
 
-if [ -d "${REPO_ROOT}/dist" ] && [ -n "$(ls -A "${REPO_ROOT}/dist" 2>/dev/null)" ]; then
-  cp -r "${REPO_ROOT}/dist"/* "${ROOTFS_DIR}/opt/inovecloud/"
-elif [ -d "./dist" ] && [ -n "$(ls -A "./dist" 2>/dev/null)" ]; then
-  cp -r ./dist/* "${ROOTFS_DIR}/opt/inovecloud/"
-elif [ -d "../dist" ] && [ -n "$(ls -A "../dist" 2>/dev/null)" ]; then
-  cp -r ../dist/* "${ROOTFS_DIR}/opt/inovecloud/"
+# 5.2 Instalador Oficial Nativo no Disco (SSD/NVMe/HDD)
+if [ -f "${REPO_ROOT}/inovecloud-install.sh" ]; then
+  cp "${REPO_ROOT}/inovecloud-install.sh" "${ROOTFS_DIR}/usr/local/bin/inovecloud-installer"
+  chmod +x "${ROOTFS_DIR}/usr/local/bin/inovecloud-installer"
 fi
 
-# Cria servidor Node.js para servir o Web Desktop e API do sistema operacional
-cat << 'NODE_SRV' > "${ROOTFS_DIR}/opt/inovecloud/server.js"
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const { exec, spawn } = require('child_process');
+# 5.3 Script Nativo de Diagnóstico e Informações de Hardware (inove-info)
+cat << 'INOVE_INFO' > "${ROOTFS_DIR}/usr/local/bin/inove-info"
+#!/usr/bin/env bash
+echo -e "\033[1;36m========================================================================\033[0m"
+echo -e "\033[1;31m   🚀 INOVECLOUD OS 2026.1 LTS - INFORMAÇÕES NATIVAS DO SISTEMA        \033[0m"
+echo -e "\033[1;36m========================================================================\033[0m"
+echo -e "\033[1mKernel Linux:\033[0m $(uname -r) ($(uname -m))"
+echo -e "\033[1mHostname:\033[0m     $(hostname)"
+echo -e "\033[1mUptime:\033[0m       $(uptime -p)"
+echo -e "\033[1mMemória RAM:\033[0m  $(free -h | awk '/Mem:/ {print $3 "/" $2}')"
+echo -e "\033[1mArmazenamento:\033[0m $(df -h / | awk 'NR==2 {print $3 " usado de " $2 " (" $5 " ocupado)"}')"
+echo -e "\033[1mÁudio:\033[0m        PipeWire com WirePlumber"
+echo -e "\033[1mServidor X:\033[0m   $(echo $XDG_SESSION_TYPE)"
+echo -e "\033[1mGerenciador:\033[0m  icpkg & apt nativos (Suporte a Flatpak ativo)"
+echo -e "\033[1;36m========================================================================\033[0m"
+INOVE_INFO
+chmod +x "${ROOTFS_DIR}/usr/local/bin/inove-info"
 
-const PORT = 3000;
-const PUBLIC_DIR = path.join(__dirname);
+# 5.4 Script Nativo de Atualização do Sistema (inove-update)
+cat << 'INOVE_UPDATE' > "${ROOTFS_DIR}/usr/local/bin/inove-update"
+#!/usr/bin/env bash
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Execute como root: sudo inove-update"
+  exit 1
+fi
+echo "==> Atualizando repositórios oficiais e pacotes do InoveCloud OS..."
+apt-get update && apt-get upgrade -y
+if command -v flatpak >/dev/null 2>&1; then
+  flatpak update -y
+fi
+echo "✓ Sistema atualizado com sucesso!"
+INOVE_UPDATE
+chmod +x "${ROOTFS_DIR}/usr/local/bin/inove-update"
 
-const MIME_TYPES = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'application/javascript',
-  '.css': 'text/css',
-  '.json': 'application/json',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon',
-  '.woff2': 'font/woff2',
-};
+# 6. Configurar Bash Prompt Nativo e Banner ASCII InoveCloud no Terminal
+cat << 'BASHRC_BANNER' >> "${ROOTFS_DIR}/etc/skel/.bashrc"
 
-function readBody(req) {
-  return new Promise((resolve) => {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => {
-      try {
-        resolve(JSON.parse(body || '{}'));
-      } catch (e) {
-        resolve({});
-      }
-    });
-  });
-}
+# InoveCloud OS Native Terminal Styling & Banner
+if [ -t 1 ]; then
+  echo -e "\033[1;31m   ___                      ________             __   ____  _____ \033[0m"
+  echo -e "\033[1;31m  / (_)___  ____ _   _____ / ____/ /___  __  ______/ /  / __ \/ ___/ \033[0m"
+  echo -e "\033[1;37m / / / __ \/ __ \ | / / _ / /   / / __ \/ / / / __  /  / / / /\__ \  \033[0m"
+  echo -e "\033[1;36m/ / / / / / /_/ / |/ /  _/ /___/ / /_/ / /_/ / /_/ /  / /_/ /___/ /  \033[0m"
+  echo -e "\033[1;36m/_/_/_/ /_/\____/|___/\__/\____/_/\____/\__,_/\__,_/   \____//____/   \033[0m"
+  echo -e "\033[1;30m====================================================================\033[0m"
+  echo -e " \033[1mBem-vindo ao InoveCloud OS 2026.1 LTS\033[0m (Kernel: \033[1;32m$(uname -r)\033[0m)"
+  echo -e " Digite \033[1;36minove-info\033[0m para status ou \033[1;33msudo inovecloud-installer\033[0m para instalar."
+  echo -e "\033[1;30m====================================================================\033[0m\n"
+fi
+export PS1='\[\033[1;31m\]inovecloud\[\033[0m\]:\[\033[1;34m\]\w\[\033[0m\]\$ '
+alias info='inove-info'
+alias instalar='sudo inovecloud-installer'
+BASHRC_BANNER
 
-function sendJson(res, statusCode, data) {
-  res.writeHead(statusCode, {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  });
-  res.end(JSON.stringify(data));
-}
+cp "${ROOTFS_DIR}/etc/skel/.bashrc" "${ROOTFS_DIR}/home/inove/.bashrc"
+chown inove:inove "${ROOTFS_DIR}/home/inove/.bashrc" 2>/dev/null || true
 
-const server = http.createServer(async (req, res) => {
-  const url = req.url.split('?')[0];
-
-  // CORS Preflight
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    });
-    return res.end();
-  }
-
-  // --- API BACKEND REAL: INOVECLOUD CONTROL PLANE ---
-
-  // 1. /api/apps - Listar flatpaks e programas
-  if (url === '/api/apps' && req.method === 'GET') {
-    exec('flatpak list --app --columns=application,name,version 2>/dev/null', (err, stdout) => {
-      const flatpaks = [];
-      if (!err && stdout) {
-        stdout.trim().split('\n').forEach(line => {
-          const parts = line.split('\t');
-          if (parts[0]) flatpaks.push({ appId: parts[0], name: parts[1] || parts[0], version: parts[2] || '1.0', installed: true });
-        });
-      }
-      return sendJson(res, 200, { success: true, flatpaks });
-    });
-    return;
-  }
-
-  // 2. /api/install - Instalar Flatpak do Flathub ou pacote APT
-  if (url === '/api/install' && req.method === 'POST') {
-    const data = await readBody(req);
-    const appId = (data.appId || '').replace(/[;&|`$]/g, '').trim();
-    const pkgManager = data.packageManager || 'flatpak';
-
-    if (!appId) {
-      return sendJson(res, 400, { success: false, message: 'ID do app é obrigatório.' });
-    }
-
-    const command = pkgManager === 'apt'
-      ? `sudo apt-get install -y ${appId}`
-      : `flatpak install -y flathub ${appId}`;
-
-    console.log(`[Debian 13 GNOME Host /install]: ${command}`);
-    exec(command, { timeout: 300000 }, (error, stdout, stderr) => {
-      return sendJson(res, 200, {
-        success: !error,
-        message: error ? `Erro ao instalar ${appId}` : `App ${appId} instalado com sucesso!`,
-        output: stdout || stderr || error?.message
-      });
-    });
-    return;
-  }
-
-  // 3. /api/launch - Executar app no GNOME Wayland
-  if (url === '/api/launch' && req.method === 'POST') {
-    const data = await readBody(req);
-    const target = (data.executable || data.appId || '').replace(/[;&|`$]/g, '').trim();
-    const pkgManager = data.packageManager || 'flatpak';
-
-    if (!target) {
-      return sendJson(res, 400, { success: false, message: 'Identificador do app não informado.' });
-    }
-
-    const command = pkgManager === 'apt' || pkgManager === 'system' ? target : `flatpak run ${target}`;
-    console.log(`[Debian 13 GNOME Host /launch]: ${command}`);
-
-    const env = Object.assign({}, process.env, {
-      DISPLAY: process.env.DISPLAY || ':0',
-      WAYLAND_DISPLAY: process.env.WAYLAND_DISPLAY || 'wayland-0',
-    });
-
-    try {
-      const child = spawn(command, { shell: true, detached: true, stdio: 'ignore', env });
-      child.unref();
-      return sendJson(res, 200, { success: true, message: `Aplicativo ${target} aberto no GNOME!`, pid: child.pid });
-    } catch (e) {
-      return sendJson(res, 200, { success: true, message: `Lançado: ${target}` });
-    }
-  }
-
-  // 4. /api/terminal/exec - Executar comandos do Terminal Web
-  if (url === '/api/terminal/exec' && req.method === 'POST') {
-    const data = await readBody(req);
-    const command = data.command || '';
-    if (!command) return sendJson(res, 400, { success: false, output: 'Comando vazio.' });
-
-    exec(command, { timeout: 30000, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
-      return sendJson(res, 200, {
-        success: !error,
-        exitCode: error ? (error.code || 1) : 0,
-        stdout: stdout || '',
-        stderr: stderr || (error ? error.message : '')
-      });
-    });
-    return;
-  }
-
-  // 5. /api/system/debian/info - Informações reais do host Debian 13 (Trixie)
-  if (url === '/api/system/debian/info' && req.method === 'GET') {
-    exec('uname -r && cat /etc/os-release 2>/dev/null && uptime 2>/dev/null && free -m 2>/dev/null && df -h / 2>/dev/null', (err, stdout) => {
-      return sendJson(res, 200, {
-        success: true,
-        isLinux: true,
-        host: {
-          distro: 'Debian GNU/Linux 13 (Trixie)',
-          distroVersion: '13.0 Trixie (LTS/Testing)',
-          kernel: err ? '6.12.0-trixie-amd64' : (stdout.split('\n')[0] || '6.12.0-trixie-amd64'),
-          arch: 'x86_64 (AMD64)',
-          hostname: 'inovecloud-os',
-          initSystem: 'systemd 256.4',
-          displayServer: 'GNOME 46+ Wayland (Mutter) + InoveCloud Liquid Glass Theme',
-          graphicsDriver: 'Mesa 24.2+ (OpenGL 4.6 / Vulkan 1.3 / DRI3)',
-          uptime: '14 dias, 8 horas, 42 min',
-          timezone: 'America/Sao_Paulo (UTC-03:00)',
-          locale: 'pt_BR.UTF-8',
-          storage: { total: '512 GB', free: '438 GB', filesystem: 'ext4 / SquashFS' },
-          memory: { total: '16384 MB', used: '4210 MB', free: '12174 MB' }
-        },
-        services: [
-          { name: 'gdm3.service', description: 'GNOME Display Manager', status: 'active', enabled: true },
-          { name: 'NetworkManager', description: 'Gerenciador de Redes Wi-Fi & Ethernet', status: 'active', enabled: true },
-          { name: 'pipewire.service', description: 'Servidor de Áudio PipeWire', status: 'active', enabled: true },
-          { name: 'flatpak-system-helper', description: 'Suporte de Permissões Flatpak', status: 'active', enabled: true },
-          { name: 'inovecloud.service', description: 'InoveCloud Web Desktop Local Server', status: 'active', enabled: true }
-        ],
-        network: {
-          interface: 'wlan0 / eth0',
-          ip: '192.168.1.145',
-          subnet: '255.255.255.0',
-          gateway: '192.168.1.1',
-          dns: ['1.1.1.1', '8.8.8.8'],
-          mac: '52:54:00:12:34:56'
-        },
-        repositories: [
-          { name: 'Debian 13 Trixie Main', url: 'deb.debian.org/debian trixie main', active: true },
-          { name: 'Debian 13 Contrib & Non-Free', url: 'deb.debian.org/debian trixie contrib non-free non-free-firmware', active: true },
-          { name: 'Debian 13 Security Updates', url: 'security.debian.org/debian-security trixie-security main', active: true },
-          { name: 'Flathub Official', url: 'https://dl.flathub.org/repo/flathub.flatpakrepo', active: true }
-        ]
-      });
-    });
-    return;
-  }
-
-  // 6. /api/system/debian/action - Executar ações de controle no host Debian 13
-  if (url === '/api/system/debian/action' && req.method === 'POST') {
-    const data = await readBody(req);
-    const action = data.action || '';
-    const payload = data.payload || {};
-
-    let cmd = 'echo "ok"';
-    if (action === 'apt-update') cmd = 'sudo apt-get update';
-    else if (action === 'apt-clean') cmd = 'sudo apt-get clean && sudo apt-get autoremove -y';
-    else if (action === 'flatpak-update') cmd = 'flatpak update -y';
-    else if (action === 'service-restart') cmd = `sudo systemctl restart ${(payload.service || '').replace(/[;&|`$]/g, '')}`;
-    else if (action === 'service-toggle') cmd = `sudo systemctl ${payload.state === 'start' ? 'start' : 'stop'} ${(payload.service || '').replace(/[;&|`$]/g, '')}`;
-    else if (action === 'set-hostname') cmd = `sudo hostnamectl set-hostname ${(payload.hostname || 'inovecloud-os').replace(/[;&|`$]/g, '')}`;
-    else if (action === 'set-timezone') cmd = `sudo timedatectl set-timezone ${(payload.timezone || 'America/Sao_Paulo').replace(/[;&|`$]/g, '')}`;
-    else if (action === 'reboot') cmd = 'sudo systemctl reboot';
-    else if (action === 'poweroff') cmd = 'sudo systemctl poweroff';
-
-    exec(cmd, { timeout: 60000 }, (error, stdout, stderr) => {
-      return sendJson(res, 200, {
-        success: true,
-        action,
-        message: `Ação "${action}" concluída no Debian 13 GNOME!`,
-        output: stdout || stderr || 'Executado com sucesso.'
-      });
-    });
-    return;
-  }
-
-  // --- SERVIR ARQUIVOS ESTÁTICOS DO WEB DESKTOP ---
-  let safePath = path.normalize(url);
-  if (safePath === '/' || safePath === '\\') safePath = '/index.html';
-  
-  let filePath = path.join(PUBLIC_DIR, safePath);
-  if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-    filePath = path.join(PUBLIC_DIR, 'index.html');
-  }
-
-  const ext = path.extname(filePath).toLowerCase();
-  const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-
-  fs.readFile(filePath, (err, fileData) => {
-    if (err) {
-      if (ext === '.html' || safePath === '/index.html') {
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(`<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>InoveCloud OS - Inicializando</title>
-  <style>
-    body { background: #0b0c13; color: #f1f5f9; font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
-    .card { background: rgba(255,255,255,0.06); padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
-    h1 { color: #ef4444; margin-bottom: 8px; }
-    p { color: #94a3b8; font-size: 16px; margin-bottom: 20px; }
-    .loader { width: 40px; height: 40px; border: 4px solid rgba(239,68,68,0.2); border-top-color: #ef4444; border-radius: 50%; animation: spin 1s infinite linear; margin: 0 auto 20px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="loader"></div>
-    <h1>InoveCloud OS 2026</h1>
-    <p>Carregando Área de Trabalho Liquid Glass...</p>
-  </div>
-  <script>setTimeout(() => location.reload(), 3000);</script>
-</body>
-</html>`);
-        return;
-      }
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Not Found');
-      return;
-    }
-    res.writeHead(200, { 'Content-Type': contentType });
-    res.end(fileData);
-  });
-});
-
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`InoveCloud OS Local Server & API running on http://0.0.0.0:${PORT}`);
-});
-NODE_SRV
-
-# Permissões corretas para o usuário inove executar o servidor
-chown -R inove:inove "${ROOTFS_DIR}/opt/inovecloud" || true
-chmod -R 755 "${ROOTFS_DIR}/opt/inovecloud" || true
-
-# 5. Criar Atalho de Aplicativo Desktop para o InoveCloud Web Suite no GNOME (Janela Nativa Flutuante)
+# 7. Criar Atalhos Nativos no Desktop (.desktop)
 mkdir -p "${ROOTFS_DIR}/usr/share/applications"
-cat << 'DESKTOP_ENTRY' > "${ROOTFS_DIR}/usr/share/applications/inovecloud-desktop.desktop"
+mkdir -p "${ROOTFS_DIR}/home/inove/Desktop" "${ROOTFS_DIR}/etc/skel/Desktop"
+
+cat << 'INSTALLER_DESKTOP' > "${ROOTFS_DIR}/usr/share/applications/inovecloud-installer.desktop"
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=InoveCloud OS
-GenericName=Cloud Workspace & Infrastructure
-Comment=Área de Trabalho em Nuvem e Gestão de Infraestrutura InoveCloud
-Exec=chromium --app=http://127.0.0.1:3000 --window-size=1280,820 --no-sandbox --disable-dev-shm-usage
-Icon=preferences-desktop-theme
+Name=Instalar InoveCloud OS no Disco (CD/DVD)
+GenericName=Instalador do Sistema
+Comment=Assistente gráfico de particionamento e instalação do InoveCloud OS no SSD ou HD
+Exec=gnome-terminal --title="Instalador Oficial InoveCloud OS" -- /usr/local/bin/inovecloud-installer
+Icon=media-optical
 Terminal=false
-Categories=System;Utility;Network;
-StartupWMClass=chromium
-DESKTOP_ENTRY
+Categories=System;Settings;
+INSTALLER_DESKTOP
 
-# Disponibilizar ícone do InoveCloud OS diretamente na Área de Trabalho (Desktop) do usuário
-mkdir -p "${ROOTFS_DIR}/home/inove/Desktop" "${ROOTFS_DIR}/etc/skel/Desktop"
-cp "${ROOTFS_DIR}/usr/share/applications/inovecloud-desktop.desktop" "${ROOTFS_DIR}/home/inove/Desktop/"
-cp "${ROOTFS_DIR}/usr/share/applications/inovecloud-desktop.desktop" "${ROOTFS_DIR}/etc/skel/Desktop/"
-chmod +x "${ROOTFS_DIR}/home/inove/Desktop/inovecloud-desktop.desktop" "${ROOTFS_DIR}/etc/skel/Desktop/inovecloud-desktop.desktop" || true
-chown -R inove:inove "${ROOTFS_DIR}/home/inove/Desktop" || true
+cat << 'INFO_DESKTOP' > "${ROOTFS_DIR}/usr/share/applications/inove-info.desktop"
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Informações do Sistema
+GenericName=Diagnóstico do InoveCloud OS
+Comment=Visualizar informações de hardware, kernel e memória
+Exec=gnome-terminal --title="InoveCloud OS System Info" -- /usr/local/bin/inove-info
+Icon=help-about
+Terminal=false
+Categories=System;Utility;
+INFO_DESKTOP
 
-# Configurar systemd service para o Node.js InoveCloud em background
-cat << 'SERVICE_EOF' > "${ROOTFS_DIR}/etc/systemd/system/inovecloud.service"
-[Unit]
-Description=InoveCloud OS Local Application Server
-After=network.target
+# Copiar atalhos para a Área de Trabalho do usuário
+cp "${ROOTFS_DIR}/usr/share/applications/inovecloud-installer.desktop" "${ROOTFS_DIR}/home/inove/Desktop/"
+cp "${ROOTFS_DIR}/usr/share/applications/inovecloud-installer.desktop" "${ROOTFS_DIR}/etc/skel/Desktop/"
+cp "${ROOTFS_DIR}/usr/share/applications/inove-info.desktop" "${ROOTFS_DIR}/home/inove/Desktop/"
+cp "${ROOTFS_DIR}/usr/share/applications/inove-info.desktop" "${ROOTFS_DIR}/etc/skel/Desktop/"
 
-[Service]
-Type=simple
-User=inove
-WorkingDirectory=/opt/inovecloud
-ExecStart=/usr/bin/node /opt/inovecloud/server.js
-Restart=always
-RestartSec=3
-
-[Install]
-WantedBy=multi-user.target
-SERVICE_EOF
-
-# Habilitar o serviço de infraestrutura InoveCloud no boot
-chroot "${ROOTFS_DIR}" systemctl enable inovecloud.service || true
+chmod +x "${ROOTFS_DIR}/home/inove/Desktop/"*.desktop "${ROOTFS_DIR}/etc/skel/Desktop/"*.desktop 2>/dev/null || true
+chown -R inove:inove "${ROOTFS_DIR}/home/inove" 2>/dev/null || true
 
 # Desmontar explicitamente antes de gerar o SquashFS
 cleanup

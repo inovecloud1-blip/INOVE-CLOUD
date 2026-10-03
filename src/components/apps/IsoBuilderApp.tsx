@@ -30,10 +30,12 @@ import {
   Wrench,
   Zap,
   Compass,
-  ArrowRight
+  ArrowRight,
+  Sliders
 } from 'lucide-react';
 import { InstallerApp } from './InstallerApp';
 import { BuildLogsViewer } from './BuildLogsViewer';
+import { KernelBuildProfile, KERNEL_PROFILES, KernelProfileDef } from './KernelBuildProfile';
 
 interface IsoBuilderAppProps {
   onPreviewBootVideo?: () => void;
@@ -41,12 +43,16 @@ interface IsoBuilderAppProps {
 
 export const IsoBuilderApp: React.FC<IsoBuilderAppProps> = ({ onPreviewBootVideo }) => {
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'osdev-blueprint' | 'installer' | 'build-logs' | 'bootvideo' | 'glass-theme' | 'download' | 'script' | 'docker' | 'github' | 'guide'
+    'overview' | 'osdev-blueprint' | 'kernel-profile' | 'installer' | 'build-logs' | 'bootvideo' | 'glass-theme' | 'download' | 'script' | 'docker' | 'github' | 'guide'
   >('osdev-blueprint');
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [isSimulatingBuild, setIsSimulatingBuild] = useState(false);
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
   const [buildProgress, setBuildProgress] = useState(0);
+
+  // Kernel Build Profile state
+  const [selectedKernelProfile, setSelectedKernelProfile] = useState<KernelProfileDef>(KERNEL_PROFILES[0]);
+  const [customKernelFlags, setCustomKernelFlags] = useState<string>('');
 
   // Interactive Drive Connector state for Bare-Metal & VM
   const [selectedStorageController, setSelectedStorageController] = useState<'ahci' | 'nvme' | 'virtio' | 'ata'>('ahci');
@@ -89,6 +95,10 @@ export const IsoBuilderApp: React.FC<IsoBuilderAppProps> = ({ onPreviewBootVideo
     URL.revokeObjectURL(url);
   };
 
+  const effectiveFlags = selectedKernelProfile.id === 'custom' && customKernelFlags
+    ? customKernelFlags
+    : selectedKernelProfile.kcflags;
+
   const startSimulation = async () => {
     if (isSimulatingBuild) return;
     setIsSimulatingBuild(true);
@@ -96,6 +106,8 @@ export const IsoBuilderApp: React.FC<IsoBuilderAppProps> = ({ onPreviewBootVideo
     setBuildLogs([
       `[${new Date().toLocaleTimeString('pt-BR')}] ⚡ Conectando ao motor de compilação InoveCloud OS (Pure Linux Kernel 6.12+ Standalone)...`,
       `[${new Date().toLocaleTimeString('pt-BR')}] 📦 [1/7] Preparando ambiente de compilação: GCC 14, Binutils, Make, Libelf, ZSTD, Xorriso, GRUB2-EFI...`,
+      `[${new Date().toLocaleTimeString('pt-BR')}] ⚙️ [Perfil Selecionado] ${selectedKernelProfile.name} (${selectedKernelProfile.flagBadge})`,
+      `[${new Date().toLocaleTimeString('pt-BR')}] 🚩 [KCFLAGS] ${effectiveFlags}`,
     ]);
 
     try {
@@ -110,12 +122,12 @@ export const IsoBuilderApp: React.FC<IsoBuilderAppProps> = ({ onPreviewBootVideo
     }
 
     const steps = [
-      { progress: 18, log: '🐧 [2/7] Compilando Kernel Linux 6.12+ LTS puro com inove_defconfig (DRM/KMS, io_uring, eBPF, cgroups v2, KVM)...' },
+      { progress: 18, log: `🐧 [2/7] Compilando Kernel Linux 6.12+ LTS com KCFLAGS="${effectiveFlags}" (DRM/KMS, io_uring, eBPF, Inove Init PID 1)...` },
       { progress: 35, log: '⚙️ [3/7] Compilando Inove Init (PID 1 nativo em C) e Micro-Rootfs autônomo com Musl Libc & Coreutils...' },
       { progress: 55, log: '✨ [4/7] Injetando Inove Compositor DRM/KMS e integrando interface Liquid Glass acelerada por GPU...' },
-      { progress: 75, log: '🚀 [5/7] Gerando Initramfs Zstandard de Inicialização Ultrarrápida (Tempo de boot: 1.8s)...' },
+      { progress: 75, log: `🚀 [5/7] Gerando Initramfs Zstandard de Inicialização Ultrarrápida (Tempo de boot estimado: ${selectedKernelProfile.bootTimeEstimate})...` },
       { progress: 90, log: '🗜️ [6/7] Empacotando Micro-Rootfs em SquashFS de alta densidade (-comp xz)...' },
-      { progress: 100, log: '💿 [7/7] Imagem híbrida UEFI/BIOS gerada: inovecloud-os-kernel-pure-x86_64.iso (840 MB) [SHA256: a71e89f104d4...] - Concluído!' },
+      { progress: 100, log: `💿 [7/7] Imagem híbrida UEFI/BIOS gerada: inovecloud-os-kernel-pure-x86_64.iso (~${selectedKernelProfile.estimatedVmlinuzSize} vmlinuz) [SHA256: a71e89f104d4...] - Concluído!` },
     ];
 
     steps.forEach((step, idx) => {
@@ -136,14 +148,20 @@ set -euo pipefail
 
 echo "======================================================="
 echo "   InoveCloud OS - Pure Linux Kernel 6.12+ ISO Builder  "
+echo "   Perfil de Otimização: ${selectedKernelProfile.name} "
+echo "   Flags de Compilação : ${effectiveFlags} "
 echo "======================================================="
+
+# Exportar flags de otimização de máquina para o compilador do Kernel
+export KCFLAGS="${effectiveFlags}"
+export KCPPFLAGS="${effectiveFlags}"
 
 # 1. Compilar aplicação Web e Assets do Inove Desktop
 npm run build
 
-# 2. Executar script de compilação do Pure Linux Kernel
+# 2. Executar script de compilação do Pure Linux Kernel com as flags selecionadas
 chmod +x iso-builder/build-iso.sh
-sudo ./iso-builder/build-iso.sh
+sudo KCFLAGS="${effectiveFlags}" ./iso-builder/build-iso.sh
 
 # A imagem final será gerada em:
 # dist-iso/inovecloud-os-kernel-pure-x86_64.iso
@@ -230,6 +248,15 @@ jobs:
         </div>
 
         <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setActiveTab('kernel-profile')}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-950/60 to-slate-900 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 text-xs font-semibold transition cursor-pointer shadow active:scale-95 whitespace-nowrap"
+            title="Alterar flags de otimização do Kernel Linux (-march=native, -Os, etc.)"
+          >
+            <Sliders className="w-3.5 h-3.5 text-rose-400" />
+            <span className="text-slate-300">Profile:</span>
+            <span className="font-mono text-rose-300 font-bold">{selectedKernelProfile.flagBadge}</span>
+          </button>
           {onPreviewBootVideo && (
             <button
               onClick={onPreviewBootVideo}
@@ -262,6 +289,7 @@ jobs:
       <div className="px-5 pt-3 border-b border-white/10 bg-slate-900/60 flex space-x-2 overflow-x-auto text-xs font-semibold">
         {[
           { id: 'osdev-blueprint', label: '🏛️ OSDev & LittleOSBook Blueprint', icon: BookOpen },
+          { id: 'kernel-profile', label: '⚙️ Kernel Build Profile', icon: Sliders },
           { id: 'overview', label: 'Visão Geral & Arquitetura', icon: Layers },
           { id: 'build-logs', label: '📜 Logs de Build (stdout/stderr)', icon: Terminal },
           { id: 'installer', label: '💻 Console Instalador (xterm.js)', icon: Terminal },
@@ -736,6 +764,23 @@ jobs:
           </div>
         )}
 
+        {/* KERNEL BUILD PROFILE TAB */}
+        {activeTab === 'kernel-profile' && (
+          <KernelBuildProfile
+            currentProfileId={selectedKernelProfile.id}
+            onApplyProfile={(profile, custom) => {
+              setSelectedKernelProfile(profile);
+              if (custom) setCustomKernelFlags(custom);
+            }}
+            onSimulateWithProfile={(profile, custom) => {
+              setSelectedKernelProfile(profile);
+              if (custom) setCustomKernelFlags(custom);
+              setActiveTab('build-logs');
+              startSimulation();
+            }}
+          />
+        )}
+
         {/* INSTALLER TAB */}
         {activeTab === 'installer' && (
           <div className="h-[620px] rounded-2xl overflow-hidden border border-cyan-500/30 shadow-2xl bg-slate-950 max-w-5xl mx-auto">
@@ -746,6 +791,39 @@ jobs:
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div className="space-y-6 max-w-5xl mx-auto">
+            {/* Active Kernel Build Profile Banner */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-950/40 via-slate-900 to-amber-950/30 border border-rose-500/30 flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center justify-center font-bold">
+                  <Sliders className="w-5 h-5 text-rose-400" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h4 className="text-sm font-bold text-white">
+                      Kernel Build Profile: {selectedKernelProfile.name}
+                    </h4>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                      {selectedKernelProfile.flagBadge}
+                    </span>
+                  </div>
+                  <div className="flex items-center flex-wrap gap-2 text-xs text-slate-300 mt-1">
+                    <span>KCFLAGS: <code className="text-cyan-300 font-mono text-[11px]">{effectiveFlags}</code></span>
+                    <span aria-hidden="true">·</span>
+                    <span>Tamanho: <span className="text-slate-100 font-mono tabular-nums">~{selectedKernelProfile.estimatedVmlinuzSize}</span></span>
+                    <span aria-hidden="true">·</span>
+                    <span>Boot: <span className="text-emerald-400 font-mono tabular-nums">{selectedKernelProfile.bootTimeEstimate}</span></span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab('kernel-profile')}
+                className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition cursor-pointer shadow-md shadow-rose-600/30 active:scale-95 whitespace-nowrap"
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                <span>Configurar Flags & Perfil →</span>
+              </button>
+            </div>
+
             {/* Quick Alert: Pure Linux Kernel Standalone */}
             <div className="p-4 rounded-2xl bg-gradient-to-r from-red-500/10 via-purple-500/10 to-indigo-500/10 border border-red-500/30 flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center space-x-3">

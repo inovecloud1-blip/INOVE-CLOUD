@@ -549,14 +549,14 @@ export const Dock: React.FC<DockProps> = ({
   const themeStyleClass = (() => {
     switch (dockConfig.style) {
       case 'macos':
-        return 'bg-black/60 backdrop-blur-3xl border border-white/20 shadow-2xl';
+        return 'bg-gradient-to-b from-white/[0.14] via-black/[0.5] to-black/[0.75] backdrop-blur-3xl border border-white/[0.22] shadow-[inset_0_1.5px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(0,0,0,0.5),0_24px_60px_-10px_rgba(0,0,0,0.85)]';
       case 'floating_pill':
-        return 'bg-slate-950/90 backdrop-blur-2xl border border-cyan-500/40 rounded-full shadow-[0_0_30px_rgba(6,182,212,0.25)]';
+        return 'bg-slate-950/90 backdrop-blur-2xl border border-cyan-500/40 rounded-full shadow-[0_0_30px_rgba(6,182,212,0.35)]';
       case 'solid_dark':
         return 'bg-slate-950 border border-slate-800 shadow-2xl';
       case 'liquid_glass':
       default:
-        return 'glass-dock border border-white/30 backdrop-blur-2xl bg-white/10 dark:bg-black/40 shadow-2xl';
+        return 'bg-gradient-to-b from-white/[0.18] via-black/[0.45] to-black/[0.72] backdrop-blur-3xl border border-white/[0.25] shadow-[inset_0_1.5px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.5),0_24px_65px_-8px_rgba(0,0,0,0.85),0_0_40px_rgba(56,189,248,0.14)]';
     }
   })();
 
@@ -776,12 +776,9 @@ export const Dock: React.FC<DockProps> = ({
                       <div
                         className={`transition-all duration-300 rounded-full ${
                           isActive
-                            ? 'w-4 h-1 bg-white shadow-glow'
-                            : 'w-1.5 h-1.5 bg-white/70 hover:bg-white'
+                            ? 'w-4 h-1.5 bg-gradient-to-r from-cyan-400 to-blue-400 shadow-[0_0_12px_#38bdf8]'
+                            : 'w-1.5 h-1.5 bg-white/75 shadow-[0_0_4px_rgba(255,255,255,0.6)] hover:bg-white'
                         }`}
-                        style={{
-                          boxShadow: isActive ? '0 0 8px rgba(255, 255, 255, 0.9)' : undefined,
-                        }}
                       />
                     ) : (
                       <div className="w-1.5 h-1.5 opacity-0" />

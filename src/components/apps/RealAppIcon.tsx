@@ -44,21 +44,102 @@ export const RealAppIcon: React.FC<RealAppIconProps> = ({
         </div>
       );
 
-    // 3. LASER (CD Ripper)
+    // 3. INOVECLOUD OS INSTALLER / LIVE CD / LASER (CD Ripper)
     case 'laser':
+    case 'installer':
+    case 'install':
+    case 'cd':
+    case 'dvd':
+    case 'cddvd':
       return (
-        <div className={`${className} ${rounded} bg-gradient-to-br from-[#42424a] to-[#2b2b32] flex items-center justify-center p-2 shrink-0 border border-white/10 shadow-lg`}>
+        <div className={`${className} ${rounded} bg-gradient-to-br from-[#28292e] via-[#1e1f24] to-[#121316] flex items-center justify-center p-1.5 shrink-0 border border-white/10 shadow-xl overflow-hidden relative group`}>
           <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
-            {/* CD Disc */}
-            <circle cx="50" cy="50" r="38" fill="#D2D6DC" />
-            <circle cx="50" cy="50" r="34" fill="none" stroke="#E5E7EB" strokeWidth="2" />
-            <path d="M 50 16 A 34 34 0 0 1 78 68 L 65 59 A 18 18 0 0 0 50 32 Z" fill="#93C5FD" opacity="0.6" />
-            <path d="M 50 84 A 34 34 0 0 1 22 32 L 35 41 A 18 18 0 0 0 50 68 Z" fill="#FCA5A5" opacity="0.6" />
-            <circle cx="50" cy="50" r="14" fill="#4B5563" />
-            <circle cx="50" cy="50" r="8" fill="#1F2937" />
-            {/* Red recording LED */}
-            <circle cx="78" cy="78" r="6" fill="#EF4444" />
-            <circle cx="78" cy="78" r="3" fill="#FCA5A5" />
+            <defs>
+              <radialGradient id="real-ambient-glow" cx="50%" cy="30%" r="65%">
+                <stop offset="0%" stopColor="#d946ef" stopOpacity="0.4" />
+                <stop offset="60%" stopColor="#f59e0b" stopOpacity="0.2" />
+                <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+              </radialGradient>
+              <radialGradient id="real-disc-metal" cx="50%" cy="45%" r="50%">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="35%" stopColor="#f1f5f9" />
+                <stop offset="70%" stopColor="#cbd5e1" />
+                <stop offset="100%" stopColor="#94a3b8" />
+              </radialGradient>
+              <linearGradient id="real-rainbow-fan" x1="10%" y1="85%" x2="90%" y2="15%">
+                <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.9" />
+                <stop offset="18%" stopColor="#f97316" stopOpacity="0.9" />
+                <stop offset="34%" stopColor="#eab308" stopOpacity="0.95" />
+                <stop offset="50%" stopColor="#22c55e" stopOpacity="0.9" />
+                <stop offset="68%" stopColor="#06b6d4" stopOpacity="0.95" />
+                <stop offset="84%" stopColor="#3b82f6" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#a855f7" stopOpacity="0.9" />
+              </linearGradient>
+              <linearGradient id="real-rainbow-cross" x1="85%" y1="85%" x2="15%" y2="15%">
+                <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.75" />
+                <stop offset="35%" stopColor="#8b5cf6" stopOpacity="0.65" />
+                <stop offset="70%" stopColor="#ec4899" stopOpacity="0.7" />
+                <stop offset="100%" stopColor="#facc15" stopOpacity="0.8" />
+              </linearGradient>
+              <linearGradient id="real-specular" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+                <stop offset="30%" stopColor="#ffffff" stopOpacity="0.2" />
+                <stop offset="50%" stopColor="#ffffff" stopOpacity="0" />
+                <stop offset="70%" stopColor="#ffffff" stopOpacity="0.15" />
+                <stop offset="100%" stopColor="#ffffff" stopOpacity="0.7" />
+              </linearGradient>
+              <filter id="real-disc-shadow" x="-15%" y="-15%" width="130%" height="135%">
+                <feDropShadow dx="0" dy="3" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.6" />
+              </filter>
+            </defs>
+
+            {/* Ambient Glow */}
+            <rect width="100" height="100" rx="28" fill="url(#real-ambient-glow)" />
+
+            {/* Optical Disc */}
+            <g filter="url(#real-disc-shadow)">
+              <circle cx="50" cy="46" r="37" fill="url(#real-disc-metal)" />
+              <circle cx="50" cy="46" r="35.5" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" fill="none" />
+              <circle cx="50" cy="46" r="34" stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" fill="none" />
+
+              {/* Rainbow Diffraction */}
+              <path
+                d="M 50 46 L 15 36 A 36 36 0 0 1 78 20 Z"
+                fill="url(#real-rainbow-fan)"
+                style={{ mixBlendMode: 'color-dodge' }}
+                opacity="0.85"
+              />
+              <path
+                d="M 50 46 L 85 56 A 36 36 0 0 1 22 72 Z"
+                fill="url(#real-rainbow-fan)"
+                style={{ mixBlendMode: 'color-dodge' }}
+                opacity="0.85"
+              />
+              <path
+                d="M 50 46 L 30 78 A 36 36 0 0 1 70 82 Z"
+                fill="url(#real-rainbow-cross)"
+                style={{ mixBlendMode: 'screen' }}
+                opacity="0.65"
+              />
+
+              <circle cx="50" cy="46" r="37" fill="url(#real-specular)" style={{ mixBlendMode: 'overlay' }} />
+
+              {/* Hub Rings */}
+              <circle cx="50" cy="46" r="16.5" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="0.8" />
+              <circle cx="50" cy="46" r="14.5" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1" />
+              <circle cx="50" cy="46" r="11" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="0.7" />
+
+              {/* Spindle Hole */}
+              <circle cx="50" cy="46" r="7.5" fill="#0f172a" stroke="#020617" strokeWidth="1" />
+              <circle cx="50" cy="46" r="6" fill="#000000" />
+            </g>
+
+            {/* Bottom Glass Progress Pill */}
+            <rect x="14" y="70" width="72" height="15" rx="7.5" fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.55)" strokeWidth="0.8" />
+            <polygon points="21,74.5 28,77.5 21,80.5" fill="#ffffff" />
+            <line x1="33" y1="77.5" x2="79" y2="77.5" stroke="rgba(0,0,0,0.5)" strokeWidth="2.5" strokeLinecap="round" />
+            <line x1="33" y1="77.5" x2="54" y2="77.5" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
+            <circle cx="54" cy="77.5" r="3.2" fill="#ffffff" filter="drop-shadow(0 1px 2px rgba(0,0,0,0.5))" />
           </svg>
         </div>
       );

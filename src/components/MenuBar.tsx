@@ -334,59 +334,29 @@ export const MenuBar: React.FC<MenuBarProps> = ({
       </div>
 
       {/* Right Status Bar Section */}
-      <div className="flex items-center space-x-2 sm:space-x-3">
-        {/* HTTPS ON Pill */}
-        <div
-          onClick={() => onOpenApp('webapps')}
-          className="cursor-pointer hidden lg:flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-medium hover:bg-emerald-500/30 transition"
-          title="SSL Let's Encrypt Ativo para todas as rotas"
-        >
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>https ON</span>
-        </div>
-
-        {/* GPU Acceleration Pill */}
-        <div
-          onClick={() => onOpenApp('settings')}
-          className={`cursor-pointer hidden xl:flex items-center space-x-1 px-2 py-0.5 rounded-full text-[11px] font-medium border transition ${
-            gpuTurboEnabled
-              ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-              : 'bg-slate-800/40 text-slate-400 border-slate-700/30'
-          }`}
-          title="GPU Acceleration Status"
-        >
-          <Zap className={`w-3 h-3 ${gpuTurboEnabled ? 'text-cyan-400' : 'text-slate-500'}`} />
-          <span>GPU Turbo</span>
-        </div>
-
-        {/* Quick Hardware Indicators */}
+      <div className="flex items-center space-x-2 sm:space-x-3 text-slate-300">
+        {/* Hardware Status: Unboxed clean typography */}
         <div
           onClick={() => onOpenApp('vn')}
-          className="cursor-pointer hidden md:flex items-center space-x-2 px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 transition"
-          title="Uso de Hardware do Nó InoveCloud"
+          className="cursor-pointer hidden md:flex items-center space-x-2 text-[11px] text-slate-300/90 hover:text-white transition"
+          title="Telemetria de Recursos do Sistema InoveCloud"
         >
-          <div className="flex items-center space-x-1">
-            <Cpu className="w-3 h-3 text-cyan-400" />
-            <span>{stats.cpuUsage}%</span>
-          </div>
-          <div className="w-px h-3 bg-white/20" />
-          <div className="flex items-center space-x-1">
-            <HardDrive className="w-3 h-3 text-indigo-400" />
-            <span>{stats.ramUsage}%</span>
-          </div>
+          <span className="font-mono tabular-nums text-slate-200">CPU {stats.cpuUsage}%</span>
+          <span className="text-slate-600">·</span>
+          <span className="font-mono tabular-nums text-slate-200">RAM {stats.ramUsage}%</span>
         </div>
 
-        {/* Global Search Pill Bar in MenuBar */}
+        {/* Global Search Bar in MenuBar */}
         <button
           onClick={onToggleSpotlight}
-          className="flex items-center space-x-2 px-2.5 py-0.5 rounded-full bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white border border-white/15 hover:border-white/30 transition cursor-pointer shadow-sm group"
+          className="flex items-center space-x-2 px-2.5 py-1 rounded-lg bg-white/[0.07] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/10 hover:border-white/20 transition cursor-pointer shadow-sm group"
           title="Busca Global no InoveCloud OS (Arquivos, Ajustes, Nós e Apps) - Pressione ⌘K"
         >
           <Search className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
           <span className="text-[11px] font-medium hidden sm:inline text-slate-300 group-hover:text-white">
-            Buscar arquivos, ajustes ou nós...
+            Buscar...
           </span>
-          <kbd className="hidden md:inline-flex items-center px-1.5 py-0.2 rounded bg-black/40 text-[9px] font-mono text-cyan-300/90 border border-white/10">
+          <kbd className="hidden md:inline-flex items-center px-1.5 py-0.2 rounded bg-black/40 text-[9px] font-mono text-slate-300 border border-white/10">
             ⌘K
           </kbd>
         </button>
@@ -400,19 +370,18 @@ export const MenuBar: React.FC<MenuBarProps> = ({
           <Search className="w-3.5 h-3.5" />
         </button>
 
-        {/* Do Not Disturb Moon Indicator */}
+        {/* Do Not Disturb Indicator */}
         {doNotDisturb && (
           <button
             onClick={onToggleControlCenter}
-            className="p-1 px-1.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center space-x-1 text-[11px] transition cursor-pointer animate-pulse"
-            title="Modo Não Perturbe Ativo (Silencioso)"
+            className="p-1 text-purple-400 hover:bg-purple-500/20 rounded transition cursor-pointer"
+            title="Modo Não Perturbe Ativo"
           >
-            <BellOff className="w-3.5 h-3.5 text-purple-400" />
-            <span className="hidden lg:inline text-[10px]">DND</span>
+            <BellOff className="w-3.5 h-3.5" />
           </button>
         )}
 
-        {/* Ethernet / Cabo RJ45 Status */}
+        {/* Ethernet Status */}
         <button
           onClick={onToggleControlCenter}
           className="p-1 hover:bg-white/10 rounded transition cursor-pointer"
@@ -452,14 +421,14 @@ export const MenuBar: React.FC<MenuBarProps> = ({
           {isMuted || speakerVolume === 0 ? (
             <VolumeX className="w-3.5 h-3.5 text-red-400" />
           ) : (
-            <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+            <Volume2 className="w-3.5 h-3.5 text-slate-300 hover:text-white" />
           )}
         </button>
 
         {/* Battery Status */}
         <div className="hidden sm:flex items-center space-x-1 text-slate-300" title="Bateria: 100% Carregada (AC Conectado)">
           <BatteryCharging className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="text-[10px]">100%</span>
+          <span className="text-[10px] font-mono tabular-nums">100%</span>
         </div>
 
         {/* Quick Lock Button */}
@@ -468,7 +437,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
             playFeedbackTone();
             lockScreen();
           }}
-          className="p-1 text-cyan-300 hover:bg-cyan-500/20 rounded transition cursor-pointer"
+          className="p-1 text-slate-300 hover:text-cyan-300 hover:bg-white/10 rounded transition cursor-pointer"
           title="Bloquear Tela (⌘L)"
         >
           <Lock className="w-3.5 h-3.5" />
@@ -477,8 +446,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         {/* Control Center Toggle */}
         <button
           onClick={onToggleControlCenter}
-          className={`p-1 rounded transition cursor-pointer ${
-            isControlCenterOpen ? 'bg-blue-600 text-white shadow' : 'hover:bg-white/10 text-white/80 hover:text-white'
+          className={`p-1.5 rounded-lg transition cursor-pointer ${
+            isControlCenterOpen ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm' : 'hover:bg-white/10 text-slate-300 hover:text-white'
           }`}
           title="Central de Controle"
         >
@@ -488,11 +457,11 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         {/* Date & Time */}
         <div
           onClick={onToggleControlCenter}
-          className="pl-1 text-white/95 font-medium flex items-center space-x-1.5 cursor-pointer hover:text-cyan-300 transition"
-          title="Clique para abrir Central de Controle"
+          className="cursor-pointer hover:bg-white/10 px-2 py-0.5 rounded text-slate-200 hover:text-white font-medium flex items-center space-x-1.5 transition text-[11px]"
+          title="Clique para abrir o painel de calendário e notificações"
         >
-          <span className="hidden sm:inline-block text-slate-300">{date}</span>
-          <span className="font-semibold">{time}</span>
+          <span className="hidden sm:inline text-slate-400">{date}</span>
+          <span className="font-semibold text-white font-mono tabular-nums">{time}</span>
         </div>
       </div>
     </header>

@@ -200,85 +200,92 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
             },
           }}
           style={windowStyle}
-          className={`fixed flex flex-col liquid-glass rounded-2xl border border-white/25 mac-window-shadow overflow-hidden select-none will-change-transform ${
+          className={`fixed flex flex-col rounded-2xl overflow-hidden select-none will-change-transform ${
             safeWindow.isMaximized ? 'rounded-none border-x-0 border-t-0' : ''
           }`}
         >
-          {/* macOS Window Titlebar with Liquid Refraction */}
+          {/* Specular Ambient Glow & Acrylic Glass Container */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#101424]/90 via-[#0a0d18]/92 to-[#060810]/95 backdrop-blur-3xl -z-10" />
+          <div className="absolute inset-0 rounded-2xl border border-white/20 pointer-events-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.35),inset_0_-1px_0_rgba(0,0,0,0.5),0_28px_70px_-10px_rgba(0,0,0,0.85),0_0_40px_rgba(56,189,248,0.06)]" />
+
+          {/* High-Refraction Window Titlebar */}
           <div
             onMouseDown={handleMouseDown}
             onDoubleClick={() => {
               playPop('click');
               onToggleMaximize();
             }}
-            className="h-10 bg-white/5 border-b border-white/15 flex items-center justify-between px-3.5 cursor-grab active:cursor-grabbing shrink-0 select-none backdrop-blur-md"
+            className="h-11 bg-gradient-to-b from-white/[0.12] to-transparent border-b border-white/10 flex items-center justify-between px-4 cursor-grab active:cursor-grabbing shrink-0 select-none relative"
           >
-            {/* Left: Traffic light control buttons */}
-            <div className="flex items-center space-x-2 group">
-              {/* Close (Red) */}
+            {/* Left: Authentic Jewel-like Traffic light control buttons */}
+            <div className="flex items-center space-x-2.5 group/buttons">
+              {/* Close (Red Jewel) */}
               <motion.button
                 whileHover={{ scale: 1.15 }}
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.88 }}
                 onClick={(e) => {
                   e.stopPropagation();
                   playPop('off');
                   onClose();
                 }}
-                className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E] flex items-center justify-center text-black/60 hover:text-black transition cursor-pointer"
-                title="Fechar"
+                className="w-3.5 h-3.5 rounded-full bg-gradient-to-b from-[#ff6b62] to-[#e0443e] border border-black/30 flex items-center justify-center text-[#4a0000] shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_1px_3px_rgba(0,0,0,0.4)] transition cursor-pointer relative overflow-hidden"
+                title="Fechar Janela"
               >
-                <X className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute top-0 inset-x-0 h-1 bg-white/40 rounded-t-full pointer-events-none" />
+                <X className="w-2.5 h-2.5 opacity-0 group-hover/buttons:opacity-100 transition-opacity stroke-[2.5]" />
               </motion.button>
 
-              {/* Minimize (Yellow) */}
+              {/* Minimize (Amber Jewel) */}
               <motion.button
                 whileHover={{ scale: 1.15 }}
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.88 }}
                 onClick={(e) => {
                   e.stopPropagation();
                   playPop('off');
                   onMinimize();
                 }}
-                className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123] flex items-center justify-center text-black/60 hover:text-black transition cursor-pointer"
+                className="w-3.5 h-3.5 rounded-full bg-gradient-to-b from-[#ffc936] to-[#d99818] border border-black/30 flex items-center justify-center text-[#5c3e00] shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_1px_3px_rgba(0,0,0,0.4)] transition cursor-pointer relative overflow-hidden"
                 title="Minimizar"
               >
-                <Minus className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute top-0 inset-x-0 h-1 bg-white/40 rounded-t-full pointer-events-none" />
+                <Minus className="w-2.5 h-2.5 opacity-0 group-hover/buttons:opacity-100 transition-opacity stroke-[2.5]" />
               </motion.button>
 
-              {/* Maximize (Green) */}
+              {/* Maximize (Emerald Jewel) */}
               <motion.button
                 whileHover={{ scale: 1.15 }}
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.88 }}
                 onClick={(e) => {
                   e.stopPropagation();
                   playPop('on');
                   onToggleMaximize();
                 }}
-                className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29] flex items-center justify-center text-black/60 hover:text-black transition cursor-pointer"
-                title={safeWindow.isMaximized ? 'Restaurar tamanho' : 'Maximizar'}
+                className="w-3.5 h-3.5 rounded-full bg-gradient-to-b from-[#34d84c] to-[#1fac33] border border-black/30 flex items-center justify-center text-[#00420d] shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_1px_3px_rgba(0,0,0,0.4)] transition cursor-pointer relative overflow-hidden"
+                title={safeWindow.isMaximized ? 'Restaurar' : 'Maximizar'}
               >
+                <div className="absolute top-0 inset-x-0 h-1 bg-white/40 rounded-t-full pointer-events-none" />
                 {safeWindow.isMaximized ? (
-                  <Minimize2 className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Minimize2 className="w-2 h-2 opacity-0 group-hover/buttons:opacity-100 transition-opacity stroke-[2.5]" />
                 ) : (
-                  <Maximize2 className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Maximize2 className="w-2 h-2 opacity-0 group-hover/buttons:opacity-100 transition-opacity stroke-[2.5]" />
                 )}
               </motion.button>
             </div>
 
-            {/* Center: Title and App Icon */}
-            <div className="flex items-center space-x-2 text-xs font-semibold text-slate-200 tracking-wide pointer-events-none truncate max-w-[50%]">
-              {icon && <span className="opacity-80">{icon}</span>}
+            {/* Center: Title and App Icon with Frosted Optical Capsule */}
+            <div className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs font-semibold text-slate-100 tracking-wide pointer-events-none truncate max-w-[55%] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+              {icon && <span className="opacity-90 shrink-0 text-cyan-400">{icon}</span>}
               <span className="truncate">{safeWindow.title}</span>
             </div>
 
-            {/* Right: Custom window header actions if any */}
+            {/* Right: Custom window header actions */}
             <div className="flex items-center space-x-2">
               {headerRightContent}
             </div>
           </div>
 
           {/* Window Body Content with Error Boundary */}
-          <div className="flex-1 overflow-auto p-0 bg-slate-950/70 text-slate-100 flex flex-col">
+          <div className="flex-1 overflow-auto p-0 bg-transparent text-slate-100 flex flex-col relative">
             <WindowErrorBoundary
               appName={safeWindow.title}
               onReset={() => {

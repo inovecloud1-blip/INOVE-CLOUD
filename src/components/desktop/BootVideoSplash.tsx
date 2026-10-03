@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, X, ShieldCheck, Terminal, Monitor, CheckCircle, Cpu, Server, HardDrive, Wifi, Play } from 'lucide-react';
+import { Sparkles, X, ShieldCheck, Terminal, Monitor, CheckCircle, Cpu, Server, HardDrive, Wifi, Play, Disc } from 'lucide-react';
 import { InstallerApp } from '../apps/InstallerApp';
 import { WindowFrame } from '../WindowFrame';
 import { WindowState } from '../../types';
@@ -49,12 +49,11 @@ export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
   });
 
   const biosMenuItems = [
-    { key: 'F1', label: 'System Information', desc: 'Hardware, CPU, RAM & Live Session' },
-    { key: 'F2', label: 'System Diagnostics', desc: 'Verbose Hardware & Memory Verification' },
-    { key: 'F9', label: 'Boot Device Options', desc: 'Fast Startup & Direct Storage Boot' },
-    { key: 'F10', label: 'BIOS Setup: Instalação no Disco', desc: 'Console xterm com debootstrap e apt-get' },
-    { key: 'F11', label: 'System Recovery', desc: 'Safe Mode (VESA / Framebuffer Fallback)' },
-    { key: 'F12', label: 'Network Boot', desc: 'Cloud PXE & Network DHCP Recovery' },
+    { key: 'Enter', label: '🚀 InoveCloud OS (Sessão Live CD/DVD)', desc: 'Experimentar o sistema sem alterar o disco' },
+    { key: 'F10', label: '💿 Instalar InoveCloud OS no Disco', desc: 'Assistente com idioma, partição e conta de usuário' },
+    { key: 'F1', label: 'Informações do Sistema & Hardware', desc: 'CPU, RAM, Discos NVMe/SATA e GPU' },
+    { key: 'F11', label: 'Modo Gráfico Seguro (SimpleDRM / VESA)', desc: 'Fallback de vídeo para compatibilidade máxima' },
+    { key: 'F12', label: 'Boot via Rede (PXE / Cloud)', desc: 'Recuperação de imagem remota' },
   ];
 
   useEffect(() => {
@@ -274,20 +273,20 @@ export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
       {/* Alternador para a tela da BIOS e Instalador */}
       <div className="absolute top-6 left-6 z-20 flex items-center space-x-2">
         <button
+          onClick={() => setViewMode('installer')}
+          className="flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-950/90 to-slate-900 hover:bg-rose-900/60 text-rose-300 border border-rose-500/40 text-xs font-semibold shadow-lg backdrop-blur-md transition cursor-pointer"
+          title="Abrir Assistente de Instalação no Disco (Live CD/DVD)"
+        >
+          <Disc className="w-3.5 h-3.5 text-rose-400" />
+          <span>💿 Instalar no Disco (CD/DVD)</span>
+        </button>
+        <button
           onClick={() => setViewMode('bios')}
           className="flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-blue-900/80 hover:bg-blue-800 text-cyan-200 border border-blue-400/40 text-xs font-semibold shadow-lg backdrop-blur-md transition cursor-pointer"
           title="Ver Tela de Startup da BIOS Clássica"
         >
           <Monitor className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Tela BIOS (Startup Menu)</span>
-        </button>
-        <button
-          onClick={() => setViewMode('installer')}
-          className="flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-400/40 text-xs font-semibold shadow-lg backdrop-blur-md transition cursor-pointer"
-          title="Abrir Console de Instalação xterm.js"
-        >
-          <Terminal className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Console Instalação (xterm)</span>
+          <span>Menu BIOS (GRUB)</span>
         </button>
       </div>
 

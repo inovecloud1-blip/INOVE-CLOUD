@@ -152,13 +152,13 @@ export const LAUNCHER_APPS: LauncherAppInfo[] = [
   },
   {
     id: 'installer',
-    name: 'Instalador InoveCloud OS',
+    name: 'Instalar InoveCloud OS',
     category: 'Infraestrutura & KVM',
-    description: 'Console de instalação no disco SSD/NVMe com debootstrap, particionamento e apt-get em tempo real.',
-    badge: 'Console xterm',
-    badgeColor: 'bg-emerald-600',
-    iconName: 'Terminal',
-    gradient: 'from-emerald-600 via-teal-600 to-cyan-700',
+    description: 'Assistente oficial de instalação do sistema no disco rígido ou SSD NVMe (Idioma, Teclado, Particionamento GPT/EFI, Usuário e Instalação).',
+    badge: 'Live CD / DVD',
+    badgeColor: 'bg-rose-600',
+    iconName: 'Disc',
+    gradient: 'from-slate-800 via-rose-950 to-slate-900',
   },
   {
     id: 'isobuilder',
@@ -243,6 +243,7 @@ export const LAUNCHER_APPS: LauncherAppInfo[] = [
 ];
 
 export const DEFAULT_DESKTOP_PINNED: AppId[] = [
+  'installer',
   'projects',
   'notes',
   'gallery',
@@ -264,6 +265,7 @@ export const DEFAULT_DESKTOP_PINNED: AppId[] = [
 ];
 
 export const DEFAULT_DOCK_PINNED: AppId[] = [
+  'installer',
   'projects',
   'notes',
   'gallery',

@@ -48,6 +48,131 @@ export const AppIcon: React.FC<AppIconProps> = ({
   // Render SVG correspondente à coleção de ícones de alta fidelidade
   const renderIconSvg = () => {
     switch (appId) {
+      // 0. INSTALADOR DE SISTEMA (CD / DVD LIVE INSTALLER) -> 3D Holographic Rainbow Optical Disc (Dezi / macOS Style)
+      case 'installer':
+      case 'install':
+      case 'cddvd':
+      case 'setup':
+        return (
+          <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
+            <defs>
+              {/* Fundo do Squircle com luz ambiente sutil magenta/roxa */}
+              <linearGradient id="cddvd-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#2c2d33" />
+                <stop offset="40%" stopColor="#212228" />
+                <stop offset="100%" stopColor="#121317" />
+              </linearGradient>
+              <radialGradient id="cddvd-ambient-glow" cx="50%" cy="30%" r="65%">
+                <stop offset="0%" stopColor="#e056fd" stopOpacity="0.35" />
+                <stop offset="50%" stopColor="#f0932b" stopOpacity="0.2" />
+                <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+              </radialGradient>
+              {/* Base de Alumínio Metálico do Disco */}
+              <radialGradient id="cddvd-disc-metal" cx="50%" cy="45%" r="50%">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="40%" stopColor="#eef1f5" />
+                <stop offset="70%" stopColor="#d5dbe4" />
+                <stop offset="100%" stopColor="#a4acb9" />
+              </radialGradient>
+              {/* Espectro Prismático de Difração do Arco-Íris (Reflexo Holográfico de CD) */}
+              <linearGradient id="cddvd-rainbow-fan" x1="10%" y1="85%" x2="90%" y2="15%">
+                <stop offset="0%" stopColor="#ff2a6d" stopOpacity="0.85" />
+                <stop offset="18%" stopColor="#ff7b00" stopOpacity="0.85" />
+                <stop offset="34%" stopColor="#ffdd00" stopOpacity="0.9" />
+                <stop offset="50%" stopColor="#05df72" stopOpacity="0.85" />
+                <stop offset="68%" stopColor="#00b4d8" stopOpacity="0.9" />
+                <stop offset="84%" stopColor="#4361ee" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="#b5179e" stopOpacity="0.85" />
+              </linearGradient>
+              <linearGradient id="cddvd-rainbow-cross" x1="85%" y1="85%" x2="15%" y2="15%">
+                <stop offset="0%" stopColor="#00f5d4" stopOpacity="0.7" />
+                <stop offset="30%" stopColor="#7b2cbf" stopOpacity="0.6" />
+                <stop offset="60%" stopColor="#f72585" stopOpacity="0.65" />
+                <stop offset="100%" stopColor="#fee440" stopOpacity="0.75" />
+              </linearGradient>
+              {/* Brilho Especular de Reflexo Diagonal */}
+              <linearGradient id="cddvd-specular" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+                <stop offset="30%" stopColor="#ffffff" stopOpacity="0.2" />
+                <stop offset="50%" stopColor="#ffffff" stopOpacity="0" />
+                <stop offset="70%" stopColor="#ffffff" stopOpacity="0.15" />
+                <stop offset="100%" stopColor="#ffffff" stopOpacity="0.7" />
+              </linearGradient>
+              {/* Sombra suave projetada */}
+              <filter id="cddvd-disc-shadow" x="-20%" y="-15%" width="140%" height="145%">
+                <feDropShadow dx="0" dy="4" stdDeviation="3.5" floodColor="#000000" floodOpacity="0.55" />
+              </filter>
+              <filter id="cddvd-pill-shadow" x="-20%" y="-20%" width="140%" height="150%">
+                <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000000" floodOpacity="0.4" />
+              </filter>
+            </defs>
+
+            {/* Squircle Fundo */}
+            <rect width="100" height="100" rx="28" fill="url(#cddvd-bg)" />
+            <rect width="100" height="100" rx="28" fill="url(#cddvd-ambient-glow)" />
+            {/* Borda Acetinada */}
+            <rect x="2" y="2" width="96" height="96" rx="26" stroke="rgba(255,255,255,0.12)" strokeWidth="1.2" fill="none" />
+
+            {/* DISCO ÓPTICO CD / DVD HOLOGRÁFICO */}
+            <g filter="url(#cddvd-disc-shadow)">
+              {/* Corpo de Alumínio Base do Disco */}
+              <circle cx="50" cy="46" r="37" fill="url(#cddvd-disc-metal)" />
+
+              {/* Ranhuras de Trilha de Dados Óptica */}
+              <circle cx="50" cy="46" r="35.5" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" fill="none" />
+              <circle cx="50" cy="46" r="34" stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" fill="none" />
+
+              {/* Camadas Prismáticas de Difração de Luz (Arco-Íris CD) */}
+              <path
+                d="M 50 46 L 15 36 A 36 36 0 0 1 78 20 Z"
+                fill="url(#cddvd-rainbow-fan)"
+                style={{ mixBlendMode: 'color-dodge' }}
+                opacity="0.85"
+              />
+              <path
+                d="M 50 46 L 85 56 A 36 36 0 0 1 22 72 Z"
+                fill="url(#cddvd-rainbow-fan)"
+                style={{ mixBlendMode: 'color-dodge' }}
+                opacity="0.85"
+              />
+              <path
+                d="M 50 46 L 30 78 A 36 36 0 0 1 70 82 Z"
+                fill="url(#cddvd-rainbow-cross)"
+                style={{ mixBlendMode: 'screen' }}
+                opacity="0.65"
+              />
+
+              {/* Varredura Especular Translúcida de Vidro/Plástico */}
+              <circle cx="50" cy="46" r="37" fill="url(#cddvd-specular)" style={{ mixBlendMode: 'overlay' }} />
+
+              {/* Anel de Fixação Plástico Translúcido Central */}
+              <circle cx="50" cy="46" r="16.5" fill="#f0f3f8" stroke="#cbd3e1" strokeWidth="0.8" />
+              <circle cx="50" cy="46" r="14.5" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1" />
+
+              {/* Espelho Anelar Interno */}
+              <circle cx="50" cy="46" r="11" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="0.7" />
+
+              {/* Furo Central / Spindle Hole do CD com Borda Biselada */}
+              <circle cx="50" cy="46" r="7.5" fill="#18191d" stroke="#0f172a" strokeWidth="1" />
+              <circle cx="50" cy="46" r="6" fill="#0b0b0d" />
+            </g>
+
+            {/* Pílula Translúcida Inferior com Barra de Instalação/Progresso (Estilo Imagem de Referência) */}
+            <g filter="url(#cddvd-pill-shadow)">
+              {/* Barra de Vidro Fosco */}
+              <rect x="14" y="70" width="72" height="15" rx="7.5" fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.55)" strokeWidth="0.8" />
+              <rect x="14.5" y="70.5" width="71" height="7" rx="3.5" fill="rgba(255,255,255,0.25)" />
+              {/* Ícone de Play / Instalação Triangular */}
+              <polygon points="21,74.5 28,77.5 21,80.5" fill="#ffffff" />
+              {/* Linha de Barra de Progresso */}
+              <line x1="33" y1="77.5" x2="79" y2="77.5" stroke="rgba(0,0,0,0.5)" strokeWidth="2.5" strokeLinecap="round" />
+              <line x1="33" y1="77.5" x2="52" y2="77.5" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
+              {/* Botão deslizante branco (Slider thumb) */}
+              <circle cx="52" cy="77.5" r="3.2" fill="#ffffff" filter="drop-shadow(0 1px 2px rgba(0,0,0,0.4))" />
+            </g>
+          </svg>
+        );
+
       // 1. CALCULADORA -> Squircle preto fosco com botões tácteis (+, ×, −, = laranja)
       case 'calculator':
       case 'calc':

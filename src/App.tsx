@@ -517,13 +517,13 @@ function DesktopOS() {
     },
     installer: {
       id: 'installer',
-      title: 'Console de Instalação no Disco — debootstrap & apt-get (xterm.js)',
+      title: 'Instalador do InoveCloud OS — Assistente de Instalação no Disco (Live CD/DVD)',
       isOpen: false,
       isMinimized: false,
       isMaximized: false,
       zIndex: 16,
       position: { x: 110, y: 60 },
-      size: { width: 920, height: 580 },
+      size: { width: 960, height: 620 },
     },
     themes: {
       id: 'themes',
@@ -733,7 +733,7 @@ function DesktopOS() {
             aiagent: 'Agente IA (DevOps & MCP)',
             themes: 'Temas & Papéis de Parede',
             settings: 'Configurações do PC & OS',
-            installer: 'Instalador InoveCloud OS',
+            installer: 'Instalar InoveCloud OS (CD/DVD)',
             isobuilder: 'Gerador de ISO & Live OS',
             linuxpedia: 'LinuxPedia (API & Comandos)',
             calculator: 'Calculadora',
@@ -1259,11 +1259,11 @@ function DesktopOS() {
           </WindowFrame>
         </div>
 
-        {/* InoveCloud OS Installation Terminal App (xterm.js style) */}
+        {/* InoveCloud OS Installation Wizard App (Live CD/DVD style) */}
         <div className="pointer-events-auto">
           <WindowFrame
             window={windows.installer}
-            icon={<Terminal className="w-3.5 h-3.5 text-emerald-400" />}
+            icon={<Disc className="w-3.5 h-3.5 text-rose-400 animate-spin" style={{ animationDuration: '6s' }} />}
             onClose={() => closeWindow('installer')}
             onMinimize={() => minimizeWindow('installer')}
             onToggleMaximize={() => toggleMaximize('installer')}
