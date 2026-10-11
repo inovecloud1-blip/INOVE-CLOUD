@@ -5,7 +5,8 @@ import {
   Moon,
   Lock,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Terminal
 } from 'lucide-react';
 import { useSystemSettings } from '../../context/SystemSettingsContext';
 
@@ -13,12 +14,14 @@ interface PowerDialogProps {
   isOpen: boolean;
   onClose: () => void;
   defaultAction?: 'shutdown' | 'restart' | 'sleep' | 'lock';
+  onSwitchToPureKernel?: () => void;
 }
 
 export const PowerDialog: React.FC<PowerDialogProps> = ({
   isOpen,
   onClose,
   defaultAction = 'shutdown',
+  onSwitchToPureKernel,
 }) => {
   const {
     requestShutdown,
@@ -121,6 +124,30 @@ export const PowerDialog: React.FC<PowerDialogProps> = ({
               </div>
             </button>
           </div>
+
+          {/* Pure Kernel Mode Direct Switcher */}
+          {onSwitchToPureKernel && (
+            <button
+              onClick={() => {
+                onClose();
+                onSwitchToPureKernel();
+              }}
+              className="w-full p-3.5 rounded-2xl bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 flex items-center justify-between transition cursor-pointer active:scale-95 group"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                  <Terminal className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <div className="font-bold text-xs text-white">Alternar para Modo Kernel Puro (TTY1)</div>
+                  <div className="text-[10px] text-emerald-400/80">Ambiente Bare-Metal sem GNOME • Inove Init PID 1</div>
+                </div>
+              </div>
+              <span className="text-[10px] font-mono bg-black/40 px-2 py-1 rounded text-slate-300 border border-white/10">
+                Ctrl+Alt+F1
+              </span>
+            </button>
+          )}
 
           {/* Cancel button */}
           <div className="flex justify-end pt-1">

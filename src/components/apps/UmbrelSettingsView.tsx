@@ -1022,11 +1022,11 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
                 <div className="grid grid-cols-2 gap-3 text-xs text-slate-300">
                   <div className="p-3 rounded-xl bg-black/40 border border-white/5">
                     <span className="text-[10px] text-slate-500 uppercase font-bold block">Kernel</span>
-                    <span className="font-mono text-white">6.12.0-trixie-amd64</span>
+                    <span className="font-mono text-white">6.12.18-inovecloud-pure</span>
                   </div>
                   <div className="p-3 rounded-xl bg-black/40 border border-white/5">
                     <span className="text-[10px] text-slate-500 uppercase font-bold block">Sessão</span>
-                    <span className="font-mono text-white">GNOME Mutter Wayland</span>
+                    <span className="font-mono text-white">DRM/KMS Direct Compositor (Sem GNOME)</span>
                   </div>
                 </div>
               </div>

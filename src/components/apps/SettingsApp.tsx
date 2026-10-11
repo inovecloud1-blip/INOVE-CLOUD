@@ -142,11 +142,11 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
     host: {
       distro: 'Debian GNU/Linux 13 (Trixie)',
       distroVersion: '13.0 Trixie (LTS/Testing)',
-      kernel: '6.12.0-trixie-amd64',
+      kernel: '6.12.18-inovecloud-pure',
       arch: 'x86_64 (AMD64)',
-      hostname: 'inovecloud-os',
-      initSystem: 'systemd 256.4',
-      displayServer: 'GNOME 46+ Wayland (Mutter) + InoveCloud Liquid Glass Theme',
+      hostname: 'inovecloud-kernel',
+      initSystem: 'inove-init (PID 1) / systemd-compat',
+      displayServer: 'InoveCloud Direct KMS / DRM Framebuffer Compositor (100% Puro, Sem GNOME)',
       graphicsDriver: 'Mesa 24.2.3 (OpenGL 4.6 / Vulkan 1.3 / DRI3)',
       uptime: '14 dias, 8 horas, 42 min',
       timezone: 'America/Sao_Paulo (UTC-03:00)',
@@ -155,7 +155,8 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
       memory: { total: '16384 MB', used: '4210 MB', free: '12174 MB' }
     },
     services: [
-      { name: 'gdm3.service', description: 'GNOME Display Manager', status: 'active', enabled: true },
+      { name: 'inove-init.service', description: 'InoveCloud Core PID 1 Supervisor', status: 'active', enabled: true },
+      { name: 'inove-drm.service', description: 'DRM/KMS Direct Compositor (Sem GNOME)', status: 'active', enabled: true },
       { name: 'NetworkManager', description: 'Gerenciador de Redes Wi-Fi & Ethernet', status: 'active', enabled: true },
       { name: 'pipewire.service', description: 'Servidor de Áudio PipeWire', status: 'active', enabled: true },
       { name: 'flatpak-system-helper', description: 'Suporte de Permissões Flatpak', status: 'active', enabled: true },
@@ -476,7 +477,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
             }}
             className="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-slate-400 hover:text-white transition cursor-pointer"
           >
-            Debian GNOME
+            Modo Clássico (LFS)
           </button>
         </div>
 
@@ -515,9 +516,9 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
         </button>
         <button
           onClick={() => setUiMode('classic')}
-          className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-600 text-white shadow cursor-pointer"
+          className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-600 text-white shadow cursor-pointer"
         >
-          Debian GNOME
+          Modo Clássico (LFS)
         </button>
       </div>
 
@@ -571,10 +572,10 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
 
         {/* Host Status Footer */}
         <div className="pt-2 border-t border-white/10 text-[10px] text-slate-400 flex items-center justify-between px-2">
-          <span>Debian 13 (Trixie)</span>
+          <span>InoveCloud OS 6.12+</span>
           <span className="flex items-center space-x-1 text-emerald-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>GNOME Glass</span>
+            <span>Kernel Puro (DRM)</span>
           </span>
         </div>
       </div>
@@ -686,7 +687,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Aceleração de renderização GPU ativada para garantir transições suaves sem queda de quadros no GNOME.
+                  Aceleração de renderização GPU ativada para garantir transições suaves sem queda de quadros no compositor DRM/KMS nativo (Sem GNOME).
                 </p>
                 <div className="flex space-x-2">
                   <button
@@ -761,11 +762,11 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-white/10">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center space-x-2">
-                  <Server className="w-5 h-5 text-red-500" />
-                  <span>Configurações & Integração com Debian 13 (Trixie)</span>
+                  <Server className="w-5 h-5 text-cyan-400" />
+                  <span>Configurações & Integração com Base Linux LFS</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Gerenciamento direto de kernel, ambiente GNOME 46+, serviços systemd, repositórios APT, drivers Mesa e rede via API nativa.
+                  Gerenciamento direto do Kernel Linux 6.12+ puro, serviços inove-init, repositórios nativos e aceleração DRM/KMS (Sem GNOME).
                 </p>
               </div>
 
@@ -3020,12 +3021,12 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                 IC
               </div>
               <div>
-                <h4 className="text-base font-bold text-white">InoveCloud OS 2026.1 LTS</h4>
-                <p className="text-xs text-slate-300">Base: Debian 13 (Trixie) 64-bit • GNOME 46+ Liquid Glass Theme</p>
+                <h4 className="text-base font-bold text-white">InoveCloud OS 2026.1 Pure Kernel</h4>
+                <p className="text-xs text-slate-300">Base: Kernel Linux 6.12+ LTS Puro Nativo (Autônomo • Sem GNOME)</p>
                 <div className="flex items-center space-x-3 text-[11px] text-slate-400 mt-1">
-                  <span>Kernel: Linux 6.12.0-trixie-amd64</span>
+                  <span>Kernel: Linux 6.12.18-inovecloud-pure</span>
                   <span>•</span>
-                  <span>Wayland Mutter + Blur</span>
+                  <span>DRM/KMS Direct Compositor</span>
                 </div>
               </div>
             </div>

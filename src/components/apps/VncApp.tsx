@@ -105,7 +105,7 @@ export const VncApp: React.FC<VncAppProps> = ({
     },
     {
       id: 'pc-3',
-      name: 'Máquina de Teste QA (Debian 13 GNOME Glass)',
+      name: 'Máquina de Teste QA (InoveCloud OS Kernel Puro)',
       host: '10.240.0.88',
       port: 5901,
       os: 'ubuntu',

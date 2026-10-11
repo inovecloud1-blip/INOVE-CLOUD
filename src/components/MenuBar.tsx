@@ -46,6 +46,7 @@ interface MenuBarProps {
   isLauncherOpen?: boolean;
   onPlayBootVideo?: () => void;
   onOpenPowerModal?: () => void;
+  onSwitchToPureKernel?: () => void;
 }
 
 export const MenuBar: React.FC<MenuBarProps> = ({
@@ -59,6 +60,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   isLauncherOpen,
   onPlayBootVideo,
   onOpenPowerModal,
+  onSwitchToPureKernel,
 }) => {
   const {
     wifiEnabled,
@@ -211,6 +213,18 @@ export const MenuBar: React.FC<MenuBarProps> = ({
                     <Terminal className="w-3.5 h-3.5" />
                     <span>Cloud Shell Terminal</span>
                   </button>
+                  {onSwitchToPureKernel && (
+                    <button
+                      onClick={() => { onSwitchToPureKernel(); setAppleMenuOpen(false); }}
+                      className="w-full text-left px-3 py-1.5 hover:bg-emerald-600 hover:text-white flex items-center justify-between text-xs text-emerald-300 font-semibold cursor-pointer"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Terminal Kernel Puro (TTY1)</span>
+                      </div>
+                      <span className="text-[10px] text-emerald-400 font-mono">^⌥F1</span>
+                    </button>
+                  )}
                   {onPlayBootVideo && (
                     <button
                       onClick={() => { onPlayBootVideo(); setAppleMenuOpen(false); }}
@@ -335,6 +349,19 @@ export const MenuBar: React.FC<MenuBarProps> = ({
 
       {/* Right Status Bar Section */}
       <div className="flex items-center space-x-2 sm:space-x-3 text-slate-300">
+        {/* Pure Kernel TTY1 Mode Switcher */}
+        {onSwitchToPureKernel && (
+          <button
+            onClick={onSwitchToPureKernel}
+            className="flex items-center space-x-1.5 px-2 py-0.5 rounded bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 transition cursor-pointer active:scale-95 shadow-sm"
+            title="Alternar para Modo Kernel Puro (TTY1 Bare-Metal Console - Ctrl+Alt+F1)"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="hidden sm:inline">Kernel 6.12+</span>
+            <span>[TTY1]</span>
+          </button>
+        )}
+
         {/* Hardware Status: Unboxed clean typography */}
         <div
           onClick={() => onOpenApp('vn')}

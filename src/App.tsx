@@ -59,6 +59,7 @@ import { BootVideoSplash } from './components/desktop/BootVideoSplash';
 import { LockScreen } from './components/desktop/LockScreen';
 import { PowerOverlay } from './components/desktop/PowerOverlay';
 import { PowerDialog } from './components/desktop/PowerDialog';
+import { PureKernelOS } from './components/kernel/PureKernelOS';
 import { SystemSettingsProvider, useSystemSettings } from './context/SystemSettingsContext';
 import { SoundEffectsProvider } from './context/SoundEffectsContext';
 import { DEFAULT_DESKTOP_PINNED, DEFAULT_DOCK_PINNED } from './data/launcherApps';
@@ -185,6 +186,41 @@ function DesktopOS() {
     }
     return false;
   });
+
+  // Operating System Mode: 'gui' (Direct DRM/KMS Native Liquid Glass) or 'pure-kernel' (Bare-Metal TTY1 Console Sem GNOME)
+  const [bootMode, setBootMode] = useState<'gui' | 'pure-kernel'>(() => {
+    try {
+      const saved = localStorage.getItem('inovecloud_boot_mode');
+      if (saved === 'pure-kernel') return 'pure-kernel';
+    } catch (e) {
+      // fallback
+    }
+    return 'gui';
+  });
+
+  const handleSetBootMode = (mode: 'gui' | 'pure-kernel') => {
+    setBootMode(mode);
+    try {
+      localStorage.setItem('inovecloud_boot_mode', mode);
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  // Global key listener for Ctrl+Alt+F1 (TTY1 Kernel Puro) and Ctrl+Alt+F7 (Interface Nativa)
+  useEffect(() => {
+    const handleGlobalTtyKeys = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.altKey && e.key === 'F1') {
+        e.preventDefault();
+        handleSetBootMode('pure-kernel');
+      } else if (e.ctrlKey && e.altKey && e.key === 'F7') {
+        e.preventDefault();
+        handleSetBootMode('gui');
+      }
+    };
+    window.addEventListener('keydown', handleGlobalTtyKeys);
+    return () => window.removeEventListener('keydown', handleGlobalTtyKeys);
+  }, []);
 
   // Desktop Pinned Apps State (persisted via localStorage)
   const [desktopPinnedApps, setDesktopPinnedApps] = useState<AppId[]>(() => {
@@ -497,7 +533,7 @@ function DesktopOS() {
     },
     isobuilder: {
       id: 'isobuilder',
-      title: 'Gerador de ISO & Live OS — Debian 13 (Trixie) GNOME Glass',
+      title: 'Gerador de ISO & Live OS — InoveCloud OS Kernel Puro (Sem GNOME)',
       isOpen: false,
       isMinimized: false,
       isMaximized: false,
@@ -604,6 +640,16 @@ function DesktopOS() {
       zIndex: 23,
       position: { x: 150, y: 80 },
       size: { width: 880, height: 580 },
+    },
+    purekernel: {
+      id: 'purekernel',
+      title: 'Console Bare-Metal — Kernel Linux 6.12+ Puro (TTY1)',
+      isOpen: false,
+      isMinimized: false,
+      isMaximized: true,
+      zIndex: 24,
+      position: { x: 40, y: 40 },
+      size: { width: 960, height: 640 },
     },
   });
 
@@ -713,12 +759,17 @@ function DesktopOS() {
   };
 
   const openApp = (id: AppId) => {
+    if (id === 'purekernel') {
+      handleSetBootMode('pure-kernel');
+      return;
+    }
     setTopZ((prev) => {
       const nextZ = prev + 1;
       setWindows((curr) => {
         const existing = curr[id];
         if (!existing) {
           const defaultTitles: Record<string, string> = {
+            purekernel: 'Kernel Puro (TTY1 Console Bare-Metal)',
             vn: 'Máquinas Virtuais (KVM)',
             terminal: 'Terminal SSH / Shell',
             monitor: 'Monitor de Recursos',
@@ -946,6 +997,7 @@ function DesktopOS() {
         isLauncherOpen={isLauncherOpen}
         onPlayBootVideo={() => setIsBootVideoActive(true)}
         onOpenPowerModal={() => setIsPowerDialogOpen(true)}
+        onSwitchToPureKernel={() => handleSetBootMode('pure-kernel')}
       />
 
       {/* Desktop Canvas & Pinned Widgets (Matches UmbrelOS Style) */}
@@ -1453,6 +1505,10 @@ function DesktopOS() {
       {isBootVideoActive && (
         <BootVideoSplash
           onComplete={() => setIsBootVideoActive(false)}
+          onBootPureKernel={() => {
+            setIsBootVideoActive(false);
+            handleSetBootMode('pure-kernel');
+          }}
           autoDismiss={true}
           canSkip={true}
         />
@@ -1462,6 +1518,7 @@ function DesktopOS() {
       <PowerDialog
         isOpen={isPowerDialogOpen}
         onClose={() => setIsPowerDialogOpen(false)}
+        onSwitchToPureKernel={() => handleSetBootMode('pure-kernel')}
       />
 
       {/* Lock Screen UI (Showing Real-Time Clock, Date & PIN Auth) */}
@@ -1469,6 +1526,21 @@ function DesktopOS() {
 
       {/* Power Overlay (Showing Sleep, Shut Down, and Restart Sequences) */}
       <PowerOverlay />
+
+      {/* Modo Kernel Puro Autônomo (Sem Launcher, Sem GNOME, Direto em Ring 0 e Framebuffer) */}
+      {bootMode === 'pure-kernel' && (
+        <PureKernelOS
+          onSwitchToGui={() => handleSetBootMode('gui')}
+          onReboot={() => {
+            setIsBootVideoActive(true);
+            handleSetBootMode('pure-kernel');
+          }}
+          onPowerOff={() => {
+            setIsBootVideoActive(true);
+            handleSetBootMode('gui');
+          }}
+        />
+      )}
     </div>
   );
 }

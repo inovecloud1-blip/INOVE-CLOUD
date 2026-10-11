@@ -164,11 +164,11 @@ export const LAUNCHER_APPS: LauncherAppInfo[] = [
     id: 'isobuilder',
     name: 'Gerador de ISO & Live OS',
     category: 'Infraestrutura & KVM',
-    description: 'Kit de compilação da ISO Debian 13 (Trixie) com GNOME 46+ e Tema Liquid Glass.',
-    badge: 'Debian 13 GNOME',
-    badgeColor: 'bg-red-500',
+    description: 'Kit de compilação da ISO InoveCloud OS com Kernel Linux 6.12+ Puro (Sem GNOME) e DRM/KMS.',
+    badge: 'Kernel 6.12 Puro',
+    badgeColor: 'bg-cyan-600',
     iconName: 'Disc',
-    gradient: 'from-red-600 via-rose-600 to-amber-600',
+    gradient: 'from-cyan-600 via-blue-600 to-indigo-700',
   },
   {
     id: 'linuxpedia',
@@ -240,9 +240,20 @@ export const LAUNCHER_APPS: LauncherAppInfo[] = [
     iconName: 'FileText',
     gradient: 'from-amber-500 via-orange-600 to-rose-700',
   },
+  {
+    id: 'purekernel',
+    name: 'Kernel Puro (TTY1 Console)',
+    category: 'Sistema & Monitoramento',
+    description: 'Acesse o ambiente bare-metal com Kernel Linux 6.12+ puro, PID 1 inove-init e console TTY1 sem GNOME.',
+    badge: 'Bare-Metal',
+    badgeColor: 'bg-emerald-500',
+    iconName: 'Terminal',
+    gradient: 'from-emerald-950 via-slate-900 to-cyan-950',
+  },
 ];
 
 export const DEFAULT_DESKTOP_PINNED: AppId[] = [
+  'purekernel',
   'installer',
   'projects',
   'notes',
@@ -265,6 +276,7 @@ export const DEFAULT_DESKTOP_PINNED: AppId[] = [
 ];
 
 export const DEFAULT_DOCK_PINNED: AppId[] = [
+  'purekernel',
   'installer',
   'projects',
   'notes',

@@ -738,6 +738,33 @@ export const RealAppIcon: React.FC<RealAppIconProps> = ({
         </div>
       );
 
+    // 41. PURE KERNEL OS (BARE METAL TTY1)
+    case 'purekernel':
+    case 'kernel':
+    case 'baremetal':
+      return (
+        <div className={`${className} ${rounded} bg-gradient-to-br from-[#021b16] via-[#05111b] to-[#040810] flex items-center justify-center p-2 shrink-0 shadow-xl border border-emerald-500/40 relative overflow-hidden group`}>
+          <div className="absolute inset-0 bg-emerald-500/10 blur-sm pointer-events-none" />
+          <svg viewBox="0 0 100 100" className="w-full h-full relative z-10" fill="none">
+            <rect x="22" y="22" width="56" height="56" rx="10" fill="#064e3b" stroke="#10b981" strokeWidth="3" />
+            <circle cx="50" cy="50" r="16" fill="#022c22" stroke="#34d399" strokeWidth="2.5" />
+            <path d="M 42 50 L 48 56 L 58 44" stroke="#34d399" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+            <line x1="32" y1="14" x2="32" y2="22" stroke="#34d399" strokeWidth="3" strokeLinecap="round" />
+            <line x1="50" y1="14" x2="50" y2="22" stroke="#34d399" strokeWidth="3" strokeLinecap="round" />
+            <line x1="68" y1="14" x2="68" y2="22" stroke="#34d399" strokeWidth="3" strokeLinecap="round" />
+            <line x1="32" y1="78" x2="32" y2="86" stroke="#34d399" strokeWidth="3" strokeLinecap="round" />
+            <line x1="50" y1="78" x2="50" y2="86" stroke="#34d399" strokeWidth="3" strokeLinecap="round" />
+            <line x1="68" y1="78" x2="68" y2="86" stroke="#34d399" strokeWidth="3" strokeLinecap="round" />
+            <line x1="14" y1="32" x2="22" y2="32" stroke="#34d399" strokeWidth="3" strokeLinecap="round" />
+            <line x1="14" y1="50" x2="22" y2="50" stroke="#34d399" strokeWidth="3" strokeLinecap="round" />
+            <line x1="14" y1="68" x2="22" y2="68" stroke="#34d399" strokeWidth="3" strokeLinecap="round" />
+            <line x1="78" y1="32" x2="86" y2="32" stroke="#34d399" strokeWidth="3" strokeLinecap="round" />
+            <line x1="78" y1="50" x2="86" y2="50" stroke="#34d399" strokeWidth="3" strokeLinecap="round" />
+            <line x1="78" y1="68" x2="86" y2="68" stroke="#34d399" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+        </div>
+      );
+
     default:
       return (
         <div className={`${className} ${rounded} bg-slate-700 flex items-center justify-center text-white font-bold`}>

@@ -369,6 +369,40 @@ export const AppIcon: React.FC<AppIconProps> = ({
           </svg>
         );
 
+      // 3.9 KERNEL PURO / BARE METAL TTY1 -> Emerald Cyber Die com terminal prompt
+      case 'purekernel':
+      case 'kernel':
+        return (
+          <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
+            <defs>
+              <linearGradient id="pkernel-bg" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#064e3b" />
+                <stop offset="100%" stopColor="#022c22" />
+              </linearGradient>
+              <filter id="pkernel-glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2.5" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            <rect width="100" height="100" rx="28" fill="url(#pkernel-bg)" />
+            <rect x="4" y="4" width="92" height="92" rx="24" stroke="rgba(52,211,153,0.3)" strokeWidth="1.5" />
+            <g filter="url(#pkernel-glow)">
+              <rect x="25" y="25" width="50" height="50" rx="8" fill="#011b15" stroke="#34d399" strokeWidth="3" />
+              <path d="M 36 44 L 46 50 L 36 56" stroke="#34d399" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+              <line x1="50" y1="56" x2="62" y2="56" stroke="#34d399" strokeWidth="3" strokeLinecap="round" />
+              <line x1="34" y1="18" x2="34" y2="25" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" />
+              <line x1="50" y1="18" x2="50" y2="25" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" />
+              <line x1="66" y1="18" x2="66" y2="25" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" />
+              <line x1="34" y1="75" x2="34" y2="82" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" />
+              <line x1="50" y1="75" x2="50" y2="82" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" />
+              <line x1="66" y1="75" x2="66" y2="82" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" />
+            </g>
+          </svg>
+        );
+
       // 4. TERMINAL SSH / SHELL -> Squircle Obsidian preto com prompt neon verde '>_'
       case 'terminal':
         return (

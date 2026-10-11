@@ -22,7 +22,8 @@ export type AppId =
   | 'videoplayer'
   | 'videoeditor'
   | 'music'
-  | 'notes';
+  | 'notes'
+  | 'purekernel';
 
 export type AppCategory =
   | 'Infraestrutura & KVM'

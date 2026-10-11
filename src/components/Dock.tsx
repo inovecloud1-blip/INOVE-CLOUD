@@ -317,11 +317,24 @@ export const Dock: React.FC<DockProps> = ({
       ),
     },
     {
+      id: 'purekernel',
+      label: 'Kernel Puro (TTY1 Console)',
+      subLabel: 'Linux 6.12+ Bare-Metal',
+      gradient: 'from-emerald-950 via-slate-900 to-cyan-950',
+      glowColor: 'rgba(16, 185, 129, 0.5)',
+      isUtility: false,
+      renderIcon: () => (
+        <div className="relative flex items-center justify-center">
+          <Terminal className="w-6 h-6 text-emerald-400 drop-shadow-md" />
+        </div>
+      ),
+    },
+    {
       id: 'isobuilder',
       label: 'Gerador de ISO & Live OS',
-      subLabel: 'Debian 13 GNOME Glass',
-      gradient: 'from-red-600 via-rose-600 to-amber-600',
-      glowColor: 'rgba(239, 68, 68, 0.5)',
+      subLabel: 'Kernel 6.12 Puro (Sem GNOME)',
+      gradient: 'from-cyan-600 via-blue-600 to-indigo-700',
+      glowColor: 'rgba(6, 182, 212, 0.5)',
       isUtility: false,
       renderIcon: () => (
         <div className="relative flex items-center justify-center">

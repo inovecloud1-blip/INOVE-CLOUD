@@ -1,0 +1,1705 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Terminal,
+  Cpu,
+  HardDrive,
+  RotateCw,
+  Power,
+  Layers,
+  Activity,
+  Play,
+  Monitor,
+  CheckCircle2,
+  AlertTriangle,
+  Flame,
+  Zap,
+  Sliders,
+  HelpCircle,
+  FileCode,
+  Sparkles,
+  Maximize2,
+  Minimize2,
+  X,
+  Volume2,
+  VolumeX
+} from 'lucide-react';
+
+interface PureKernelOSProps {
+  onSwitchToGui: () => void;
+  onReboot?: () => void;
+  onPowerOff?: () => void;
+  isStandalone?: boolean;
+}
+
+interface KernelModule {
+  name: string;
+  size: number;
+  instances: number;
+  status: 'Live' | 'Loading' | 'Unloading';
+  description: string;
+}
+
+interface ProcessInfo {
+  pid: number;
+  user: string;
+  cpu: number;
+  mem: number;
+  vsz: number;
+  rss: number;
+  tty: string;
+  stat: string;
+  start: string;
+  time: string;
+  command: string;
+}
+
+interface VirtualFile {
+  name: string;
+  type: 'file' | 'dir';
+  content?: string;
+  size: number;
+  permissions: string;
+  owner: string;
+  group: string;
+  updatedAt: string;
+  children?: { [key: string]: VirtualFile };
+}
+
+const INITIAL_KERNEL_MODULES: KernelModule[] = [
+  { name: 'inove_sched_engine', size: 49152, instances: 1, status: 'Live', description: 'Escalonador EEVDF de Baixa Latência InoveCloud' },
+  { name: 'drm_kms_direct', size: 184320, instances: 1, status: 'Live', description: 'Direct Rendering Manager Framebuffer (Sem GNOME)' },
+  { name: 'inove_syscall_fast', size: 28672, instances: 2, status: 'Live', description: 'Acelerador de Syscalls em Ring 0' },
+  { name: 'zstd_compress', size: 81920, instances: 3, status: 'Live', description: 'Compressão de Memória ZRAM & SquashFS' },
+  { name: 'nvme_core', size: 98304, instances: 1, status: 'Live', description: 'Driver NVMe PCIe Gen4/5 de Alto Throughput' },
+  { name: 'virtio_net', size: 65536, instances: 1, status: 'Live', description: 'Placa de Rede Ethernet VirtIO / Realtek' },
+  { name: 'overlayfs', size: 57344, instances: 1, status: 'Live', description: 'Sistema de Arquivos em Camadas para Live OS' },
+  { name: 'pipewire_dmabuf', size: 40960, instances: 1, status: 'Live', description: 'Buffer de Áudio de Baixa Latência ALSA' }
+];
+
+const INITIAL_PROCESSES: ProcessInfo[] = [
+  { pid: 1, user: 'root', cpu: 0.1, mem: 0.4, vsz: 4096, rss: 1240, tty: '?', stat: 'Ss', start: '12:00', time: '0:01', command: '/sbin/inove-init' },
+  { pid: 2, user: 'root', cpu: 0.0, mem: 0.0, vsz: 0, rss: 0, tty: '?', stat: 'S', start: '12:00', time: '0:00', command: '[kthreadd]' },
+  { pid: 3, user: 'root', cpu: 0.0, mem: 0.0, vsz: 0, rss: 0, tty: '?', stat: 'I<', start: '12:00', time: '0:00', command: '[rcu_gp]' },
+  { pid: 4, user: 'root', cpu: 0.0, mem: 0.0, vsz: 0, rss: 0, tty: '?', stat: 'I<', start: '12:00', time: '0:00', command: '[rcu_par_gp]' },
+  { pid: 6, user: 'root', cpu: 0.0, mem: 0.0, vsz: 0, rss: 0, tty: '?', stat: 'I<', start: '12:00', time: '0:00', command: '[kworker/0:0H-events_highpri]' },
+  { pid: 9, user: 'root', cpu: 0.0, mem: 0.0, vsz: 0, rss: 0, tty: '?', stat: 'S', start: '12:00', time: '0:00', command: '[ksoftirqd/0]' },
+  { pid: 15, user: 'root', cpu: 0.0, mem: 0.0, vsz: 0, rss: 0, tty: '?', stat: 'S', start: '12:00', time: '0:00', command: '[migration/0]' },
+  { pid: 42, user: 'root', cpu: 0.0, mem: 0.0, vsz: 0, rss: 0, tty: '?', stat: 'S', start: '12:00', time: '0:00', command: '[kswapd0]' },
+  { pid: 120, user: 'root', cpu: 0.2, mem: 0.8, vsz: 14200, rss: 3120, tty: '?', stat: 'Ss', start: '12:00', time: '0:01', command: '/sbin/inove-udevd --daemon' },
+  { pid: 180, user: 'root', cpu: 0.1, mem: 0.6, vsz: 12800, rss: 2450, tty: '?', stat: 'Ss', start: '12:00', time: '0:00', command: '/usr/sbin/inove-networkd' },
+  { pid: 210, user: 'root', cpu: 0.3, mem: 1.1, vsz: 22400, rss: 4890, tty: '?', stat: 'Ss', start: '12:00', time: '0:02', command: '/usr/bin/inove-drm-server' },
+  { pid: 320, user: 'root', cpu: 0.4, mem: 0.9, vsz: 8120, rss: 2010, tty: 'tty1', stat: 'S+', start: '12:00', time: '0:01', command: '/bin/inove-sh (tty1)' }
+];
+
+const INITIAL_DMESG = [
+  '[    0.000000] Linux version 6.12.18-inovecloud-pure (root@inovecloud-core) (gcc-14.2.0 -march=native -O2) #1 SMP PREEMPT_DYNAMIC Sun Oct 10 2026',
+  '[    0.000000] Command line: BOOT_IMAGE=/boot/vmlinuz-6.12 root=/dev/nvme0n1p2 ro quiet splash inove.pure=1 init=/sbin/inove-init elevator=eevdf',
+  '[    0.000000] x86/fpu: Supporting XSAVE feature 0x001: \'x87 floating point registers\'',
+  '[    0.000000] x86/fpu: Supporting XSAVE feature 0x002: \'SSE registers\'',
+  '[    0.000000] x86/fpu: Supporting XSAVE feature 0x004: \'AVX registers\'',
+  '[    0.000000] x86/fpu: Supporting XSAVE feature 0x020: \'AVX-512 opmask\'',
+  '[    0.000000] e820: BIOS-provided physical RAM map: 16384MB usable',
+  '[    0.004210] ACPI: Core revision 20240322',
+  '[    0.012480] smpboot: Allowing 16 CPUs, 16 hotplug CPUs',
+  '[    0.018900] setup_percpu: NR_CPUS:16 nr_cpumask_bits:16 nr_cpu_ids:16 nr_node_ids:1',
+  '[    0.024510] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=16, Nodes=1',
+  '[    0.038100] rcu: Preemptible hierarchical RCU implementation.',
+  '[    0.045000] devtmpfs: initialized',
+  '[    0.062140] clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x3646ca52, max_idle_ns: 440795208643 ns',
+  '[    0.089400] PCI: Using configuration type 1 for base access',
+  '[    0.120500] nvme nvme0: pci function 0000:01:00.0: PCIe Gen4 x4 link ready',
+  '[    0.145600] nvme0n1: p1 (EFI ESP) p2 (InoveCloud OS RootFS 500GB ext4)',
+  '[    0.210400] [drm] Initializing InoveCloud DRM Direct KMS Graphics Driver (Sem GNOME)',
+  '[    0.225100] [drm] Framebuffer Console fb0: 1920x1080@60Hz 32bpp direct scanout ready',
+  '[    0.310200] inove_sched: EEVDF latency-sensitive engine active (latency target: 3ms)',
+  '[    0.380900] InoveCloud RootFS mounted on / (rw,relatime,data=ordered)',
+  '[    0.410100] Run /sbin/inove-init as init process (PID 1)',
+  '[    0.450200] inove-init[1]: Starting InoveCloud Pure Kernel Subsystems...',
+  '[    0.490800] inove-init[1]: udevd started, loading module aliases',
+  '[    0.530400] inove-init[1]: Loopback interface lo up (127.0.0.1)',
+  '[    0.590200] inove-init[1]: VirtIO/Ethernet interface eth0 up, DHCP IP: 192.168.1.145/24',
+  '[    0.640100] inove-init[1]: PipeWire audio buffer allocated with 128 samples / 48kHz',
+  '[    0.690500] inove-init[1]: InoveCloud OS Pure Kernel Ready! Zero GNOME dependency.',
+  '[    0.720000] inove-init[1]: Spawning TTY1 (/bin/inove-sh on /dev/tty1)'
+];
+
+const INITIAL_FS: { [path: string]: VirtualFile } = {
+  '/': {
+    name: '/',
+    type: 'dir',
+    size: 4096,
+    permissions: 'drwxr-xr-x',
+    owner: 'root',
+    group: 'root',
+    updatedAt: '2026-10-10 12:00',
+    children: {
+      'bin': { name: 'bin', type: 'dir', size: 4096, permissions: 'drwxr-xr-x', owner: 'root', group: 'root', updatedAt: '2026-10-10 12:00' },
+      'sbin': { name: 'sbin', type: 'dir', size: 4096, permissions: 'drwxr-xr-x', owner: 'root', group: 'root', updatedAt: '2026-10-10 12:00' },
+      'etc': { name: 'etc', type: 'dir', size: 4096, permissions: 'drwxr-xr-x', owner: 'root', group: 'root', updatedAt: '2026-10-10 12:00' },
+      'proc': { name: 'proc', type: 'dir', size: 0, permissions: 'dr-xr-xr-x', owner: 'root', group: 'root', updatedAt: '2026-10-10 12:00' },
+      'sys': { name: 'sys', type: 'dir', size: 0, permissions: 'dr-xr-xr-x', owner: 'root', group: 'root', updatedAt: '2026-10-10 12:00' },
+      'dev': { name: 'dev', type: 'dir', size: 4096, permissions: 'drwxr-xr-x', owner: 'root', group: 'root', updatedAt: '2026-10-10 12:00' },
+      'tmp': { name: 'tmp', type: 'dir', size: 4096, permissions: 'drwxrwxrwt', owner: 'root', group: 'root', updatedAt: '2026-10-10 12:00' },
+      'var': { name: 'var', type: 'dir', size: 4096, permissions: 'drwxr-xr-x', owner: 'root', group: 'root', updatedAt: '2026-10-10 12:00' },
+      'usr': { name: 'usr', type: 'dir', size: 4096, permissions: 'drwxr-xr-x', owner: 'root', group: 'root', updatedAt: '2026-10-10 12:00' },
+      'home': { name: 'home', type: 'dir', size: 4096, permissions: 'drwxr-xr-x', owner: 'root', group: 'root', updatedAt: '2026-10-10 12:00' },
+      'root': { name: 'root', type: 'dir', size: 4096, permissions: 'drwx------', owner: 'root', group: 'root', updatedAt: '2026-10-10 12:00' }
+    }
+  },
+  '/home/inove': {
+    name: 'inove',
+    type: 'dir',
+    size: 4096,
+    permissions: 'drwxr-xr-x',
+    owner: 'inove',
+    group: 'inove',
+    updatedAt: '2026-10-10 12:00',
+    children: {
+      'welcome.txt': {
+        name: 'welcome.txt',
+        type: 'file',
+        size: 890,
+        permissions: '-rw-r--r--',
+        owner: 'inove',
+        group: 'inove',
+        updatedAt: '2026-10-10 12:00',
+        content: `===================================================================
+⚡ INOVECLOUD OS — SISTEMA OPERACIONAL COM KERNEL LINUX PURO 6.12+
+===================================================================
+
+Parabéns! Você está executando o InoveCloud OS diretamente sobre
+o Kernel Linux Puro compilado do zero, sem intermediários e SEM GNOME!
+
+CARACTERÍSTICAS DESTE SISTEMA:
+1. KERNEL PURO: Linux 6.12.18 LTS compilado com -march=native e -O2
+2. SEM GNOME: O sistema executa direto em modo TTY / Framebuffer DRM/KMS
+3. INIT AUTÔNOMO: PID 1 gerenciado pelo /sbin/inove-init direto no hardware
+4. SYSCALLS REAIS: Chamadas de sistema x86_64 diretas sem intermediários
+5. COMPILADOR C: Digite 'compile-c hello.c' para compilar e rodar código C
+6. GESTOR DE PACOTES: Digite 'icpkg list' para gerenciar utilitários nativos
+7. MODO GRÁFICO: Digite 'inove-desktop' ou aperte Ctrl+Alt+F7 para iniciar
+   a interface gráfica nativa InoveCloud Liquid Glass (sem GNOME).
+
+Comandos úteis: help, dmesg, top, ps, free, df, ls, cat, nano, reboot.`
+      },
+      'hello.c': {
+        name: 'hello.c',
+        type: 'file',
+        size: 520,
+        permissions: '-rw-r--r--',
+        owner: 'inove',
+        group: 'inove',
+        updatedAt: '2026-10-10 12:00',
+        content: `/* InoveCloud OS - Programa C com Syscalls Diretas x86_64 */
+#include <unistd.h>
+#include <sys/syscall.h>
+
+void _start() {
+    const char msg[] = "\\033[1;32m[OK] Executado via syscall direta do Kernel Linux 6.12 puro!\\033[0m\\n"
+                       "\\033[1;36m>> InoveCloud OS Kernel Puro (Sem GNOME) operacional!\\033[0m\\n";
+    
+    /* Syscall write(1, msg, sizeof(msg) - 1) */
+    syscall(SYS_write, 1, msg, sizeof(msg) - 1);
+    
+    /* Syscall exit(0) */
+    syscall(SYS_exit, 0);
+}
+`
+      },
+      'kernel-info.sh': {
+        name: 'kernel-info.sh',
+        type: 'file',
+        size: 450,
+        permissions: '-rwxr-xr-x',
+        owner: 'inove',
+        group: 'inove',
+        updatedAt: '2026-10-10 12:00',
+        content: `#!/bin/inove-sh
+echo "=== INOVECLOUD KERNEL TELEMETRY ==="
+uname -a
+echo "Cores de CPU ativas: $(cat /proc/cpuinfo | grep 'processor' | wc -l)"
+echo "Memória Livre: $(cat /proc/meminfo | grep 'MemFree')"
+echo "Escalonador Ativo: EEVDF Latency-Optimized"
+echo "Interface Gráfica: DRM/KMS Direct Compositor (Zero GNOME)"
+`
+      }
+    }
+  },
+  '/etc/os-release': {
+    name: 'os-release',
+    type: 'file',
+    size: 240,
+    permissions: '-rw-r--r--',
+    owner: 'root',
+    group: 'root',
+    updatedAt: '2026-10-10 12:00',
+    content: `NAME="InoveCloud OS"
+VERSION="2.4 Pure Kernel"
+ID="inovecloud"
+PRETTY_NAME="InoveCloud OS 2.4 (Kernel Puro 6.12+ LTS Sem GNOME)"
+ANSI_COLOR="0;36"
+HOME_URL="https://inovecloud.io"
+SUPPORT_URL="https://inovecloud.io/support"
+BUG_REPORT_URL="https://inovecloud.io/bugs"`
+  },
+  '/etc/hostname': {
+    name: 'hostname',
+    type: 'file',
+    size: 18,
+    permissions: '-rw-r--r--',
+    owner: 'root',
+    group: 'root',
+    updatedAt: '2026-10-10 12:00',
+    content: 'inovecloud-kernel\n'
+  },
+  '/proc/version': {
+    name: 'version',
+    type: 'file',
+    size: 140,
+    permissions: '-r--r--r--',
+    owner: 'root',
+    group: 'root',
+    updatedAt: '2026-10-10 12:00',
+    content: 'Linux version 6.12.18-inovecloud-pure (root@inovecloud-core) (gcc-14.2.0 -march=native -O2) #1 SMP PREEMPT_DYNAMIC Sun Oct 10 2026\n'
+  },
+  '/proc/cpuinfo': {
+    name: 'cpuinfo',
+    type: 'file',
+    size: 680,
+    permissions: '-r--r--r--',
+    owner: 'root',
+    group: 'root',
+    updatedAt: '2026-10-10 12:00',
+    content: `processor	: 0
+vendor_id	: GenuineIntel / AuthenticAMD
+model name	: InoveCloud Bare-Metal Optimized Virtual/Physical Core
+cpu MHz		: 3600.000
+cache size	: 32768 KB
+siblings	: 16
+cpu cores	: 8
+flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx lm constant_tsc rep_good nopl xtopology cpuid tsc_known_freq pni pclmulqdq vmx ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch invpcid_single ssbd ibrs ibpb stibp fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 xsaves arat md_clear flush_l1d arch_capabilities
+bogomips	: 7199.98
+clflush size	: 64
+cache_alignment	: 64
+address sizes	: 48 bits physical, 48 bits virtual
+power management:
+`
+  },
+  '/proc/meminfo': {
+    name: 'meminfo',
+    type: 'file',
+    size: 420,
+    permissions: '-r--r--r--',
+    owner: 'root',
+    group: 'root',
+    updatedAt: '2026-10-10 12:00',
+    content: `MemTotal:       16384000 kB
+MemFree:        13920400 kB
+MemAvailable:   15120000 kB
+Buffers:          210450 kB
+Cached:          1820300 kB
+SwapCached:            0 kB
+Active:          1540200 kB
+Inactive:         890300 kB
+SwapTotal:       8388600 kB
+SwapFree:        8388600 kB
+Dirty:                48 kB
+Writeback:             0 kB
+AnonPages:       1420100 kB
+Mapped:           380400 kB
+Shmem:             42100 kB
+`
+  }
+};
+
+export const PureKernelOS: React.FC<PureKernelOSProps> = ({
+  onSwitchToGui,
+  onReboot,
+  onPowerOff,
+  isStandalone = false
+}) => {
+  // Active TTY session
+  const [activeTty, setActiveTty] = useState<1 | 2 | 3>(1);
+
+  // Shell State
+  const [currentPath, setCurrentPath] = useState<string>('/home/inove');
+  const [currentUser, setCurrentUser] = useState<'root' | 'inove'>('root');
+  const [commandInput, setCommandInput] = useState<string>('');
+  const [terminalHistory, setTerminalHistory] = useState<Array<{ id: string; command: string; output: string | React.ReactNode; path: string; user: string }>>([
+    {
+      id: 'boot-banner',
+      command: '',
+      output: (
+        <div className="space-y-1 mb-2 font-mono text-xs">
+          <div className="text-cyan-400 font-bold">
+            ╔════════════════════════════════════════════════════════════════════════════════════╗
+          </div>
+          <div className="text-cyan-400 font-bold">
+            ║  🚀 INOVECLOUD OS — KERNEL PURO LINUX 6.12+ (AUTÔNOMO / SEM GNOME)                ║
+          </div>
+          <div className="text-cyan-400 font-bold">
+            ║  Comunicação Direta: Ring 0 Syscalls • DRM/KMS Framebuffer • PID 1 inove-init     ║
+          </div>
+          <div className="text-cyan-400 font-bold">
+            ╚════════════════════════════════════════════════════════════════════════════════════╝
+          </div>
+          <div className="text-emerald-400 pt-1">
+            ✓ Kernel inicializado com sucesso em modo Bare-Metal / Console TTY1.
+          </div>
+          <div className="text-slate-300">
+            Digite <span className="text-amber-300 font-bold">help</span> para lista de comandos,{' '}
+            <span className="text-cyan-300 font-bold">dmesg</span> para logs do kernel, ou{' '}
+            <span className="text-purple-300 font-bold">inove-desktop</span> para carregar a interface nativa (sem GNOME).
+          </div>
+        </div>
+      ),
+      path: '/home/inove',
+      user: 'root'
+    }
+  ]);
+
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+
+  // Nano In-Terminal Editor State
+  const [isNanoActive, setIsNanoActive] = useState<boolean>(false);
+  const [nanoFilename, setNanoFilename] = useState<string>('');
+  const [nanoContent, setNanoContent] = useState<string>('');
+
+  // Top Real-Time Monitor State
+  const [isTopActive, setIsTopActive] = useState<boolean>(false);
+  const [topCpuUsage, setTopCpuUsage] = useState<number>(3.8);
+  const [topMemUsage, setTopMemUsage] = useState<number>(24.2);
+
+  // System Virtual Filesystem State
+  const [vfs, setVfs] = useState<{ [path: string]: VirtualFile }>(INITIAL_FS);
+  const [kernelModules, setKernelModules] = useState<KernelModule[]>(INITIAL_KERNEL_MODULES);
+  const [processes, setProcesses] = useState<ProcessInfo[]>(INITIAL_PROCESSES);
+  const [dmesgLogs, setDmesgLogs] = useState<string[]>(INITIAL_DMESG);
+
+  // Visual Customization
+  const [theme, setTheme] = useState<'matrix' | 'amber' | 'cyber' | 'white'>('cyber');
+  const [hasScanlines, setHasScanlines] = useState<boolean>(true);
+  const [fontSize, setFontSize] = useState<'text-xs' | 'text-sm' | 'text-base'>('text-xs');
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+
+  // Kernel uptime in seconds
+  const [uptimeSeconds, setUptimeSeconds] = useState<number>(142);
+
+  const terminalEndRef = useRef<HTMLDivElement>(null);
+  const commandInputRef = useRef<HTMLInputElement>(null);
+
+  // Uptime ticker
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setUptimeSeconds((s) => s + 1);
+      // Random subtle jitter for top monitor
+      setTopCpuUsage((prev) => Math.max(1.2, Math.min(28.5, +(prev + (Math.random() * 2 - 1)).toFixed(1))));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Scroll to bottom on new terminal output
+  useEffect(() => {
+    terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [terminalHistory, isTopActive, isNanoActive]);
+
+  // Focus input on click
+  const focusInput = () => {
+    if (!isNanoActive && !isTopActive) {
+      commandInputRef.current?.focus();
+    }
+  };
+
+  // Keyboard shortcut listener: Ctrl+Alt+F7 to switch to GUI, Ctrl+C to cancel nano/top
+  useEffect(() => {
+    const handleGlobalKeys = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.altKey && e.key === 'F7') {
+        e.preventDefault();
+        onSwitchToGui();
+      } else if (e.ctrlKey && e.altKey && e.key === 'F1') {
+        e.preventDefault();
+        setActiveTty(1);
+      } else if (e.ctrlKey && e.altKey && e.key === 'F2') {
+        e.preventDefault();
+        setActiveTty(2);
+      } else if (e.ctrlKey && e.altKey && e.key === 'F3') {
+        e.preventDefault();
+        setActiveTty(3);
+      } else if (e.ctrlKey && e.key.toLowerCase() === 'c') {
+        if (isTopActive) {
+          setIsTopActive(false);
+          appendTerminalOutput('^C (Monitor TOP finalizado)');
+        }
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeys);
+    return () => window.removeEventListener('keydown', handleGlobalKeys);
+  }, [isTopActive, onSwitchToGui]);
+
+  // Audio beep
+  const playTerminalBeep = () => {
+    if (!soundEnabled) return;
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(640, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.08);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.08);
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  // Helper to append output
+  const appendTerminalOutput = (output: string | React.ReactNode, cmd = '') => {
+    setTerminalHistory((prev) => [
+      ...prev,
+      {
+        id: `out-${Date.now()}-${Math.random()}`,
+        command: cmd,
+        output,
+        path: currentPath,
+        user: currentUser
+      }
+    ]);
+  };
+
+  // Resolve virtual path
+  const resolvePath = (path: string): string => {
+    if (!path || path === '.') return currentPath;
+    if (path === '..') {
+      if (currentPath === '/') return '/';
+      const parts = currentPath.split('/').filter(Boolean);
+      parts.pop();
+      return '/' + parts.join('/');
+    }
+    if (path.startsWith('/')) return path;
+    return currentPath === '/' ? `/${path}` : `${currentPath}/${path}`;
+  };
+
+  // Handle Shell Commands Execution
+  const executeCommand = (rawCmd: string) => {
+    const trimmed = rawCmd.trim();
+    if (!trimmed) {
+      appendTerminalOutput('', '');
+      return;
+    }
+
+    playTerminalBeep();
+
+    // Store in history
+    setCommandHistory((prev) => [...prev, trimmed]);
+    setHistoryIndex(-1);
+
+    const parts = trimmed.split(' ');
+    const cmd = parts[0].toLowerCase();
+    const args = parts.slice(1);
+
+    // 1. HELP
+    if (cmd === 'help' || cmd === '?') {
+      appendTerminalOutput(
+        <div className="space-y-2 font-mono text-xs text-slate-200">
+          <div className="text-cyan-300 font-bold">MANUAL DE COMANDOS DO KERNEL PURO INOVECLOUD OS:</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
+            <div className="p-2 rounded bg-slate-900 border border-cyan-500/20">
+              <span className="text-emerald-400 font-bold block">Controle do Sistema & Hardware:</span>
+              <div><span className="text-amber-300">uname -a</span> : Detalhes do Kernel Linux 6.12+ Puro</div>
+              <div><span className="text-amber-300">dmesg</span> : Buffer de mensagens do Kernel Ring</div>
+              <div><span className="text-amber-300">uptime</span> : Tempo de atividade e carga média da CPU</div>
+              <div><span className="text-amber-300">reboot</span> : Reiniciar o sistema operacional</div>
+              <div><span className="text-amber-300">poweroff</span> : Desligar o computador (ACPI halt)</div>
+              <div><span className="text-amber-300">inove-desktop</span> : Iniciar interface nativa (sem GNOME)</div>
+            </div>
+            <div className="p-2 rounded bg-slate-900 border border-cyan-500/20">
+              <span className="text-emerald-400 font-bold block">Processos & Memória:</span>
+              <div><span className="text-amber-300">top</span> : Monitor em tempo real de CPU e processos</div>
+              <div><span className="text-amber-300">ps aux</span> : Lista processos do userspace e threads do kernel</div>
+              <div><span className="text-amber-300">free -m</span> : Estatísticas de memória RAM e Swap</div>
+              <div><span className="text-amber-300">df -h</span> : Espaço em disco dos sistemas de arquivos</div>
+              <div><span className="text-amber-300">kill &lt;pid&gt;</span> : Finaliza um processo em execução</div>
+            </div>
+            <div className="p-2 rounded bg-slate-900 border border-cyan-500/20">
+              <span className="text-emerald-400 font-bold block">Arquivos & Navegação:</span>
+              <div><span className="text-amber-300">ls [-la]</span> : Lista arquivos e permissões</div>
+              <div><span className="text-amber-300">cd &lt;dir&gt;</span> : Muda de diretório (/proc, /sys, /home/inove)</div>
+              <div><span className="text-amber-300">cat &lt;file&gt;</span> : Lê o conteúdo de um arquivo</div>
+              <div><span className="text-amber-300">nano &lt;file&gt;</span> : Editor de texto interativo no terminal</div>
+              <div><span className="text-amber-300">echo &quot;txt&quot; &gt; arq</span> : Grava texto em um arquivo</div>
+              <div><span className="text-amber-300">mkdir / rm</span> : Cria ou remove pastas e arquivos</div>
+            </div>
+            <div className="p-2 rounded bg-slate-900 border border-cyan-500/20">
+              <span className="text-emerald-400 font-bold block">Kernel Módulos & Compilação:</span>
+              <div><span className="text-amber-300">lsmod</span> : Lista módulos carregados do Kernel</div>
+              <div><span className="text-amber-300">insmod / rmmod</span> : Carrega/descarrega módulos .ko</div>
+              <div><span className="text-amber-300">compile-c &lt;arq.c&gt;</span> : Compila e executa programa C nativo</div>
+              <div><span className="text-amber-300">icpkg &lt;list|install&gt;</span> : Gerenciador de pacotes autônomo</div>
+              <div><span className="text-amber-300">sysctl -a</span> : Inspeciona parâmetros do Kernel Linux</div>
+            </div>
+          </div>
+          <div className="text-cyan-400 text-[10px]">
+            * Atalho rápido: Pressione <strong>Ctrl+Alt+F7</strong> para alternar entre TTY e Interface Nativa.
+          </div>
+        </div>,
+        trimmed
+      );
+      return;
+    }
+
+    // 2. CLEAR
+    if (cmd === 'clear') {
+      setTerminalHistory([]);
+      return;
+    }
+
+    // 3. UNAME
+    if (cmd === 'uname') {
+      if (args.includes('-a') || args.length === 0) {
+        appendTerminalOutput(
+          'Linux inovecloud-core 6.12.18-inovecloud-pure #1 SMP PREEMPT_DYNAMIC Sun Oct 10 2026 x86_64 GNU/Linux (Bare-Metal / No GNOME)',
+          trimmed
+        );
+      } else if (args.includes('-r')) {
+        appendTerminalOutput('6.12.18-inovecloud-pure', trimmed);
+      } else if (args.includes('-m')) {
+        appendTerminalOutput('x86_64', trimmed);
+      } else {
+        appendTerminalOutput('Linux', trimmed);
+      }
+      return;
+    }
+
+    // 4. DMESG
+    if (cmd === 'dmesg') {
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-0.5 text-slate-300 max-h-96 overflow-y-auto pr-2">
+          {dmesgLogs.map((log, idx) => (
+            <div key={idx} className="leading-tight">
+              <span className="text-cyan-400">{log.substring(0, 15)}</span>
+              <span className="text-slate-200">{log.substring(15)}</span>
+            </div>
+          ))}
+        </div>,
+        trimmed
+      );
+      return;
+    }
+
+    // 5. PS
+    if (cmd === 'ps') {
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-0.5">
+          <div className="text-cyan-400 font-bold border-b border-cyan-800/40 pb-0.5">
+            {'PID'.padEnd(6)} {'USER'.padEnd(8)} {'%CPU'.padEnd(6)} {'%MEM'.padEnd(6)} {'VSZ'.padEnd(8)} {'RSS'.padEnd(8)} {'TTY'.padEnd(8)} {'STAT'.padEnd(6)} {'COMMAND'}
+          </div>
+          {processes.map((p) => (
+            <div key={p.pid} className="text-slate-300">
+              {String(p.pid).padEnd(6)} {p.user.padEnd(8)} {String(p.cpu).padEnd(6)} {String(p.mem).padEnd(6)} {String(p.vsz).padEnd(8)} {String(p.rss).padEnd(8)} {p.tty.padEnd(8)} {p.stat.padEnd(6)} <span className={p.command.startsWith('[') ? 'text-blue-400' : 'text-emerald-300'}>{p.command}</span>
+            </div>
+          ))}
+        </div>,
+        trimmed
+      );
+      return;
+    }
+
+    // 6. TOP
+    if (cmd === 'top') {
+      setIsTopActive(true);
+      return;
+    }
+
+    // 7. FREE
+    if (cmd === 'free') {
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-1">
+          <div className="text-cyan-400 font-bold">
+            {'             total        used        free      shared  buff/cache   available'}
+          </div>
+          <div className="text-slate-200">
+            {'Mem:      16384000     2463600    12100100       42100     1820300    13920400'}
+          </div>
+          <div className="text-slate-200">
+            {'Swap:      8388600           0     8388600'}
+          </div>
+          <div className="text-emerald-400 text-[11px] pt-1">
+            ✓ ZRAM Compactado com ZSTD ativado. Memória física preservada para processos do Kernel.
+          </div>
+        </div>,
+        trimmed
+      );
+      return;
+    }
+
+    // 8. DF
+    if (cmd === 'df') {
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-1">
+          <div className="text-cyan-400 font-bold">
+            {'Filesystem     Type      Size  Used Avail Use% Mounted on'}
+          </div>
+          <div className="text-slate-200">
+            {'/dev/nvme0n1p2 ext4      490G   24G  442G   6% /'}
+          </div>
+          <div className="text-slate-200">
+            {'devtmpfs       devtmpfs  7.8G     0  7.8G   0% /dev'}
+          </div>
+          <div className="text-slate-200">
+            {'tmpfs          tmpfs     7.8G   42M  7.8G   1% /run'}
+          </div>
+          <div className="text-slate-200">
+            {'/dev/nvme0n1p1 vfat      512M   12M  500M   3% /boot/efi'}
+          </div>
+          <div className="text-slate-200">
+            {'overlay        overlay   490G   24G  442G   6% /mnt/persistence'}
+          </div>
+        </div>,
+        trimmed
+      );
+      return;
+    }
+
+    // 9. LS
+    if (cmd === 'ls') {
+      const showAll = args.includes('-a') || args.includes('-la') || args.includes('-al');
+      const showLong = args.includes('-l') || args.includes('-la') || args.includes('-al');
+      const targetPath = args.find((a) => !a.startsWith('-')) || currentPath;
+      const resolved = resolvePath(targetPath);
+
+      if (resolved === '/proc') {
+        const procItems = ['cpuinfo', 'meminfo', 'version', 'uptime', 'cmdline', 'modules', '1', '2', '120', '320'];
+        appendTerminalOutput(
+          <div className="font-mono text-xs text-blue-300 flex flex-wrap gap-x-4">
+            {procItems.map((item, i) => (
+              <span key={i} className={item.match(/^\d+$/) ? 'text-amber-300 font-bold' : 'text-cyan-300'}>
+                {item}
+              </span>
+            ))}
+          </div>,
+          trimmed
+        );
+        return;
+      }
+
+      if (resolved === '/home/inove') {
+        const homeNode = vfs['/home/inove'];
+        if (homeNode && homeNode.children) {
+          if (showLong) {
+            appendTerminalOutput(
+              <div className="font-mono text-xs space-y-0.5">
+                <div className="text-slate-400">total {Object.keys(homeNode.children).length * 4}</div>
+                {Object.values(homeNode.children).map((f) => (
+                  <div key={f.name} className="flex space-x-3 text-slate-200">
+                    <span className="text-slate-400 w-24">{f.permissions}</span>
+                    <span className="text-slate-400 w-12">{f.owner}</span>
+                    <span className="text-slate-400 w-12">{f.group}</span>
+                    <span className="text-amber-300 w-14 text-right">{f.size}</span>
+                    <span className="text-slate-400 w-28">{f.updatedAt}</span>
+                    <span className={f.type === 'dir' ? 'text-blue-400 font-bold' : f.name.endsWith('.sh') ? 'text-emerald-400 font-bold' : 'text-white'}>
+                      {f.name}
+                    </span>
+                  </div>
+                ))}
+              </div>,
+              trimmed
+            );
+          } else {
+            appendTerminalOutput(
+              <div className="font-mono text-xs flex flex-wrap gap-x-4">
+                {Object.values(homeNode.children).map((f) => (
+                  <span
+                    key={f.name}
+                    className={f.type === 'dir' ? 'text-blue-400 font-bold' : f.name.endsWith('.sh') ? 'text-emerald-400 font-bold' : 'text-slate-200'}
+                  >
+                    {f.name}
+                  </span>
+                ))}
+              </div>,
+              trimmed
+            );
+          }
+          return;
+        }
+      }
+
+      // Root or other dir
+      const rootNode = vfs['/'];
+      if (resolved === '/' && rootNode.children) {
+        appendTerminalOutput(
+          <div className="font-mono text-xs flex flex-wrap gap-x-4">
+            {Object.keys(rootNode.children).map((d) => (
+              <span key={d} className="text-blue-400 font-bold">
+                {d}/
+              </span>
+            ))}
+          </div>,
+          trimmed
+        );
+        return;
+      }
+
+      appendTerminalOutput(`ls: não foi possível acessar '${targetPath}': Diretório vazio ou simulado`, trimmed);
+      return;
+    }
+
+    // 10. CD
+    if (cmd === 'cd') {
+      const target = args[0] || '/home/inove';
+      const resolved = resolvePath(target);
+      if (['/', '/home/inove', '/proc', '/sys', '/dev', '/etc', '/root', '/tmp', '/var'].includes(resolved)) {
+        setCurrentPath(resolved);
+        appendTerminalOutput('', trimmed);
+      } else {
+        appendTerminalOutput(`cd: ${target}: Diretório não encontrado`, trimmed);
+      }
+      return;
+    }
+
+    // 11. PWD
+    if (cmd === 'pwd') {
+      appendTerminalOutput(currentPath, trimmed);
+      return;
+    }
+
+    // 12. CAT
+    if (cmd === 'cat') {
+      if (!args[0]) {
+        appendTerminalOutput('cat: arquivo não especificado', trimmed);
+        return;
+      }
+      const resolved = resolvePath(args[0]);
+
+      if (vfs[resolved]) {
+        appendTerminalOutput(vfs[resolved].content || '', trimmed);
+        return;
+      }
+
+      if (currentPath === '/home/inove') {
+        const file = vfs['/home/inove']?.children?.[args[0]];
+        if (file && file.content) {
+          appendTerminalOutput(
+            <pre className="font-mono text-xs text-slate-200 whitespace-pre-wrap">{file.content}</pre>,
+            trimmed
+          );
+          return;
+        }
+      }
+
+      appendTerminalOutput(`cat: ${args[0]}: Arquivo ou diretório inexistente`, trimmed);
+      return;
+    }
+
+    // 13. ECHO
+    if (cmd === 'echo') {
+      const rest = args.join(' ');
+      if (rest.includes('>')) {
+        const [textPart, filePart] = rest.split('>');
+        const cleanText = textPart.trim().replace(/^["']|["']$/g, '');
+        const targetFilename = filePart.trim();
+        if (targetFilename) {
+          setVfs((prev) => {
+            const next = { ...prev };
+            if (next['/home/inove'] && next['/home/inove'].children) {
+              next['/home/inove'].children[targetFilename] = {
+                name: targetFilename,
+                type: 'file',
+                size: cleanText.length,
+                permissions: '-rw-r--r--',
+                owner: currentUser,
+                group: currentUser,
+                updatedAt: new Date().toISOString().substring(0, 16).replace('T', ' '),
+                content: cleanText + '\n'
+              };
+            }
+            return next;
+          });
+          appendTerminalOutput(`[OK] Gravado com sucesso em '${targetFilename}'`, trimmed);
+          return;
+        }
+      }
+      appendTerminalOutput(rest.replace(/^["']|["']$/g, ''), trimmed);
+      return;
+    }
+
+    // 14. TOUCH
+    if (cmd === 'touch') {
+      const targetFilename = args[0];
+      if (!targetFilename) {
+        appendTerminalOutput('touch: falta operando de arquivo', trimmed);
+        return;
+      }
+      setVfs((prev) => {
+        const next = { ...prev };
+        if (next['/home/inove'] && next['/home/inove'].children) {
+          next['/home/inove'].children[targetFilename] = {
+            name: targetFilename,
+            type: 'file',
+            size: 0,
+            permissions: '-rw-r--r--',
+            owner: currentUser,
+            group: currentUser,
+            updatedAt: new Date().toISOString().substring(0, 16).replace('T', ' '),
+            content: ''
+          };
+        }
+        return next;
+      });
+      appendTerminalOutput('', trimmed);
+      return;
+    }
+
+    // 15. NANO
+    if (cmd === 'nano') {
+      const targetFile = args[0] || 'novo-arquivo.txt';
+      let existingContent = '';
+      if (vfs['/home/inove']?.children?.[targetFile]) {
+        existingContent = vfs['/home/inove'].children[targetFile].content || '';
+      }
+      setNanoFilename(targetFile);
+      setNanoContent(existingContent);
+      setIsNanoActive(true);
+      return;
+    }
+
+    // 16. COMPILE-C / GCC
+    if (cmd === 'compile-c' || cmd === 'gcc') {
+      const sourceFile = args[0] || 'hello.c';
+      let code = '';
+      if (vfs['/home/inove']?.children?.[sourceFile]) {
+        code = vfs['/home/inove'].children[sourceFile].content || '';
+      } else {
+        code = `/* Compilado pelo GCC InoveCloud x86_64 */
+#include <stdio.h>
+int main() {
+    printf("[OK] Código C executado via syscalls diretas do Kernel Linux 6.12!\\n");
+    return 0;
+}`;
+      }
+
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-1">
+          <div className="text-cyan-300 font-bold">
+            [1/3] Invocando GCC 14.2.0 Bare-Metal (-march=native -O2 -nostdlib)...
+          </div>
+          <div className="text-slate-400 text-[11px]">
+            &gt; gcc -march=native -O2 -nostartfiles {sourceFile} -o /home/inove/a.out
+          </div>
+          <div className="text-cyan-300 font-bold">
+            [2/3] Gerando binário ELF 64-bit LSB pie executable x86-64...
+          </div>
+          <div className="text-emerald-400 font-bold">
+            ✓ Compilação concluída com 0 avisos e 0 erros. Binário &#39;/home/inove/a.out&#39; criado.
+          </div>
+          <div className="text-cyan-300 font-bold pt-1">
+            [3/3] Executando binário gerado (sys_execve /home/inove/a.out):
+          </div>
+          <div className="p-2 rounded bg-slate-900 border border-emerald-500/30 text-emerald-300">
+            <div>[OK] Executado via syscall direta do Kernel Linux 6.12 puro!</div>
+            <div className="text-cyan-300">&gt;&gt; InoveCloud OS Kernel Puro (Sem GNOME) operacional!</div>
+            <div className="text-slate-400 text-[10px] pt-1">
+              Process exited with return code: 0 | CPU cycles: 12,480 | Syscalls: [sys_write: 1, sys_exit: 1]
+            </div>
+          </div>
+        </div>,
+        trimmed
+      );
+      return;
+    }
+
+    // 17. LSMOD
+    if (cmd === 'lsmod') {
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-0.5">
+          <div className="text-cyan-400 font-bold border-b border-cyan-800/40 pb-0.5">
+            {'Module'.padEnd(24)} {'Size'.padEnd(10)} {'Used by'.padEnd(10)} {'Description'}
+          </div>
+          {kernelModules.map((m) => (
+            <div key={m.name} className="text-slate-200">
+              <span className="text-amber-300">{m.name.padEnd(24)}</span>{' '}
+              <span className="text-slate-400">{String(m.size).padEnd(10)}</span>{' '}
+              <span className="text-cyan-400">{String(m.instances).padEnd(10)}</span>{' '}
+              <span className="text-slate-300">{m.description}</span>
+            </div>
+          ))}
+        </div>,
+        trimmed
+      );
+      return;
+    }
+
+    // 18. INSMOD
+    if (cmd === 'insmod') {
+      const modName = args[0]?.replace(/\.ko$/, '');
+      if (!modName) {
+        appendTerminalOutput('insmod: falta o nome do módulo .ko', trimmed);
+        return;
+      }
+      setKernelModules((prev) => [
+        ...prev,
+        {
+          name: modName,
+          size: 32768,
+          instances: 0,
+          status: 'Live',
+          description: `Módulo dinâmico inserido em Ring 0 (${modName})`
+        }
+      ]);
+      setDmesgLogs((prev) => [...prev, `[   ${(uptimeSeconds + 0.12).toFixed(6)}] inove_kernel: module '${modName}' loaded successfully.`]);
+      appendTerminalOutput(`[OK] Módulo do Kernel '${modName}.ko' inserido com sucesso.`, trimmed);
+      return;
+    }
+
+    // 19. RMMOD
+    if (cmd === 'rmmod') {
+      const modName = args[0];
+      if (!modName) {
+        appendTerminalOutput('rmmod: falta o nome do módulo a descarregar', trimmed);
+        return;
+      }
+      setKernelModules((prev) => prev.filter((m) => m.name !== modName));
+      setDmesgLogs((prev) => [...prev, `[   ${(uptimeSeconds + 0.18).toFixed(6)}] inove_kernel: module '${modName}' unloaded.`]);
+      appendTerminalOutput(`[OK] Módulo do Kernel '${modName}' descarregado.`, trimmed);
+      return;
+    }
+
+    // 20. ICPKG
+    if (cmd === 'icpkg') {
+      const sub = args[0];
+      if (sub === 'list') {
+        appendTerminalOutput(
+          <div className="font-mono text-xs space-y-1">
+            <div className="text-cyan-400 font-bold">PACOTES INSTALADOS NO INOVECLOUD OS (SEM GNOME):</div>
+            <div className="text-slate-200">• inove-core-kernel 6.12.18-pure [ativo]</div>
+            <div className="text-slate-200">• busybox-static 1.36.1 [ativo]</div>
+            <div className="text-slate-200">• inove-init-pid1 2.4.0 [ativo]</div>
+            <div className="text-slate-200">• drm-kms-direct 1.0.4 [ativo]</div>
+            <div className="text-slate-200">• weston-inove 14.0.0 [ativo]</div>
+            <div className="text-slate-200">• pipewire-alsa 1.2.5 [ativo]</div>
+            <div className="text-slate-200">• gcc-musl 14.2.0 [ativo]</div>
+            <div className="text-slate-200">• flatpak-sandbox 1.14.8 [ativo]</div>
+          </div>,
+          trimmed
+        );
+      } else if (sub === 'install') {
+        const pkg = args[1] || 'util-linux';
+        appendTerminalOutput(
+          <div className="font-mono text-xs space-y-1">
+            <div className="text-cyan-300">Conectando ao repositório oficial InoveCloud Pure...</div>
+            <div className="text-emerald-400">✓ Baixando {pkg}-x86_64.icpkg (1.2 MB / 1.2 MB)</div>
+            <div className="text-emerald-400">✓ Verificando integridade SHA256 e assinatura GPG...</div>
+            <div className="text-emerald-400">✓ Descompactando e registrando em /usr/bin/{pkg}...</div>
+            <div className="text-cyan-400 font-bold">🎉 Pacote &#39;{pkg}&#39; instalado e pronto para uso!</div>
+          </div>,
+          trimmed
+        );
+      } else {
+        appendTerminalOutput('Uso: icpkg <list | install <nome> | remove <nome> | info <nome>>', trimmed);
+      }
+      return;
+    }
+
+    // 21. SYSCTL
+    if (cmd === 'sysctl') {
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-0.5 text-slate-300">
+          <div>vm.swappiness = 10</div>
+          <div>vm.dirty_ratio = 15</div>
+          <div>kernel.sched_latency_ns = 3000000</div>
+          <div>kernel.sched_min_granularity_ns = 750000</div>
+          <div>kernel.printk = 4 4 1 7</div>
+          <div>fs.file-max = 2097152</div>
+          <div>net.ipv4.ip_forward = 1</div>
+          <div>net.ipv4.tcp_congestion_control = bbr</div>
+        </div>,
+        trimmed
+      );
+      return;
+    }
+
+    // 22. INOVE-DESKTOP / STARTX / GUI
+    if (cmd === 'inove-desktop' || cmd === 'startx' || cmd === 'gui') {
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-1 text-cyan-300">
+          <div>[INIT] Iniciando servidor gráfico DRM/KMS nativo InoveCloud OS...</div>
+          <div>[INFO] Compositor Liquid Glass direto no Framebuffer (Zero dependência de GNOME)...</div>
+          <div className="text-emerald-400 font-bold">✓ Transição para modo gráfico em andamento...</div>
+        </div>,
+        trimmed
+      );
+      setTimeout(() => {
+        onSwitchToGui();
+      }, 700);
+      return;
+    }
+
+    // 23. REBOOT
+    if (cmd === 'reboot') {
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-1 text-amber-300">
+          <div>Broadcast message from root@inovecloud-kernel (tty1):</div>
+          <div>The system is going down for reboot NOW!</div>
+          <div className="text-slate-400">Stopping services... Syncing disks... Unmounting filesystems...</div>
+        </div>,
+        trimmed
+      );
+      setTimeout(() => {
+        if (onReboot) onReboot();
+        else window.location.reload();
+      }, 1200);
+      return;
+    }
+
+    // 24. POWEROFF / HALT
+    if (cmd === 'poweroff' || cmd === 'halt' || cmd === 'shutdown') {
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-1 text-red-400">
+          <div>Broadcast message from root@inovecloud-kernel:</div>
+          <div>System halted. Powering down via ACPI...</div>
+        </div>,
+        trimmed
+      );
+      setTimeout(() => {
+        if (onPowerOff) onPowerOff();
+        else window.location.reload();
+      }, 1000);
+      return;
+    }
+
+    // 25. WHOAMI / ID
+    if (cmd === 'whoami') {
+      appendTerminalOutput(currentUser, trimmed);
+      return;
+    }
+    if (cmd === 'id') {
+      appendTerminalOutput('uid=0(root) gid=0(root) groups=0(root),4(adm),24(cdrom),27(sudo)', trimmed);
+      return;
+    }
+
+    // 26. DATE / UPTIME
+    if (cmd === 'date') {
+      appendTerminalOutput(new Date().toString(), trimmed);
+      return;
+    }
+    if (cmd === 'uptime') {
+      const mins = Math.floor(uptimeSeconds / 60);
+      const secs = uptimeSeconds % 60;
+      appendTerminalOutput(
+        ` ${new Date().toLocaleTimeString()} up ${mins} min, ${secs} sec, 1 user, load average: 0.08, 0.04, 0.01`,
+        trimmed
+      );
+      return;
+    }
+
+    // 27. KILL
+    if (cmd === 'kill') {
+      const pidToKill = parseInt(args[0], 10);
+      if (isNaN(pidToKill)) {
+        appendTerminalOutput('kill: PID inválido', trimmed);
+        return;
+      }
+      if (pidToKill <= 2) {
+        appendTerminalOutput(`kill: (${pidToKill}) - Operação não permitida no processo do Kernel`, trimmed);
+        return;
+      }
+      setProcesses((prev) => prev.filter((p) => p.pid !== pidToKill));
+      appendTerminalOutput(`[OK] Sinal SIGTERM enviado para PID ${pidToKill}`, trimmed);
+      return;
+    }
+
+    // 28. SU
+    if (cmd === 'su') {
+      const targetUser = args[0] || 'root';
+      if (targetUser === 'inove' || targetUser === 'root') {
+        setCurrentUser(targetUser as any);
+        appendTerminalOutput(`Alternado para usuário '${targetUser}'`, trimmed);
+      } else {
+        appendTerminalOutput(`su: usuário '${targetUser}' não existe`, trimmed);
+      }
+      return;
+    }
+
+    // Unknown command
+    appendTerminalOutput(
+      <span className="text-red-400 font-mono">
+        inove-sh: comando não encontrado: &#39;{cmd}&#39;. Digite <strong className="text-amber-300">help</strong> para comandos disponíveis.
+      </span>,
+      trimmed
+    );
+  };
+
+  // Keyboard navigation for command history & auto-complete
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      executeCommand(commandInput);
+      setCommandInput('');
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (commandHistory.length > 0) {
+        const nextIdx = historyIndex === -1 ? commandHistory.length - 1 : Math.max(0, historyIndex - 1);
+        setHistoryIndex(nextIdx);
+        setCommandInput(commandHistory[nextIdx]);
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (historyIndex !== -1) {
+        const nextIdx = historyIndex + 1;
+        if (nextIdx >= commandHistory.length) {
+          setHistoryIndex(-1);
+          setCommandInput('');
+        } else {
+          setHistoryIndex(nextIdx);
+          setCommandInput(commandHistory[nextIdx]);
+        }
+      }
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      // Simple autocompletion
+      const cmds = [
+        'help', 'dmesg', 'top', 'ps', 'free', 'df', 'ls', 'cd', 'cat', 'nano',
+        'echo', 'touch', 'compile-c', 'gcc', 'lsmod', 'insmod', 'rmmod', 'icpkg',
+        'sysctl', 'inove-desktop', 'reboot', 'poweroff', 'clear', 'uname'
+      ];
+      const match = cmds.find((c) => c.startsWith(commandInput.trim()));
+      if (match) {
+        setCommandInput(match + ' ');
+      }
+    }
+  };
+
+  // Theme Styles
+  const getThemeClasses = () => {
+    switch (theme) {
+      case 'matrix':
+        return 'bg-black text-emerald-400 selection:bg-emerald-800';
+      case 'amber':
+        return 'bg-[#0f0a00] text-amber-400 selection:bg-amber-800';
+      case 'white':
+        return 'bg-[#080808] text-slate-100 selection:bg-slate-700';
+      case 'cyber':
+      default:
+        return 'bg-[#050811] text-cyan-300 selection:bg-cyan-800';
+    }
+  };
+
+  return (
+    <div
+      onClick={focusInput}
+      className={`fixed inset-0 z-[99999] flex flex-col font-mono select-none overflow-hidden ${getThemeClasses()}`}
+    >
+      {/* Scanlines overlay effect */}
+      {hasScanlines && (
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)] z-10 opacity-70">
+          <div
+            className="w-full h-full opacity-25"
+            style={{
+              backgroundImage: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.7) 50%)',
+              backgroundSize: '100% 4px'
+            }}
+          />
+        </div>
+      )}
+
+      {/* TOP KERNEL HARDWARE TELEMETRY & TTY BAR */}
+      <header className="relative z-20 flex flex-wrap items-center justify-between px-3 py-1.5 bg-slate-950/90 border-b border-cyan-500/30 text-xs">
+        {/* Left: Kernel Brand & TTY Indicators */}
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1.5 text-white font-bold tracking-wider">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+            <span className="text-cyan-400">INOVECLOUD OS</span>
+            <span className="text-slate-400 text-[10px] hidden sm:inline">KERNEL PURO 6.12+ LTS</span>
+          </div>
+
+          <div className="flex items-center space-x-1 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700 text-[11px]">
+            <button
+              onClick={() => setActiveTty(1)}
+              className={`px-2 py-0.5 rounded font-bold transition cursor-pointer ${
+                activeTty === 1 ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="TTY1: Shell Interativo Principal (Ctrl+Alt+F1)"
+            >
+              tty1
+            </button>
+            <button
+              onClick={() => setActiveTty(2)}
+              className={`px-2 py-0.5 rounded font-bold transition cursor-pointer ${
+                activeTty === 2 ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="TTY2: Buffer dmesg contínuo (Ctrl+Alt+F2)"
+            >
+              tty2
+            </button>
+            <button
+              onClick={() => setActiveTty(3)}
+              className={`px-2 py-0.5 rounded font-bold transition cursor-pointer ${
+                activeTty === 3 ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="TTY3: Top Telemetria de Processos (Ctrl+Alt+F3)"
+            >
+              tty3
+            </button>
+          </div>
+        </div>
+
+        {/* Center: Live Telemetry Badges */}
+        <div className="hidden lg:flex items-center space-x-4 text-[11px] text-slate-300">
+          <div className="flex items-center space-x-1.5">
+            <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+            <span>CPU: <strong className="text-emerald-400 font-mono">{topCpuUsage}%</strong> (16 Threads)</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <Activity className="w-3.5 h-3.5 text-purple-400" />
+            <span>RAM: <strong className="text-emerald-400 font-mono">{topMemUsage}%</strong> (16 GB)</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <HardDrive className="w-3.5 h-3.5 text-amber-400" />
+            <span>NVMe: <strong className="text-cyan-400 font-mono">Gen4 7.2GB/s</strong></span>
+          </div>
+          <div className="text-slate-400 font-mono text-[10px]">
+            UPTIME: {Math.floor(uptimeSeconds / 60)}m {uptimeSeconds % 60}s
+          </div>
+        </div>
+
+        {/* Right: Quick Action Buttons */}
+        <div className="flex items-center space-x-2">
+          {/* Transition to GUI */}
+          <button
+            onClick={onSwitchToGui}
+            className="flex items-center space-x-1.5 px-3 py-1 rounded bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold transition shadow-md shadow-cyan-600/30 cursor-pointer active:scale-95"
+            title="Iniciar Interface Gráfica Nativa (Direct DRM/KMS - Sem GNOME)"
+          >
+            <Monitor className="w-3.5 h-3.5" />
+            <span>Modo Gráfico Nativo (F7)</span>
+          </button>
+
+          {/* Theme selector */}
+          <select
+            value={theme}
+            onChange={(e) => setTheme(e.target.value as any)}
+            className="bg-slate-900 border border-slate-700 text-slate-300 text-[10px] rounded px-1.5 py-1 focus:outline-none cursor-pointer"
+          >
+            <option value="cyber">Cyber Cyan</option>
+            <option value="matrix">Matrix Green</option>
+            <option value="amber">Amber CRT</option>
+            <option value="white">Monochrome</option>
+          </select>
+
+          {/* Scanlines toggle */}
+          <button
+            onClick={() => setHasScanlines(!hasScanlines)}
+            className={`px-2 py-1 rounded border text-[10px] transition cursor-pointer ${
+              hasScanlines ? 'bg-cyan-900/60 border-cyan-500/50 text-cyan-200' : 'bg-slate-900 border-slate-700 text-slate-400'
+            }`}
+            title="Alternar efeito de linhas scanlines CRT"
+          >
+            CRT
+          </button>
+
+          {/* Sound toggle */}
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className="p-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition cursor-pointer"
+            title="Alternar som do terminal"
+          >
+            {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-cyan-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-500" />}
+          </button>
+
+          {/* Reboot Button */}
+          <button
+            onClick={() => executeCommand('reboot')}
+            className="p-1 rounded bg-amber-900/40 hover:bg-amber-800/60 text-amber-300 border border-amber-600/40 transition cursor-pointer"
+            title="Reiniciar Kernel Linux"
+          >
+            <RotateCw className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Poweroff Button */}
+          <button
+            onClick={() => executeCommand('poweroff')}
+            className="p-1 rounded bg-red-900/40 hover:bg-red-800/60 text-red-300 border border-red-600/40 transition cursor-pointer"
+            title="Desligar Computador"
+          >
+            <Power className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </header>
+
+      {/* QUICK LAUNCH SHORTCUT CHIPS */}
+      <div className="relative z-20 flex items-center space-x-1.5 px-3 py-1 bg-slate-950/70 border-b border-white/5 overflow-x-auto text-[11px] scrollbar-none">
+        <span className="text-slate-500 font-bold select-none text-[10px] uppercase">Ações Rápidas:</span>
+        <button
+          onClick={() => executeCommand('uname -a')}
+          className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-800/40 cursor-pointer"
+        >
+          uname -a
+        </button>
+        <button
+          onClick={() => executeCommand('dmesg')}
+          className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-800/40 cursor-pointer"
+        >
+          dmesg
+        </button>
+        <button
+          onClick={() => executeCommand('top')}
+          className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-800/40 cursor-pointer"
+        >
+          top (Processos)
+        </button>
+        <button
+          onClick={() => executeCommand('compile-c hello.c')}
+          className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-emerald-800/40 cursor-pointer"
+        >
+          ⚡ compile-c hello.c
+        </button>
+        <button
+          onClick={() => executeCommand('nano welcome.txt')}
+          className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-800/40 cursor-pointer"
+        >
+          📝 nano welcome.txt
+        </button>
+        <button
+          onClick={() => executeCommand('lsmod')}
+          className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-800/40 cursor-pointer"
+        >
+          lsmod (Módulos)
+        </button>
+        <button
+          onClick={() => executeCommand('free -m')}
+          className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-800/40 cursor-pointer"
+        >
+          free -m (RAM)
+        </button>
+        <button
+          onClick={() => executeCommand('help')}
+          className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-purple-300 border border-purple-800/40 cursor-pointer"
+        >
+          help (Ajuda)
+        </button>
+      </div>
+
+      {/* MAIN SCREEN CONTENT */}
+      <div className="relative z-10 flex-1 overflow-y-auto p-4 select-text">
+        {/* TTY 1: MAIN INTERACTIVE SHELL */}
+        {activeTty === 1 && !isTopActive && !isNanoActive && (
+          <div className={`space-y-2 ${fontSize}`}>
+            {/* History Output */}
+            {terminalHistory.map((entry) => (
+              <div key={entry.id} className="space-y-1">
+                {entry.command && (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-emerald-400 font-bold">{entry.user}@inovecloud-kernel</span>
+                    <span className="text-slate-500">:</span>
+                    <span className="text-blue-400 font-bold">{entry.path}</span>
+                    <span className="text-amber-400 font-bold">{entry.user === 'root' ? '#' : '$'}</span>
+                    <span className="text-white font-mono">{entry.command}</span>
+                  </div>
+                )}
+                {entry.output && (
+                  <div className="pl-0 leading-relaxed">{entry.output}</div>
+                )}
+              </div>
+            ))}
+
+            {/* Active Input Line */}
+            <div className="flex items-center space-x-2 pt-1">
+              <span className="text-emerald-400 font-bold">{currentUser}@inovecloud-kernel</span>
+              <span className="text-slate-500">:</span>
+              <span className="text-blue-400 font-bold">{currentPath}</span>
+              <span className="text-amber-400 font-bold">{currentUser === 'root' ? '#' : '$'}</span>
+              <input
+                ref={commandInputRef}
+                type="text"
+                value={commandInput}
+                onChange={(e) => setCommandInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoFocus
+                spellCheck={false}
+                autoComplete="off"
+                className="flex-1 bg-transparent border-none outline-none font-mono text-white caret-cyan-400 p-0 m-0"
+              />
+            </div>
+            <div ref={terminalEndRef} />
+          </div>
+        )}
+
+        {/* TTY 1: TOP LIVE MONITOR */}
+        {activeTty === 1 && isTopActive && (
+          <div className="space-y-3 font-mono text-xs">
+            <div className="p-3 rounded-lg bg-slate-900 border border-cyan-500/30 space-y-1">
+              <div className="flex justify-between text-white font-bold">
+                <span>top - {new Date().toLocaleTimeString()} up {Math.floor(uptimeSeconds / 60)} min, 1 user, load average: 0.12, 0.08, 0.02</span>
+                <span className="text-amber-400">Pressione [Ctrl+C] ou clique em Fechar para sair</span>
+              </div>
+              <div className="text-slate-300">
+                Tasks: <strong className="text-cyan-400">{processes.length} total</strong>, 1 running, {processes.length - 1} sleeping, 0 stopped, 0 zombie
+              </div>
+              <div className="text-slate-300">
+                %Cpu(s): <strong className="text-emerald-400">{topCpuUsage}% us</strong>, 1.2% sy, 0.0% ni, 95.0% id, 0.0% wa, 0.0% hi, 0.0% si
+              </div>
+              <div className="text-slate-300">
+                MiB Mem : <strong className="text-cyan-400">16000.0 total</strong>, 12100.1 free, 2463.6 used, 1436.3 buff/cache
+              </div>
+              <div className="text-slate-300">
+                MiB Swap: <strong className="text-cyan-400">8192.0 total</strong>, 8192.0 free, 0.0 used. 13536.4 avail Mem
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-cyan-950 text-cyan-300 font-bold border-b border-cyan-800">
+                    <th className="p-1">PID</th>
+                    <th className="p-1">USER</th>
+                    <th className="p-1">PR</th>
+                    <th className="p-1">NI</th>
+                    <th className="p-1">VIRT</th>
+                    <th className="p-1">RES</th>
+                    <th className="p-1">SHR</th>
+                    <th className="p-1">S</th>
+                    <th className="p-1">%CPU</th>
+                    <th className="p-1">%MEM</th>
+                    <th className="p-1">TIME+</th>
+                    <th className="p-1">COMMAND</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {processes.map((p) => (
+                    <tr key={p.pid} className="hover:bg-slate-900/60 text-slate-200">
+                      <td className="p-1 text-cyan-400">{p.pid}</td>
+                      <td className="p-1 text-slate-400">{p.user}</td>
+                      <td className="p-1">20</td>
+                      <td className="p-1">0</td>
+                      <td className="p-1">{p.vsz}</td>
+                      <td className="p-1">{p.rss}</td>
+                      <td className="p-1">1024</td>
+                      <td className="p-1 text-amber-400">{p.stat}</td>
+                      <td className="p-1 text-emerald-400 font-bold">{p.cpu}</td>
+                      <td className="p-1">{p.mem}</td>
+                      <td className="p-1 text-slate-400">{p.time}</td>
+                      <td className="p-1 font-bold text-white">{p.command}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                onClick={() => {
+                  setIsTopActive(false);
+                  appendTerminalOutput('Monitor TOP finalizado');
+                }}
+                className="px-4 py-1.5 rounded bg-red-600 hover:bg-red-500 text-white font-bold transition cursor-pointer"
+              >
+                Fechar Monitor TOP
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* TTY 1: NANO IN-TERMINAL TEXT EDITOR */}
+        {activeTty === 1 && isNanoActive && (
+          <div className="h-full flex flex-col space-y-2 font-mono text-xs">
+            <div className="bg-slate-900 text-white p-2 rounded border border-cyan-500/40 flex items-center justify-between">
+              <div>
+                <span className="text-cyan-400 font-bold">GNU nano 8.0</span> — Arquivo:{' '}
+                <span className="text-amber-300 font-bold">{nanoFilename}</span>
+              </div>
+              <span className="text-slate-400 text-[11px]">[Modificado]</span>
+            </div>
+
+            <textarea
+              value={nanoContent}
+              onChange={(e) => setNanoContent(e.target.value)}
+              className="flex-1 w-full bg-slate-950 p-3 rounded border border-slate-800 font-mono text-slate-100 text-xs focus:outline-none resize-none leading-relaxed"
+              rows={16}
+            />
+
+            <div className="bg-slate-900 p-2 rounded border border-slate-800 flex flex-wrap items-center justify-between text-xs text-slate-300">
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => {
+                    // Save file
+                    setVfs((prev) => {
+                      const next = { ...prev };
+                      if (next['/home/inove'] && next['/home/inove'].children) {
+                        next['/home/inove'].children[nanoFilename] = {
+                          name: nanoFilename,
+                          type: 'file',
+                          size: nanoContent.length,
+                          permissions: '-rw-r--r--',
+                          owner: currentUser,
+                          group: currentUser,
+                          updatedAt: new Date().toISOString().substring(0, 16).replace('T', ' '),
+                          content: nanoContent
+                        };
+                      }
+                      return next;
+                    });
+                    appendTerminalOutput(`[OK] Arquivo '${nanoFilename}' salvo com sucesso (${nanoContent.length} bytes).`);
+                    setIsNanoActive(false);
+                  }}
+                  className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold cursor-pointer"
+                >
+                  ^O Salvar e Sair
+                </button>
+                <button
+                  onClick={() => setIsNanoActive(false)}
+                  className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
+                >
+                  ^X Cancelar
+                </button>
+              </div>
+              <div className="text-[11px] text-slate-400">
+                Linhas: {nanoContent.split('\n').length} | Caracteres: {nanoContent.length}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TTY 2: CONTINUOUS KERNEL LOG STREAM (DMESG -W) */}
+        {activeTty === 2 && (
+          <div className="space-y-2 font-mono text-xs">
+            <div className="p-2 rounded bg-slate-900 border border-cyan-500/30 flex items-center justify-between text-slate-200">
+              <div>
+                <span className="text-cyan-400 font-bold">TTY 2:</span> Monitor Contínuo do Kernel Ring Buffer (dmesg -w)
+              </div>
+              <span className="text-emerald-400 text-[11px] flex items-center space-x-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+                <span>Captura em tempo real ativa</span>
+              </span>
+            </div>
+
+            <div className="space-y-1 font-mono text-xs text-slate-300">
+              {dmesgLogs.map((log, idx) => (
+                <div key={idx} className="leading-tight">
+                  <span className="text-cyan-400">{log.substring(0, 15)}</span>
+                  <span className="text-slate-200">{log.substring(15)}</span>
+                </div>
+              ))}
+              <div className="text-emerald-400 animate-pulse pt-2">
+                [   {(uptimeSeconds + 0.42).toFixed(6)}] inove_kernel: heartbeat ok, zero dropped frames on /dev/fb0.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TTY 3: HARDWARE TOPOLOGY & SUBSYSTEM INSPECTOR */}
+        {activeTty === 3 && (
+          <div className="space-y-4 font-mono text-xs">
+            <div className="p-3 rounded-lg bg-slate-900 border border-cyan-500/30 flex items-center justify-between">
+              <div>
+                <span className="text-cyan-400 font-bold">TTY 3:</span> Topologia de Hardware & Arquitetura do Kernel Puro
+              </div>
+              <span className="text-slate-400 text-[11px]">x86_64 SMP / Bare-Metal Mode</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+                <span className="text-emerald-400 font-bold block border-b border-slate-800 pb-1">
+                  1. CPU & Escalonador Ring 0
+                </span>
+                <div className="text-slate-300 space-y-1 text-[11px]">
+                  <div>• Arquitetura: x86_64 SMP com suporte a AVX2, AVX-512, FMA, BMI2</div>
+                  <div>• Escalonador: EEVDF (Earliest Eligible Virtual Deadline First)</div>
+                  <div>• Latência alvo: 3ms (Otimizado para baixa latência)</div>
+                  <div>• Timer Frequency: CONFIG_HZ=1000 (1000 Hz)</div>
+                  <div>• Preempção: PREEMPT_DYNAMIC (Full Preemption ativa)</div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+                <span className="text-emerald-400 font-bold block border-b border-slate-800 pb-1">
+                  2. Gráficos & DRM/KMS Framebuffer
+                </span>
+                <div className="text-slate-300 space-y-1 text-[11px]">
+                  <div>• Driver: Direct Rendering Manager (DRM / SimpleDRM / fbdev)</div>
+                  <div>• Dependência de GNOME: <strong className="text-emerald-400">ZERO (100% Puro)</strong></div>
+                  <div>• Scanout: Direto em hardware via fb0 e dri/card0</div>
+                  <div>• Taxa de atualização: 60Hz sem travamentos</div>
+                  <div>• Aceleração 3D: Mesa / Gallium DRI3 nativo</div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+                <span className="text-emerald-400 font-bold block border-b border-slate-800 pb-1">
+                  3. Gerenciamento de Memória & ZRAM
+                </span>
+                <div className="text-slate-300 space-y-1 text-[11px]">
+                  <div>• Algoritmo de Compressão: ZSTD multi-thread</div>
+                  <div>• Alocador: SLUB Allocator de alta performance</div>
+                  <div>• Swappiness: vm.swappiness = 10 (preserva RAM física)</div>
+                  <div>• Dirty Ratio: vm.dirty_ratio = 15%</div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+                <span className="text-emerald-400 font-bold block border-b border-slate-800 pb-1">
+                  4. Inicialização & Init PID 1
+                </span>
+                <div className="text-slate-300 space-y-1 text-[11px]">
+                  <div>• Init Process: /sbin/inove-init (autônomo em C)</div>
+                  <div>• Gerenciamento de Dispositivos: udevd nativo</div>
+                  <div>• Rede: udhcpc / inove-networkd com IPv4/IPv6</div>
+                  <div>• Áudio: ALSA & PipeWire com direct DMA buffer</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-gradient-to-r from-blue-950/60 to-cyan-950/60 border border-cyan-500/30 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-white text-xs block">Deseja iniciar a Interface Gráfica Nativa?</span>
+                <span className="text-[11px] text-cyan-200">
+                  Executa o compositor InoveCloud Liquid Glass diretamente sobre o DRM/KMS sem carregar GNOME.
+                </span>
+              </div>
+              <button
+                onClick={onSwitchToGui}
+                className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition cursor-pointer shadow-lg shadow-cyan-600/30 active:scale-95"
+              >
+                Iniciar Agora (F7) ➔
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* FOOTER BAR WITH SYSTEM STATUS & KEY SHORTCUTS */}
+      <footer className="relative z-20 flex flex-wrap items-center justify-between px-3 py-1 bg-slate-950/95 border-t border-cyan-500/20 text-[11px] text-slate-400">
+        <div className="flex items-center space-x-3">
+          <span>
+            TTY: <strong className="text-cyan-400 font-bold">/dev/tty{activeTty}</strong>
+          </span>
+          <span className="hidden sm:inline">|</span>
+          <span className="hidden sm:inline">
+            Usuário: <strong className="text-emerald-400">{currentUser}</strong>
+          </span>
+          <span className="hidden sm:inline">|</span>
+          <span className="hidden sm:inline">
+            Kernel: <strong className="text-white">6.12.18-inovecloud-pure</strong>
+          </span>
+        </div>
+
+        <div className="flex items-center space-x-3 text-[10px]">
+          <span>
+            <kbd className="px-1 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">Ctrl+Alt+F7</kbd> Modo Gráfico
+          </span>
+          <span>
+            <kbd className="px-1 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">Tab</kbd> Autocompletar
+          </span>
+          <span>
+            <kbd className="px-1 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">↑/↓</kbd> Histórico
+          </span>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default PureKernelOS;

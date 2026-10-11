@@ -6,28 +6,30 @@ import { WindowState } from '../../types';
 
 interface BootVideoSplashProps {
   onComplete: () => void;
+  onBootPureKernel?: () => void;
   autoDismiss?: boolean;
   canSkip?: boolean;
 }
 
 const BOOT_LOG_MESSAGES = [
-  { text: '[  OK  ] Linux Kernel 6.6 LTS x86_64 loaded at 0x1000000', type: 'ok' },
-  { text: '[  OK  ] Initializing CPU cores (x86_64 SMP architecture)', type: 'ok' },
+  { text: '[  OK  ] Linux Kernel 6.12+ LTS x86_64 loaded at 0x1000000', type: 'ok' },
+  { text: '[  OK  ] Initializing CPU cores (x86_64 SMP architecture - 16 Threads)', type: 'ok' },
   { text: '[  OK  ] Mounting rootfs (/proc, /sys, /dev, /tmp, /run)', type: 'ok' },
-  { text: '[ INFO ] Probing DRM/KMS graphics drivers (VMSVGA / VirtIO / Mesa 3D)...', type: 'info' },
+  { text: '[ INFO ] Probing DRM/KMS graphics drivers (Direct Framebuffer fb0 - Sem GNOME)...', type: 'info' },
   { text: '[  OK  ] Direct Rendering Manager (DRM) acceleration ready', type: 'ok' },
-  { text: '[  OK  ] Initializing systemd-udevd device manager & hotplug', type: 'ok' },
+  { text: '[  OK  ] Initializing inove-udevd device manager & hotplug', type: 'ok' },
   { text: '[  OK  ] Detecting input devices: Keyboard ABNT2/US & USB Mouse', type: 'ok' },
-  { text: '[  OK  ] Configuring loopback and acquiring DHCP IPv4 lease', type: 'ok' },
-  { text: '[  OK  ] Starting D-Bus System Message Bus & PipeWire audio daemon', type: 'ok' },
+  { text: '[  OK  ] Configuring loopback and acquiring DHCP IPv4 lease (192.168.1.145)', type: 'ok' },
+  { text: '[  OK  ] Starting inove-init (PID 1) & PipeWire direct DMA buffer', type: 'ok' },
   { text: '[  OK  ] Starting CUPS printing subsystem on port 631', type: 'ok' },
   { text: '[  OK  ] Mounting InoveCloud OS User Storage (/home/inove)', type: 'ok' },
-  { text: '[ INIT ] Launching InoveCloud OS Glass Desktop GUI (Wayland / Weston)...', type: 'step' },
-  { text: '[  OK  ] Desktop environment active. Welcome to InoveCloud OS 2026!', type: 'ok' },
+  { text: '[ INIT ] Launching InoveCloud OS Glass Desktop GUI (DRM/KMS Puro Sem GNOME)...', type: 'step' },
+  { text: '[  OK  ] Operating System active. Welcome to InoveCloud OS 2026 Pure Kernel!', type: 'ok' },
 ];
 
 export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
   onComplete,
+  onBootPureKernel,
   autoDismiss = true,
   canSkip = true,
 }) => {
@@ -49,7 +51,8 @@ export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
   });
 
   const biosMenuItems = [
-    { key: 'Enter', label: '🚀 InoveCloud OS (Sessão Live CD/DVD)', desc: 'Experimentar o sistema sem alterar o disco' },
+    { key: 'Enter', label: '🚀 InoveCloud OS (Interface Nativa Direta - Sem GNOME)', desc: 'Sistema gráfico nativo executando direto sobre o Kernel Linux 6.12+' },
+    { key: 'F3', label: '⚡ InoveCloud OS (Modo Kernel Puro — TTY1 Bare-Metal Console)', desc: 'Inicialização direta no Kernel puro com PID 1 inove-init, sem interface gráfica' },
     { key: 'F10', label: '💿 Instalar InoveCloud OS no Disco', desc: 'Assistente com idioma, partição e conta de usuário' },
     { key: 'F1', label: 'Informações do Sistema & Hardware', desc: 'CPU, RAM, Discos NVMe/SATA e GPU' },
     { key: 'F11', label: 'Modo Gráfico Seguro (SimpleDRM / VESA)', desc: 'Fallback de vídeo para compatibilidade máxima' },
@@ -90,6 +93,9 @@ export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
       } else if (e.key === 'F10') {
         e.preventDefault();
         setViewMode('installer');
+      } else if (e.key === 'F3') {
+        e.preventDefault();
+        if (onBootPureKernel) onBootPureKernel();
       } else if (e.key === 'ArrowDown' && viewMode === 'bios') {
         setSelectedBiosIndex((i) => (i + 1) % biosMenuItems.length);
       } else if (e.key === 'ArrowUp' && viewMode === 'bios') {
@@ -97,6 +103,8 @@ export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
       } else if (e.key === 'Enter' && viewMode === 'bios') {
         if (biosMenuItems[selectedBiosIndex].key === 'F10') {
           setViewMode('installer');
+        } else if (biosMenuItems[selectedBiosIndex].key === 'F3') {
+          if (onBootPureKernel) onBootPureKernel();
         } else {
           onComplete();
         }
@@ -106,7 +114,7 @@ export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [biosMenuItems, selectedBiosIndex, onComplete, viewMode]);
+  }, [biosMenuItems, selectedBiosIndex, onComplete, onBootPureKernel, viewMode]);
 
   // TELA DO INSTALADOR COM JANELA WINDOWFRAME
   if (viewMode === 'installer') {
@@ -270,23 +278,33 @@ export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
         <div className="w-[350px] h-[350px] rounded-full bg-cyan-500/15 blur-[100px]" />
       </div>
 
-      {/* Alternador para a tela da BIOS e Instalador */}
-      <div className="absolute top-6 left-6 z-20 flex items-center space-x-2">
+      {/* Alternador para a tela da BIOS, Kernel Puro e Instalador */}
+      <div className="absolute top-6 left-6 z-20 flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => {
+            if (onBootPureKernel) onBootPureKernel();
+          }}
+          className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-950/90 to-slate-900 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/50 text-xs font-bold shadow-lg backdrop-blur-md transition cursor-pointer active:scale-95"
+          title="Iniciar no Modo Kernel Puro (TTY1 Bare-Metal Console)"
+        >
+          <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+          <span>⚡ Modo Kernel Puro (TTY1)</span>
+        </button>
         <button
           onClick={() => setViewMode('installer')}
           className="flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-950/90 to-slate-900 hover:bg-rose-900/60 text-rose-300 border border-rose-500/40 text-xs font-semibold shadow-lg backdrop-blur-md transition cursor-pointer"
           title="Abrir Assistente de Instalação no Disco (Live CD/DVD)"
         >
           <Disc className="w-3.5 h-3.5 text-rose-400" />
-          <span>💿 Instalar no Disco (CD/DVD)</span>
+          <span>💿 Instalar no Disco</span>
         </button>
         <button
           onClick={() => setViewMode('bios')}
           className="flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-blue-900/80 hover:bg-blue-800 text-cyan-200 border border-blue-400/40 text-xs font-semibold shadow-lg backdrop-blur-md transition cursor-pointer"
-          title="Ver Tela de Startup da BIOS Clássica"
+          title="Ver Tela de Startup da BIOS Clássica (F3 Kernel Puro / Enter Live)"
         >
           <Monitor className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Menu BIOS (GRUB)</span>
+          <span>Menu BIOS (F3 / Enter)</span>
         </button>
       </div>
 

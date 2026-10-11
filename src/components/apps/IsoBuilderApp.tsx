@@ -293,7 +293,7 @@ jobs:
           { id: 'overview', label: 'Visão Geral & Arquitetura', icon: Layers },
           { id: 'build-logs', label: '📜 Logs de Build (stdout/stderr)', icon: Terminal },
           { id: 'installer', label: '💻 Console Instalador (xterm.js)', icon: Terminal },
-          { id: 'glass-theme', label: '✨ Tema Liquid Glass & GNOME', icon: Palette },
+          { id: 'glass-theme', label: '✨ Tema Liquid Glass Nativo (Sem GNOME)', icon: Palette },
           { id: 'bootvideo', label: '🎬 Vídeo de Inicialização', icon: Video },
           { id: 'download', label: 'Cadê a ISO? / Como Baixar', icon: Download },
           { id: 'github', label: 'GitHub Actions (Nuvem CI/CD)', icon: Github },
@@ -1003,7 +1003,7 @@ jobs:
               >
                 <div>
                   <h4 className="text-xs font-bold text-white group-hover:text-purple-400 transition">
-                    Tema Liquid Glass & GNOME
+                    Tema Liquid Glass Nativo (Sem GNOME)
                   </h4>
                   <p className="text-[11px] text-slate-400">Transparências e Wallpapers</p>
                 </div>

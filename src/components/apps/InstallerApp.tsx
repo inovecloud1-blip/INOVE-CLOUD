@@ -170,13 +170,13 @@ const DEBOOTSTRAP_STEPS = [
   { progress: 63, tag: 'KERNEL', text: 'Setting up linux-image-6.12-amd64 (6.12.0-trixie)... Generating /boot/vmlinuz-6.12' },
   { progress: 66, tag: 'KERNEL', text: 'update-initramfs: Generating /boot/initrd.img-6.12 (ZSTD compression, DRM/KMS drivers included)' },
 
-  // DESKTOP ENVIRONMENT & LIQUID GLASS
-  { progress: 70, tag: 'APT', text: 'chroot /mnt apt-get install -y gnome-shell mutter gdm3 pipewire weston flatpak network-manager' },
-  { progress: 73, tag: 'INFO', text: 'Unpacking gnome-shell (46.4-1) ... [380 packages configured]' },
-  { progress: 76, tag: 'STEP', text: 'Instalando Tema InoveCloud Liquid Glass (/usr/share/themes/InoveCloud-Glass)...' },
-  { progress: 79, tag: 'OK', text: 'DConf Profile: Liquid Glass Theme, Dock Transparente, Wallpapers 8K ativados.' },
+  // DESKTOP ENVIRONMENT & PURE INOVECLOUD OS (SEM GNOME)
+  { progress: 70, tag: 'KERNEL', text: 'chroot /mnt apt-get install -y inove-init inove-core busybox-static drm-kms-direct weston pipewire wireplumber flatpak' },
+  { progress: 73, tag: 'INFO', text: 'Configurando Inove Init (PID 1) autônomo & Compositor Direto DRM/KMS (100% Livre de GNOME)...' },
+  { progress: 76, tag: 'STEP', text: 'Instalando Interface Nativa InoveCloud Liquid Glass (/usr/share/inovecloud/compositor)...' },
+  { progress: 79, tag: 'OK', text: 'Display Server: Framebuffer Direct KMS / Wayland nativo sem GNOME Shell ou GDM3.' },
   { progress: 82, tag: 'STEP', text: 'flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo' },
-  { progress: 85, tag: 'OK', text: 'Repositório Flathub Oficial registrado com sucesso.' },
+  { progress: 85, tag: 'OK', text: 'Repositório Flathub Oficial registrado com sucesso para apps independentes.' },
 
   // USERS & GRUB
   { progress: 88, tag: 'STEP', text: 'useradd -m -s /bin/bash -G sudo,audio,video,render,dialout inove' },
@@ -1027,7 +1027,7 @@ export const InstallerApp: React.FC<InstallerAppProps> = ({
                     <span className="font-bold text-amber-300 block">
                       {autoLogin ? 'Autologin Habilitado (Entrada Direta)' : 'Solicitar Senha no Login'}
                     </span>
-                    <span className="text-[11px] text-slate-400">GDM3 & PAM Autologin Configurados</span>
+                    <span className="text-[11px] text-slate-400">Inove Init (PID 1) & TTY Autologin Configurados</span>
                   </div>
                 </div>
 
@@ -1037,7 +1037,7 @@ export const InstallerApp: React.FC<InstallerAppProps> = ({
                   <div>
                     <span className="font-bold block">Atenção: Os dados no disco selecionado serão gravados</span>
                     <span className="text-[11px] opacity-90 leading-relaxed block mt-0.5">
-                      O instalador criará as partições GPT e instalará o kernel Linux 6.12 e a interface gráfica GNOME Glass com debootstrap.
+                      O instalador criará as partições GPT e instalará o kernel Linux 6.12+ puro, o Inove Init e a interface nativa DRM/KMS (100% autônomo, sem GNOME).
                     </span>
                   </div>
                 </div>
@@ -1072,7 +1072,7 @@ export const InstallerApp: React.FC<InstallerAppProps> = ({
                       Instalando o InoveCloud OS no Disco...
                     </h3>
                     <p className="text-xs text-slate-300 mt-1">
-                      Copiando arquivos do sistema, descompactando pacotes base e compilando módulos de hardware.
+                      Copiando arquivos do sistema, instalando Kernel Linux 6.12+ puro e configurando drivers DRM/KMS.
                     </p>
                   </div>
                 </div>
@@ -1096,7 +1096,7 @@ export const InstallerApp: React.FC<InstallerAppProps> = ({
                   </div>
 
                   <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
-                    <span>Etapa ativa: <strong>{progress >= 90 ? 'GRUB Bootloader' : progress >= 70 ? 'GNOME Liquid Glass' : progress >= 48 ? 'Debian Apt-Get' : 'Debootstrap & Partições'}</strong></span>
+                    <span>Etapa ativa: <strong>{progress >= 90 ? 'GRUB Bootloader' : progress >= 70 ? 'Kernel Puro & DRM Compositor' : progress >= 48 ? 'Debian Apt-Get' : 'Debootstrap & Partições'}</strong></span>
                     <span className="font-mono text-emerald-400">Gravando em {selectedDisk}</span>
                   </div>
                 </div>
