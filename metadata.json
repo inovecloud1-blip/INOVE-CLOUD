@@ -1,6 +1,6 @@
 {
   "name": "InoveCloud OS",
-  "description": "Sistema Operacional Linux autônomo baseado em Kernel Linux 6.12+ puro e nativo, sem dependência de distros intermediárias. Comunicação direta via Kernel Syscalls, DRM/KMS, Inove Init e interface Liquid Glass.",
+  "description": "Sistema Operacional Linux autônomo baseado em Kernel Linux 7.3 puro e nativo, sem dependência de distros intermediárias ou GNOME. Comunicação direta via Kernel Syscalls Ring 0, DRM/KMS, Inove Init (PID 1) e interface nativa.",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

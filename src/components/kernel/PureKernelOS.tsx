@@ -66,14 +66,16 @@ interface VirtualFile {
 }
 
 const INITIAL_KERNEL_MODULES: KernelModule[] = [
-  { name: 'inove_sched_engine', size: 49152, instances: 1, status: 'Live', description: 'Escalonador EEVDF de Baixa Latência InoveCloud' },
+  { name: 'rust_inove_core', size: 65536, instances: 1, status: 'Live', description: 'Abstrações de Driver em Rust (Linux Kernel 7.3)' },
+  { name: 'ebpf2_jit_engine', size: 94208, instances: 2, status: 'Live', description: 'Compilador JIT de eBPF 2.0 em Ring 0' },
+  { name: 'io_uring_v3', size: 73728, instances: 3, status: 'Live', description: 'Motor Assíncrono io_uring 3.0 para NVMe' },
+  { name: 'inove_sched_eevdf2', size: 49152, instances: 1, status: 'Live', description: 'Escalonador EEVDFv2 Realtime Preempt (<1ms)' },
   { name: 'drm_kms_direct', size: 184320, instances: 1, status: 'Live', description: 'Direct Rendering Manager Framebuffer (Sem GNOME)' },
-  { name: 'inove_syscall_fast', size: 28672, instances: 2, status: 'Live', description: 'Acelerador de Syscalls em Ring 0' },
-  { name: 'zstd_compress', size: 81920, instances: 3, status: 'Live', description: 'Compressão de Memória ZRAM & SquashFS' },
-  { name: 'nvme_core', size: 98304, instances: 1, status: 'Live', description: 'Driver NVMe PCIe Gen4/5 de Alto Throughput' },
-  { name: 'virtio_net', size: 65536, instances: 1, status: 'Live', description: 'Placa de Rede Ethernet VirtIO / Realtek' },
-  { name: 'overlayfs', size: 57344, instances: 1, status: 'Live', description: 'Sistema de Arquivos em Camadas para Live OS' },
-  { name: 'pipewire_dmabuf', size: 40960, instances: 1, status: 'Live', description: 'Buffer de Áudio de Baixa Latência ALSA' }
+  { name: 'bcachefs_fast', size: 110592, instances: 1, status: 'Live', description: 'Sistema de Arquivos CoW Transacional Nativo' },
+  { name: 'inove_syscall_fast', size: 28672, instances: 2, status: 'Live', description: 'Acelerador de Syscalls Diretas em Ring 0' },
+  { name: 'zstd_zram_v2', size: 81920, instances: 3, status: 'Live', description: 'Compressão de Memória ZRAM Instantânea' },
+  { name: 'nvme_gen5_opt', size: 98304, instances: 1, status: 'Live', description: 'Driver NVMe PCIe Gen5 x4 Ultra-Throughput' },
+  { name: 'virtio_net', size: 65536, instances: 1, status: 'Live', description: 'Placa de Rede Ethernet VirtIO / Realtek' }
 ];
 
 const INITIAL_PROCESSES: ProcessInfo[] = [
@@ -81,6 +83,7 @@ const INITIAL_PROCESSES: ProcessInfo[] = [
   { pid: 2, user: 'root', cpu: 0.0, mem: 0.0, vsz: 0, rss: 0, tty: '?', stat: 'S', start: '12:00', time: '0:00', command: '[kthreadd]' },
   { pid: 3, user: 'root', cpu: 0.0, mem: 0.0, vsz: 0, rss: 0, tty: '?', stat: 'I<', start: '12:00', time: '0:00', command: '[rcu_gp]' },
   { pid: 4, user: 'root', cpu: 0.0, mem: 0.0, vsz: 0, rss: 0, tty: '?', stat: 'I<', start: '12:00', time: '0:00', command: '[rcu_par_gp]' },
+  { pid: 5, user: 'root', cpu: 0.0, mem: 0.0, vsz: 0, rss: 0, tty: '?', stat: 'I<', start: '12:00', time: '0:00', command: '[kworker/rust-0:0]' },
   { pid: 6, user: 'root', cpu: 0.0, mem: 0.0, vsz: 0, rss: 0, tty: '?', stat: 'I<', start: '12:00', time: '0:00', command: '[kworker/0:0H-events_highpri]' },
   { pid: 9, user: 'root', cpu: 0.0, mem: 0.0, vsz: 0, rss: 0, tty: '?', stat: 'S', start: '12:00', time: '0:00', command: '[ksoftirqd/0]' },
   { pid: 15, user: 'root', cpu: 0.0, mem: 0.0, vsz: 0, rss: 0, tty: '?', stat: 'S', start: '12:00', time: '0:00', command: '[migration/0]' },
@@ -92,34 +95,37 @@ const INITIAL_PROCESSES: ProcessInfo[] = [
 ];
 
 const INITIAL_DMESG = [
-  '[    0.000000] Linux version 6.12.18-inovecloud-pure (root@inovecloud-core) (gcc-14.2.0 -march=native -O2) #1 SMP PREEMPT_DYNAMIC Sun Oct 10 2026',
-  '[    0.000000] Command line: BOOT_IMAGE=/boot/vmlinuz-6.12 root=/dev/nvme0n1p2 ro quiet splash inove.pure=1 init=/sbin/inove-init elevator=eevdf',
+  '[    0.000000] Linux version 7.3.0-inovecloud-rt-pure (root@inovecloud-core) (gcc-15.1.0 -march=native -O3 + rustc 1.85.0) #1 SMP PREEMPT_RT Sun Oct 18 2026',
+  '[    0.000000] Command line: BOOT_IMAGE=/boot/vmlinuz-7.3 root=/dev/nvme0n1p2 ro quiet splash inove.pure=1 init=/sbin/inove-init elevator=eevdf2',
   '[    0.000000] x86/fpu: Supporting XSAVE feature 0x001: \'x87 floating point registers\'',
   '[    0.000000] x86/fpu: Supporting XSAVE feature 0x002: \'SSE registers\'',
   '[    0.000000] x86/fpu: Supporting XSAVE feature 0x004: \'AVX registers\'',
   '[    0.000000] x86/fpu: Supporting XSAVE feature 0x020: \'AVX-512 opmask\'',
-  '[    0.000000] e820: BIOS-provided physical RAM map: 16384MB usable',
-  '[    0.004210] ACPI: Core revision 20240322',
-  '[    0.012480] smpboot: Allowing 16 CPUs, 16 hotplug CPUs',
-  '[    0.018900] setup_percpu: NR_CPUS:16 nr_cpumask_bits:16 nr_cpu_ids:16 nr_node_ids:1',
-  '[    0.024510] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=16, Nodes=1',
-  '[    0.038100] rcu: Preemptible hierarchical RCU implementation.',
+  '[    0.000000] e820: BIOS-provided physical RAM map: 32768MB usable (DDR5-6400)',
+  '[    0.000210] rust: Linux Kernel 7.3 Rust Core Subsystem initialized (allocator, sync, net)',
+  '[    0.000450] ebpf: eBPF 2.0 JIT compiler active with Ring 0 hardware isolation',
+  '[    0.000680] io_uring: version 3.0 enabled, zerocopy network & block engine ready',
+  '[    0.004210] ACPI: Core revision 20260415',
+  '[    0.012480] smpboot: Allowing 32 CPUs, 32 hotplug CPUs',
+  '[    0.018900] setup_percpu: NR_CPUS:32 nr_cpumask_bits:32 nr_cpu_ids:32 nr_node_ids:1',
+  '[    0.024510] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=32, Nodes=1',
+  '[    0.038100] rcu: Preemptible hierarchical Realtime RCU implementation.',
   '[    0.045000] devtmpfs: initialized',
   '[    0.062140] clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x3646ca52, max_idle_ns: 440795208643 ns',
   '[    0.089400] PCI: Using configuration type 1 for base access',
-  '[    0.120500] nvme nvme0: pci function 0000:01:00.0: PCIe Gen4 x4 link ready',
-  '[    0.145600] nvme0n1: p1 (EFI ESP) p2 (InoveCloud OS RootFS 500GB ext4)',
-  '[    0.210400] [drm] Initializing InoveCloud DRM Direct KMS Graphics Driver (Sem GNOME)',
-  '[    0.225100] [drm] Framebuffer Console fb0: 1920x1080@60Hz 32bpp direct scanout ready',
-  '[    0.310200] inove_sched: EEVDF latency-sensitive engine active (latency target: 3ms)',
-  '[    0.380900] InoveCloud RootFS mounted on / (rw,relatime,data=ordered)',
+  '[    0.110200] nvme nvme0: pci function 0000:01:00.0: PCIe Gen5 x4 link ready (14,000 MB/s)',
+  '[    0.145600] nvme0n1: p1 (EFI ESP) p2 (InoveCloud OS RootFS 1TB bcachefs/ext4)',
+  '[    0.210400] [drm] Initializing InoveCloud DRM Direct KMS Graphics Driver (Zero GNOME / Zero X11)',
+  '[    0.225100] [drm] Framebuffer Console fb0: 2560x1440@144Hz 32bpp direct scanout ready',
+  '[    0.310200] inove_sched: EEVDFv2 latency-sensitive engine active (latency target: 0.5ms)',
+  '[    0.380900] InoveCloud RootFS mounted on / (rw,relatime,nodiratime,data=ordered)',
   '[    0.410100] Run /sbin/inove-init as init process (PID 1)',
-  '[    0.450200] inove-init[1]: Starting InoveCloud Pure Kernel Subsystems...',
-  '[    0.490800] inove-init[1]: udevd started, loading module aliases',
+  '[    0.450200] inove-init[1]: Starting InoveCloud Pure Kernel 7.3 Subsystems...',
+  '[    0.490800] inove-init[1]: udevd started, loading Rust & C module aliases',
   '[    0.530400] inove-init[1]: Loopback interface lo up (127.0.0.1)',
   '[    0.590200] inove-init[1]: VirtIO/Ethernet interface eth0 up, DHCP IP: 192.168.1.145/24',
-  '[    0.640100] inove-init[1]: PipeWire audio buffer allocated with 128 samples / 48kHz',
-  '[    0.690500] inove-init[1]: InoveCloud OS Pure Kernel Ready! Zero GNOME dependency.',
+  '[    0.640100] inove-init[1]: PipeWire audio buffer allocated with 64 samples / 96kHz (Low-Latency)',
+  '[    0.690500] inove-init[1]: InoveCloud OS Linux 7.3 Pure Kernel Ready! Zero GNOME dependency.',
   '[    0.720000] inove-init[1]: Spawning TTY1 (/bin/inove-sh on /dev/tty1)'
 ];
 
@@ -158,45 +164,47 @@ const INITIAL_FS: { [path: string]: VirtualFile } = {
       'welcome.txt': {
         name: 'welcome.txt',
         type: 'file',
-        size: 890,
+        size: 980,
         permissions: '-rw-r--r--',
         owner: 'inove',
         group: 'inove',
-        updatedAt: '2026-10-10 12:00',
+        updatedAt: '2026-10-18 12:00',
         content: `===================================================================
-⚡ INOVECLOUD OS — SISTEMA OPERACIONAL COM KERNEL LINUX PURO 6.12+
+⚡ INOVECLOUD OS — SISTEMA OPERACIONAL COM KERNEL LINUX 7.3 RT PURO
 ===================================================================
 
 Parabéns! Você está executando o InoveCloud OS diretamente sobre
-o Kernel Linux Puro compilado do zero, sem intermediários e SEM GNOME!
+o Kernel Linux 7.3 Real-Time compilado do zero, sem GNOME e sem camadas extras!
 
-CARACTERÍSTICAS DESTE SISTEMA:
-1. KERNEL PURO: Linux 6.12.18 LTS compilado com -march=native e -O2
-2. SEM GNOME: O sistema executa direto em modo TTY / Framebuffer DRM/KMS
-3. INIT AUTÔNOMO: PID 1 gerenciado pelo /sbin/inove-init direto no hardware
-4. SYSCALLS REAIS: Chamadas de sistema x86_64 diretas sem intermediários
-5. COMPILADOR C: Digite 'compile-c hello.c' para compilar e rodar código C
-6. GESTOR DE PACOTES: Digite 'icpkg list' para gerenciar utilitários nativos
-7. MODO GRÁFICO: Digite 'inove-desktop' ou aperte Ctrl+Alt+F7 para iniciar
+CARACTERÍSTICAS DESTE SISTEMA REAL (LINUX 7.3):
+1. KERNEL PURO 7.3: Versão 7.3.0-inovecloud-rt-pure (PREEMPT_RT + Rust Core)
+2. SUBSISTEMA RUST: Drivers e abstrações nativas em Rust integradas ao Kernel
+3. eBPF 2.0 & io_uring 3.0: Telemetria e I/O de armazenamento com latência sub-ms
+4. ZERO GNOME: Execução direta em TTY Bare-Metal ou DRM/KMS Framebuffer direto
+5. INIT AUTÔNOMO: PID 1 gerenciado pelo /sbin/inove-init direto no hardware
+6. SYSCALLS REAIS: Chamadas de sistema x86_64 diretas sem intermediários
+7. COMPILADORES: Digite 'compile-c hello.c' ou 'compile-rust kernel_driver.rs'
+8. GESTOR DE PACOTES: Digite 'icpkg list' para gerenciar utilitários nativos
+9. MODO GRÁFICO: Digite 'inove-desktop' ou aperte Ctrl+Alt+F7 para iniciar
    a interface gráfica nativa InoveCloud Liquid Glass (sem GNOME).
 
-Comandos úteis: help, dmesg, top, ps, free, df, ls, cat, nano, reboot.`
+Comandos úteis: help, dmesg, top, ps, free, df, ls, cat, nano, compile-c, compile-rust, rust-info, reboot.`
       },
       'hello.c': {
         name: 'hello.c',
         type: 'file',
-        size: 520,
+        size: 530,
         permissions: '-rw-r--r--',
         owner: 'inove',
         group: 'inove',
-        updatedAt: '2026-10-10 12:00',
-        content: `/* InoveCloud OS - Programa C com Syscalls Diretas x86_64 */
+        updatedAt: '2026-10-18 12:00',
+        content: `/* InoveCloud OS - Programa C com Syscalls Diretas x86_64 no Linux Kernel 7.3 */
 #include <unistd.h>
 #include <sys/syscall.h>
 
 void _start() {
-    const char msg[] = "\\033[1;32m[OK] Executado via syscall direta do Kernel Linux 6.12 puro!\\033[0m\\n"
-                       "\\033[1;36m>> InoveCloud OS Kernel Puro (Sem GNOME) operacional!\\033[0m\\n";
+    const char msg[] = "\\033[1;32m[OK] Executado via syscall direta do Kernel Linux 7.3 puro!\\033[0m\\n"
+                       "\\033[1;36m>> InoveCloud OS Kernel 7.3 (Sem GNOME / Ring 0) operacional!\\033[0m\\n";
     
     /* Syscall write(1, msg, sizeof(msg) - 1) */
     syscall(SYS_write, 1, msg, sizeof(msg) - 1);
@@ -206,20 +214,54 @@ void _start() {
 }
 `
       },
+      'kernel_driver.rs': {
+        name: 'kernel_driver.rs',
+        type: 'file',
+        size: 780,
+        permissions: '-rw-r--r--',
+        owner: 'inove',
+        group: 'inove',
+        updatedAt: '2026-10-18 12:00',
+        content: `// InoveCloud OS - Módulo de Kernel em Rust (Linux 7.3 Rust Infrastructure)
+#![no_std]
+#![feature(allocator_api)]
+
+use kernel::prelude::*;
+
+module! {
+    type: InoveCloudDriver,
+    name: "inovecloud_pure73",
+    author: "InoveCloud Core Team",
+    description: "Driver nativo em Rust para Linux Kernel 7.3 RT",
+    license: "GPL-2.0",
+}
+
+struct InoveCloudDriver;
+
+impl kernel::Module for InoveCloudDriver {
+    fn init(_name: &'static CStr, _module: &'static ThisModule) -> Result<Self> {
+        pr_info!("Rust Kernel Driver: Linux 7.3 InoveCloud inicializado com zero inseguranças de memória!\\n");
+        pr_info!("Rust Subsystem: DRM/KMS Framebuffer direto ativo sem GNOME.\\n");
+        Ok(InoveCloudDriver)
+    }
+}
+`
+      },
       'kernel-info.sh': {
         name: 'kernel-info.sh',
         type: 'file',
-        size: 450,
+        size: 510,
         permissions: '-rwxr-xr-x',
         owner: 'inove',
         group: 'inove',
-        updatedAt: '2026-10-10 12:00',
+        updatedAt: '2026-10-18 12:00',
         content: `#!/bin/inove-sh
-echo "=== INOVECLOUD KERNEL TELEMETRY ==="
+echo "=== INOVECLOUD KERNEL 7.3 TELEMETRY ==="
 uname -a
 echo "Cores de CPU ativas: $(cat /proc/cpuinfo | grep 'processor' | wc -l)"
 echo "Memória Livre: $(cat /proc/meminfo | grep 'MemFree')"
-echo "Escalonador Ativo: EEVDF Latency-Optimized"
+echo "Escalonador Ativo: EEVDFv2 Realtime Preempt (<1ms latency)"
+echo "Rust Subsystem: Integrado (Rustc 1.85 / No-std Kernel Module)"
 echo "Interface Gráfica: DRM/KMS Direct Compositor (Zero GNOME)"
 `
       }
@@ -228,15 +270,15 @@ echo "Interface Gráfica: DRM/KMS Direct Compositor (Zero GNOME)"
   '/etc/os-release': {
     name: 'os-release',
     type: 'file',
-    size: 240,
+    size: 260,
     permissions: '-rw-r--r--',
     owner: 'root',
     group: 'root',
-    updatedAt: '2026-10-10 12:00',
+    updatedAt: '2026-10-18 12:00',
     content: `NAME="InoveCloud OS"
-VERSION="2.4 Pure Kernel"
+VERSION="3.0 Pure Kernel 7.3"
 ID="inovecloud"
-PRETTY_NAME="InoveCloud OS 2.4 (Kernel Puro 6.12+ LTS Sem GNOME)"
+PRETTY_NAME="InoveCloud OS 3.0 (Kernel Linux 7.3 RT Puro Sem GNOME)"
 ANSI_COLOR="0;36"
 HOME_URL="https://inovecloud.io"
 SUPPORT_URL="https://inovecloud.io/support"
@@ -249,18 +291,18 @@ BUG_REPORT_URL="https://inovecloud.io/bugs"`
     permissions: '-rw-r--r--',
     owner: 'root',
     group: 'root',
-    updatedAt: '2026-10-10 12:00',
+    updatedAt: '2026-10-18 12:00',
     content: 'inovecloud-kernel\n'
   },
   '/proc/version': {
     name: 'version',
     type: 'file',
-    size: 140,
+    size: 160,
     permissions: '-r--r--r--',
     owner: 'root',
     group: 'root',
-    updatedAt: '2026-10-10 12:00',
-    content: 'Linux version 6.12.18-inovecloud-pure (root@inovecloud-core) (gcc-14.2.0 -march=native -O2) #1 SMP PREEMPT_DYNAMIC Sun Oct 10 2026\n'
+    updatedAt: '2026-10-18 12:00',
+    content: 'Linux version 7.3.0-inovecloud-rt-pure (root@inovecloud-core) (gcc-15.1.0 -march=native -O3 + rustc 1.85.0) #1 SMP PREEMPT_RT Sun Oct 18 2026\n'
   },
   '/proc/cpuinfo': {
     name: 'cpuinfo',
@@ -335,20 +377,21 @@ export const PureKernelOS: React.FC<PureKernelOSProps> = ({
             ╔════════════════════════════════════════════════════════════════════════════════════╗
           </div>
           <div className="text-cyan-400 font-bold">
-            ║  🚀 INOVECLOUD OS — KERNEL PURO LINUX 6.12+ (AUTÔNOMO / SEM GNOME)                ║
+            ║  🚀 INOVECLOUD OS — KERNEL PURO LINUX 7.3 RT (AUTÔNOMO / SEM GNOME)                ║
           </div>
           <div className="text-cyan-400 font-bold">
-            ║  Comunicação Direta: Ring 0 Syscalls • DRM/KMS Framebuffer • PID 1 inove-init     ║
+            ║  Ring 0 Syscalls • Rust Drivers • eBPF 2.0 • DRM Direct KMS • PID 1 inove-init     ║
           </div>
           <div className="text-cyan-400 font-bold">
             ╚════════════════════════════════════════════════════════════════════════════════════╝
           </div>
           <div className="text-emerald-400 pt-1">
-            ✓ Kernel inicializado com sucesso em modo Bare-Metal / Console TTY1.
+            ✓ Linux Kernel 7.3.0-inovecloud-rt-pure inicializado com sucesso em Ring 0.
           </div>
           <div className="text-slate-300">
             Digite <span className="text-amber-300 font-bold">help</span> para lista de comandos,{' '}
-            <span className="text-cyan-300 font-bold">dmesg</span> para logs do kernel, ou{' '}
+            <span className="text-cyan-300 font-bold">dmesg</span> para logs do kernel,{' '}
+            <span className="text-emerald-300 font-bold">compile-rust</span> para compilar driver em Rust, ou{' '}
             <span className="text-purple-300 font-bold">inove-desktop</span> para carregar a interface nativa (sem GNOME).
           </div>
         </div>
@@ -506,23 +549,24 @@ export const PureKernelOS: React.FC<PureKernelOSProps> = ({
     if (cmd === 'help' || cmd === '?') {
       appendTerminalOutput(
         <div className="space-y-2 font-mono text-xs text-slate-200">
-          <div className="text-cyan-300 font-bold">MANUAL DE COMANDOS DO KERNEL PURO INOVECLOUD OS:</div>
+          <div className="text-cyan-300 font-bold">MANUAL DE COMANDOS DO KERNEL PURO INOVECLOUD OS (LINUX 7.3 RT):</div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
             <div className="p-2 rounded bg-slate-900 border border-cyan-500/20">
               <span className="text-emerald-400 font-bold block">Controle do Sistema & Hardware:</span>
-              <div><span className="text-amber-300">uname -a</span> : Detalhes do Kernel Linux 6.12+ Puro</div>
-              <div><span className="text-amber-300">dmesg</span> : Buffer de mensagens do Kernel Ring</div>
+              <div><span className="text-amber-300">uname -a</span> : Detalhes do Kernel Linux 7.3 RT Puro</div>
+              <div><span className="text-amber-300">dmesg</span> : Buffer de mensagens do Kernel Ring 7.3</div>
+              <div><span className="text-amber-300">rust-info</span> : Status do subsistema Rust no Kernel 7.3</div>
               <div><span className="text-amber-300">uptime</span> : Tempo de atividade e carga média da CPU</div>
               <div><span className="text-amber-300">reboot</span> : Reiniciar o sistema operacional</div>
               <div><span className="text-amber-300">poweroff</span> : Desligar o computador (ACPI halt)</div>
-              <div><span className="text-amber-300">inove-desktop</span> : Iniciar interface nativa (sem GNOME)</div>
+              <div><span className="text-amber-300">inove-desktop</span> : Iniciar interface nativa DRM/KMS (sem GNOME)</div>
             </div>
             <div className="p-2 rounded bg-slate-900 border border-cyan-500/20">
               <span className="text-emerald-400 font-bold block">Processos & Memória:</span>
               <div><span className="text-amber-300">top</span> : Monitor em tempo real de CPU e processos</div>
               <div><span className="text-amber-300">ps aux</span> : Lista processos do userspace e threads do kernel</div>
-              <div><span className="text-amber-300">free -m</span> : Estatísticas de memória RAM e Swap</div>
-              <div><span className="text-amber-300">df -h</span> : Espaço em disco dos sistemas de arquivos</div>
+              <div><span className="text-amber-300">free -m</span> : Estatísticas de memória RAM DDR5 e Swap</div>
+              <div><span className="text-amber-300">df -h</span> : Espaço em disco dos sistemas Bcachefs / NVMe</div>
               <div><span className="text-amber-300">kill &lt;pid&gt;</span> : Finaliza um processo em execução</div>
             </div>
             <div className="p-2 rounded bg-slate-900 border border-cyan-500/20">
@@ -535,16 +579,17 @@ export const PureKernelOS: React.FC<PureKernelOSProps> = ({
               <div><span className="text-amber-300">mkdir / rm</span> : Cria ou remove pastas e arquivos</div>
             </div>
             <div className="p-2 rounded bg-slate-900 border border-cyan-500/20">
-              <span className="text-emerald-400 font-bold block">Kernel Módulos & Compilação:</span>
-              <div><span className="text-amber-300">lsmod</span> : Lista módulos carregados do Kernel</div>
+              <span className="text-emerald-400 font-bold block">Kernel 7.3 Módulos & Compilação:</span>
+              <div><span className="text-amber-300">lsmod</span> : Lista módulos carregados do Kernel 7.3</div>
               <div><span className="text-amber-300">insmod / rmmod</span> : Carrega/descarrega módulos .ko</div>
-              <div><span className="text-amber-300">compile-c &lt;arq.c&gt;</span> : Compila e executa programa C nativo</div>
+              <div><span className="text-amber-300">compile-c &lt;arq.c&gt;</span> : Compila e roda C via syscalls diretas</div>
+              <div><span className="text-amber-300">compile-rust &lt;arq.rs&gt;</span> : Compila driver Rust para o Kernel 7.3</div>
               <div><span className="text-amber-300">icpkg &lt;list|install&gt;</span> : Gerenciador de pacotes autônomo</div>
-              <div><span className="text-amber-300">sysctl -a</span> : Inspeciona parâmetros do Kernel Linux</div>
+              <div><span className="text-amber-300">sysctl -a</span> : Inspeciona parâmetros do Kernel Linux 7.3</div>
             </div>
           </div>
           <div className="text-cyan-400 text-[10px]">
-            * Atalho rápido: Pressione <strong>Ctrl+Alt+F7</strong> para alternar entre TTY e Interface Nativa.
+            * Atalhos de TTY: <strong>Ctrl+Alt+F1</strong> (Shell), <strong>Ctrl+Alt+F2</strong> (dmesg), <strong>Ctrl+Alt+F3</strong> (Top), <strong>Ctrl+Alt+F7</strong> (Interface Nativa).
           </div>
         </div>,
         trimmed
@@ -562,11 +607,11 @@ export const PureKernelOS: React.FC<PureKernelOSProps> = ({
     if (cmd === 'uname') {
       if (args.includes('-a') || args.length === 0) {
         appendTerminalOutput(
-          'Linux inovecloud-core 6.12.18-inovecloud-pure #1 SMP PREEMPT_DYNAMIC Sun Oct 10 2026 x86_64 GNU/Linux (Bare-Metal / No GNOME)',
+          'Linux inovecloud-core 7.3.0-inovecloud-rt-pure #1 SMP PREEMPT_RT Sun Oct 18 2026 x86_64 GNU/Linux (Bare-Metal / No GNOME)',
           trimmed
         );
       } else if (args.includes('-r')) {
-        appendTerminalOutput('6.12.18-inovecloud-pure', trimmed);
+        appendTerminalOutput('7.3.0-inovecloud-rt-pure', trimmed);
       } else if (args.includes('-m')) {
         appendTerminalOutput('x86_64', trimmed);
       } else {
@@ -874,10 +919,10 @@ export const PureKernelOS: React.FC<PureKernelOSProps> = ({
       if (vfs['/home/inove']?.children?.[sourceFile]) {
         code = vfs['/home/inove'].children[sourceFile].content || '';
       } else {
-        code = `/* Compilado pelo GCC InoveCloud x86_64 */
+        code = `/* Compilado pelo GCC 15 InoveCloud x86_64 */
 #include <stdio.h>
 int main() {
-    printf("[OK] Código C executado via syscalls diretas do Kernel Linux 6.12!\\n");
+    printf("[OK] Código C executado via syscalls diretas do Kernel Linux 7.3!\\n");
     return 0;
 }`;
       }
@@ -885,13 +930,13 @@ int main() {
       appendTerminalOutput(
         <div className="font-mono text-xs space-y-1">
           <div className="text-cyan-300 font-bold">
-            [1/3] Invocando GCC 14.2.0 Bare-Metal (-march=native -O2 -nostdlib)...
+            [1/3] Invocando GCC 15.1.0 Bare-Metal (-march=native -O3 -nostdlib)...
           </div>
           <div className="text-slate-400 text-[11px]">
-            &gt; gcc -march=native -O2 -nostartfiles {sourceFile} -o /home/inove/a.out
+            &gt; gcc -march=native -O3 -nostartfiles {sourceFile} -o /home/inove/a.out
           </div>
           <div className="text-cyan-300 font-bold">
-            [2/3] Gerando binário ELF 64-bit LSB pie executable x86-64...
+            [2/3] Gerando binário ELF 64-bit LSB pie executable x86-64 (Linux 7.3 ABI)...
           </div>
           <div className="text-emerald-400 font-bold">
             ✓ Compilação concluída com 0 avisos e 0 erros. Binário &#39;/home/inove/a.out&#39; criado.
@@ -900,11 +945,63 @@ int main() {
             [3/3] Executando binário gerado (sys_execve /home/inove/a.out):
           </div>
           <div className="p-2 rounded bg-slate-900 border border-emerald-500/30 text-emerald-300">
-            <div>[OK] Executado via syscall direta do Kernel Linux 6.12 puro!</div>
-            <div className="text-cyan-300">&gt;&gt; InoveCloud OS Kernel Puro (Sem GNOME) operacional!</div>
+            <div>[OK] Executado via syscall direta do Kernel Linux 7.3 puro!</div>
+            <div className="text-cyan-300">&gt;&gt; InoveCloud OS Kernel 7.3 (Sem GNOME / Ring 0) operacional!</div>
             <div className="text-slate-400 text-[10px] pt-1">
-              Process exited with return code: 0 | CPU cycles: 12,480 | Syscalls: [sys_write: 1, sys_exit: 1]
+              Process exited with return code: 0 | CPU cycles: 9,140 | Syscalls: [sys_write: 1, sys_exit: 1]
             </div>
+          </div>
+        </div>,
+        trimmed
+      );
+      return;
+    }
+
+    // 16b. COMPILE-RUST / RUSTC (Linux Kernel 7.3 Rust Infrastructure)
+    if (cmd === 'compile-rust' || cmd === 'rustc') {
+      const sourceFile = args[0] || 'kernel_driver.rs';
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-1">
+          <div className="text-cyan-300 font-bold">
+            [1/4] Invocando rustc 1.85.0 (Linux Kernel 7.3 Rust Core Subsystem)...
+          </div>
+          <div className="text-slate-400 text-[11px]">
+            &gt; rustc --target x86_64-unknown-none -C opt-level=3 -C panic=abort --crate-type=staticlib {sourceFile}
+          </div>
+          <div className="text-cyan-300 font-bold">
+            [2/4] Verificando invariantes de memória e segurança de tipos (Borrow Checker)...
+          </div>
+          <div className="text-emerald-400">
+            ✓ 0 violações de segurança de memória detectadas. 100% memory-safe.
+          </div>
+          <div className="text-cyan-300 font-bold">
+            [3/4] Vinculando ao Kernel Linux 7.3 Ring 0: inovecloud_pure73.ko
+          </div>
+          <div className="p-2 rounded bg-slate-900 border border-purple-500/30 text-purple-300">
+            <div className="text-emerald-300 font-bold">[OK] Módulo do Kernel em Rust compilado com sucesso!</div>
+            <div className="text-slate-200 text-[11px]">&gt; dmesg log: [rust] Driver 'inovecloud_pure73' carregado em Ring 0 sem GNOME.</div>
+            <div className="text-slate-400 text-[10px] pt-1">
+              Arquitetura: no_std • Allocator: Kernel vmalloc • Latência de interrupção: 0.12 μs
+            </div>
+          </div>
+        </div>,
+        trimmed
+      );
+      return;
+    }
+
+    // 16c. RUST-INFO
+    if (cmd === 'rust-info') {
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-1.5 p-2 rounded bg-slate-900 border border-cyan-500/30">
+          <div className="text-cyan-300 font-bold">🦀 SUBSISTEMA RUST NO LINUX KERNEL 7.3 (INOVECLOUD OS):</div>
+          <div className="text-slate-300 text-[11px] space-y-1">
+            <div>• Versão do Compilador: <span className="text-amber-300 font-bold">rustc 1.85.0-nightly</span></div>
+            <div>• Target de Compilação: <span className="text-emerald-300">x86_64-inovecloud-kernel-none</span></div>
+            <div>• Crates de Kernel ativas: <span className="text-cyan-300">kernel::sync, kernel::net, kernel::drm, kernel::io_uring</span></div>
+            <div>• Módulos em Rust carregados: <span className="text-white font-bold">rust_inove_core.ko, drm_kms_direct.ko</span></div>
+            <div>• Desempenho: <span className="text-emerald-400 font-bold">Zero Overhead de runtime (no_std) • Imune a buffer overflow</span></div>
+            <div>• Integração de interface: <span className="text-purple-300">DRM Direct Framebuffer (Zero dependência de GNOME/Mutter)</span></div>
           </div>
         </div>,
         trimmed
@@ -975,13 +1072,15 @@ int main() {
         appendTerminalOutput(
           <div className="font-mono text-xs space-y-1">
             <div className="text-cyan-400 font-bold">PACOTES INSTALADOS NO INOVECLOUD OS (SEM GNOME):</div>
-            <div className="text-slate-200">• inove-core-kernel 6.12.18-pure [ativo]</div>
+            <div className="text-slate-200">• inove-core-kernel 7.3.0-rt-pure [ativo]</div>
             <div className="text-slate-200">• busybox-static 1.36.1 [ativo]</div>
-            <div className="text-slate-200">• inove-init-pid1 2.4.0 [ativo]</div>
-            <div className="text-slate-200">• drm-kms-direct 1.0.4 [ativo]</div>
+            <div className="text-slate-200">• inove-init-pid1 3.0.0 [ativo]</div>
+            <div className="text-slate-200">• drm-kms-direct 2.1.0 [ativo]</div>
+            <div className="text-slate-200">• rust-kernel-toolchain 1.85.0 [ativo]</div>
+            <div className="text-slate-200">• ebpf-tools-v2 2.0.1 [ativo]</div>
             <div className="text-slate-200">• weston-inove 14.0.0 [ativo]</div>
             <div className="text-slate-200">• pipewire-alsa 1.2.5 [ativo]</div>
-            <div className="text-slate-200">• gcc-musl 14.2.0 [ativo]</div>
+            <div className="text-slate-200">• gcc-musl 15.1.0 [ativo]</div>
             <div className="text-slate-200">• flatpak-sandbox 1.14.8 [ativo]</div>
           </div>,
           trimmed
@@ -1163,8 +1262,8 @@ int main() {
       // Simple autocompletion
       const cmds = [
         'help', 'dmesg', 'top', 'ps', 'free', 'df', 'ls', 'cd', 'cat', 'nano',
-        'echo', 'touch', 'compile-c', 'gcc', 'lsmod', 'insmod', 'rmmod', 'icpkg',
-        'sysctl', 'inove-desktop', 'reboot', 'poweroff', 'clear', 'uname'
+        'echo', 'touch', 'compile-c', 'compile-rust', 'rust-info', 'gcc', 'rustc',
+        'lsmod', 'insmod', 'rmmod', 'icpkg', 'sysctl', 'inove-desktop', 'reboot', 'poweroff', 'clear', 'uname'
       ];
       const match = cmds.find((c) => c.startsWith(commandInput.trim()));
       if (match) {
@@ -1213,7 +1312,7 @@ int main() {
           <div className="flex items-center space-x-1.5 text-white font-bold tracking-wider">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
             <span className="text-cyan-400">INOVECLOUD OS</span>
-            <span className="text-slate-400 text-[10px] hidden sm:inline">KERNEL PURO 6.12+ LTS</span>
+            <span className="text-slate-400 text-[10px] hidden sm:inline">KERNEL PURO 7.3 RT</span>
           </div>
 
           <div className="flex items-center space-x-1 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700 text-[11px]">
@@ -1682,7 +1781,7 @@ int main() {
           </span>
           <span className="hidden sm:inline">|</span>
           <span className="hidden sm:inline">
-            Kernel: <strong className="text-white">6.12.18-inovecloud-pure</strong>
+            Kernel: <strong className="text-white">7.3.0-inovecloud-rt-pure</strong>
           </span>
         </div>
 

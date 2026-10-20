@@ -643,7 +643,7 @@ function DesktopOS() {
     },
     purekernel: {
       id: 'purekernel',
-      title: 'Console Bare-Metal — Kernel Linux 6.12+ Puro (TTY1)',
+      title: 'Console Bare-Metal — Kernel Linux 7.3 RT Puro (TTY1)',
       isOpen: false,
       isMinimized: false,
       isMaximized: true,

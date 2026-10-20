@@ -319,7 +319,7 @@ export const Dock: React.FC<DockProps> = ({
     {
       id: 'purekernel',
       label: 'Kernel Puro (TTY1 Console)',
-      subLabel: 'Linux 6.12+ Bare-Metal',
+      subLabel: 'Linux 7.3 RT Bare-Metal',
       gradient: 'from-emerald-950 via-slate-900 to-cyan-950',
       glowColor: 'rgba(16, 185, 129, 0.5)',
       isUtility: false,
@@ -332,7 +332,7 @@ export const Dock: React.FC<DockProps> = ({
     {
       id: 'isobuilder',
       label: 'Gerador de ISO & Live OS',
-      subLabel: 'Kernel 6.12 Puro (Sem GNOME)',
+      subLabel: 'Kernel 7.3 Puro (Sem GNOME)',
       gradient: 'from-cyan-600 via-blue-600 to-indigo-700',
       glowColor: 'rgba(6, 182, 212, 0.5)',
       isUtility: false,

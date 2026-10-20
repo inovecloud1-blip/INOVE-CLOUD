@@ -357,7 +357,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
             title="Alternar para Modo Kernel Puro (TTY1 Bare-Metal Console - Ctrl+Alt+F1)"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="hidden sm:inline">Kernel 6.12+</span>
+            <span className="hidden sm:inline">Kernel 7.3 RT</span>
             <span>[TTY1]</span>
           </button>
         )}

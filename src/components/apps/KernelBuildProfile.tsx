@@ -172,17 +172,19 @@ export const KernelBuildProfile: React.FC<KernelBuildProfileProps> = ({
   bzImage modules`;
 
   // Dynamically generated kernel .config snippet
-  const generatedConfigSnippet = `# --- InoveCloud OS Kernel 6.12+ Build Profile: ${activeProfile.name} ---
+  const generatedConfigSnippet = `# --- InoveCloud OS Kernel 7.3 RT Build Profile: ${activeProfile.name} ---
 ${(selectedProfileId === 'size-opt' || selectedOptLevel === '-Os') ? 'CONFIG_CC_OPTIMIZE_FOR_SIZE=y\n# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE is not set' : 'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y\n# CONFIG_CC_OPTIMIZE_FOR_SIZE is not set'}
 ${compressionType === 'zstd' ? 'CONFIG_KERNEL_ZSTD=y\n# CONFIG_KERNEL_XZ is not set\n# CONFIG_KERNEL_GZIP is not set' : compressionType === 'xz' ? 'CONFIG_KERNEL_XZ=y\n# CONFIG_KERNEL_ZSTD is not set\n# CONFIG_KERNEL_GZIP is not set' : 'CONFIG_KERNEL_GZIP=y'}
-${preemptionModel === 'preempt' ? 'CONFIG_PREEMPT=y\n# CONFIG_PREEMPT_VOLUNTARY is not set\n# CONFIG_PREEMPT_NONE is not set' : preemptionModel === 'voluntary' ? 'CONFIG_PREEMPT_VOLUNTARY=y\n# CONFIG_PREEMPT is not set' : 'CONFIG_PREEMPT_NONE=y'}
+${preemptionModel === 'preempt' ? 'CONFIG_PREEMPT_RT=y\nCONFIG_PREEMPT=y\n# CONFIG_PREEMPT_VOLUNTARY is not set\n# CONFIG_PREEMPT_NONE is not set' : preemptionModel === 'voluntary' ? 'CONFIG_PREEMPT_VOLUNTARY=y\n# CONFIG_PREEMPT is not set' : 'CONFIG_PREEMPT_NONE=y'}
 CONFIG_HZ_${hzFrequency}=y
 CONFIG_HZ=${hzFrequency}
+CONFIG_RUST=y
 CONFIG_DRM=y
 CONFIG_DRM_KMS_HELPER=y
 CONFIG_DRM_SIMPLEDRM=y
 CONFIG_FB=y
 CONFIG_FRAMEBUFFER_CONSOLE=y
+CONFIG_BCACHEFS_FS=y
 CONFIG_SQUASHFS=y
 CONFIG_OVERLAY_FS=y`;
 
@@ -240,11 +242,11 @@ CONFIG_OVERLAY_FS=y`;
                   Kernel Build Profile & Otimizações do Compilador GCC/Clang
                 </h3>
                 <div className="flex items-center space-x-2 text-xs text-slate-400">
-                  <span>Linux Kernel 6.12+ LTS</span>
+                  <span>Linux Kernel 7.3 RT</span>
                   <span aria-hidden="true">·</span>
                   <span>KCFLAGS Diretas</span>
                   <span aria-hidden="true">·</span>
-                  <span className="text-rose-400 font-mono">GCC 14 / Clang 18</span>
+                  <span className="text-rose-400 font-mono">GCC 15 / Rustc 1.85</span>
                   <span aria-hidden="true">·</span>
                   <span>Standalone Pure OS</span>
                 </div>

@@ -12,19 +12,20 @@ interface BootVideoSplashProps {
 }
 
 const BOOT_LOG_MESSAGES = [
-  { text: '[  OK  ] Linux Kernel 6.12+ LTS x86_64 loaded at 0x1000000', type: 'ok' },
-  { text: '[  OK  ] Initializing CPU cores (x86_64 SMP architecture - 16 Threads)', type: 'ok' },
+  { text: '[  OK  ] Linux Kernel 7.3.0-inovecloud-rt-pure x86_64 loaded at 0x1000000', type: 'ok' },
+  { text: '[  OK  ] Initializing CPU cores (x86_64 SMP architecture - 32 Threads)', type: 'ok' },
+  { text: '[  OK  ] Linux 7.3 Rust Core Subsystem & eBPF 2.0 JIT active', type: 'ok' },
   { text: '[  OK  ] Mounting rootfs (/proc, /sys, /dev, /tmp, /run)', type: 'ok' },
   { text: '[ INFO ] Probing DRM/KMS graphics drivers (Direct Framebuffer fb0 - Sem GNOME)...', type: 'info' },
-  { text: '[  OK  ] Direct Rendering Manager (DRM) acceleration ready', type: 'ok' },
+  { text: '[  OK  ] Direct Rendering Manager (DRM) acceleration ready (Zero GNOME / Zero X11)', type: 'ok' },
   { text: '[  OK  ] Initializing inove-udevd device manager & hotplug', type: 'ok' },
   { text: '[  OK  ] Detecting input devices: Keyboard ABNT2/US & USB Mouse', type: 'ok' },
   { text: '[  OK  ] Configuring loopback and acquiring DHCP IPv4 lease (192.168.1.145)', type: 'ok' },
   { text: '[  OK  ] Starting inove-init (PID 1) & PipeWire direct DMA buffer', type: 'ok' },
-  { text: '[  OK  ] Starting CUPS printing subsystem on port 631', type: 'ok' },
+  { text: '[  OK  ] io_uring 3.0 storage engine online with NVMe Gen5 support', type: 'ok' },
   { text: '[  OK  ] Mounting InoveCloud OS User Storage (/home/inove)', type: 'ok' },
-  { text: '[ INIT ] Launching InoveCloud OS Glass Desktop GUI (DRM/KMS Puro Sem GNOME)...', type: 'step' },
-  { text: '[  OK  ] Operating System active. Welcome to InoveCloud OS 2026 Pure Kernel!', type: 'ok' },
+  { text: '[ INIT ] Launching InoveCloud OS Native Compositor (DRM/KMS Puro Sem GNOME)...', type: 'step' },
+  { text: '[  OK  ] Operating System active. Welcome to InoveCloud OS 3.0 Pure Kernel 7.3!', type: 'ok' },
 ];
 
 export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
@@ -51,10 +52,10 @@ export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
   });
 
   const biosMenuItems = [
-    { key: 'Enter', label: '🚀 InoveCloud OS (Interface Nativa Direta - Sem GNOME)', desc: 'Sistema gráfico nativo executando direto sobre o Kernel Linux 6.12+' },
-    { key: 'F3', label: '⚡ InoveCloud OS (Modo Kernel Puro — TTY1 Bare-Metal Console)', desc: 'Inicialização direta no Kernel puro com PID 1 inove-init, sem interface gráfica' },
+    { key: 'Enter', label: '🚀 InoveCloud OS (Interface Nativa Direta - Sem GNOME)', desc: 'Sistema gráfico nativo executando direto sobre o Kernel Linux 7.3 RT' },
+    { key: 'F3', label: '⚡ InoveCloud OS (Modo Kernel Puro — TTY1 Bare-Metal Console)', desc: 'Inicialização direta no Kernel Linux 7.3 com PID 1 inove-init, sem interface gráfica' },
     { key: 'F10', label: '💿 Instalar InoveCloud OS no Disco', desc: 'Assistente com idioma, partição e conta de usuário' },
-    { key: 'F1', label: 'Informações do Sistema & Hardware', desc: 'CPU, RAM, Discos NVMe/SATA e GPU' },
+    { key: 'F1', label: 'Informações do Sistema & Hardware (Linux 7.3)', desc: 'CPU, RAM DDR5, Discos NVMe Gen5 e GPU DRM/KMS' },
     { key: 'F11', label: 'Modo Gráfico Seguro (SimpleDRM / VESA)', desc: 'Fallback de vídeo para compatibilidade máxima' },
     { key: 'F12', label: 'Boot via Rede (PXE / Cloud)', desc: 'Recuperação de imagem remota' },
   ];

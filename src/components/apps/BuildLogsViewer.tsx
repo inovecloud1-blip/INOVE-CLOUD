@@ -41,9 +41,9 @@ interface BuildLogsViewerProps {
 }
 
 const SAMPLE_REALISTIC_BUILD_LOGS: BuildLogLine[] = [
-  { id: '1', timestamp: '14:20:01', stream: 'info', stage: 'general', text: '>>> [SYS] Iniciando pipeline de compilação da ISO InoveCloud OS (Pure Linux Kernel 6.12+ Standalone)' },
-  { id: '2', timestamp: '14:20:02', stream: 'stdout', stage: 'general', text: 'HOST: Linux 6.12.10-inovecloud x86_64 | GNU Make 4.4.1 | GCC 14.2.0 | Musl-libc 1.2.5' },
-  { id: '3', timestamp: '14:20:03', stream: 'stdout', stage: 'kernel', text: '[KBUILD] Verificando árvore de código-fonte: /usr/src/linux-6.12.y (Pure Linux Kernel LTS)' },
+  { id: '1', timestamp: '14:20:01', stream: 'info', stage: 'general', text: '>>> [SYS] Iniciando pipeline de compilação da ISO InoveCloud OS (Pure Linux Kernel 7.3 Standalone)' },
+  { id: '2', timestamp: '14:20:02', stream: 'stdout', stage: 'general', text: 'HOST: Linux 7.3.0-inovecloud x86_64 | GNU Make 4.4.1 | GCC 15.1.0 | Rustc 1.85.0' },
+  { id: '3', timestamp: '14:20:03', stream: 'stdout', stage: 'kernel', text: '[KBUILD] Verificando árvore de código-fonte: /usr/src/linux-7.3.y (Pure Linux Kernel RT)' },
   { id: '4', timestamp: '14:20:04', stream: 'stdout', stage: 'kernel', text: '[KBUILD] Aplicando inove_defconfig: DRM/KMS, AHCI, NVMe, VirtIO, OverlayFS, SquashFS built-in (=y)' },
   { id: '5', timestamp: '14:20:06', stream: 'stdout', stage: 'kernel', text: '  CALL    scripts/checksyscalls.sh' },
   { id: '6', timestamp: '14:20:07', stream: 'stdout', stage: 'kernel', text: '  CC      arch/x86/kernel/process_64.o' },
@@ -158,7 +158,7 @@ export const BuildLogsViewer: React.FC<BuildLogsViewerProps> = ({
       onTriggerBuild();
     }
     const simulatedSteps: { delay: number; stream: BuildLogLine['stream']; stage: BuildLogLine['stage']; text: string }[] = [
-      { delay: 300, stream: 'info', stage: 'general', text: '>>> [PIPELINE] Disparando nova compilação limpa do Pure Linux Kernel 6.12+ (inove_defconfig)...' },
+      { delay: 300, stream: 'info', stage: 'general', text: '>>> [PIPELINE] Disparando nova compilação limpa do Pure Linux Kernel 7.3 RT (inove_defconfig)...' },
       { delay: 800, stream: 'stdout', stage: 'general', text: 'make clean && make mrproper (Limpando resíduos de compilações anteriores)' },
       { delay: 1400, stream: 'stdout', stage: 'kernel', text: '[KBUILD] Compilando árvore: make -j$(nproc) bzImage (48 threads de execução paralelas)' },
       { delay: 2000, stream: 'stdout', stage: 'kernel', text: '  CC      init/main.o' },
@@ -208,8 +208,8 @@ export const BuildLogsViewer: React.FC<BuildLogsViewerProps> = ({
       { delay: 600, stream: 'stdout', stage: 'kernel', text: '[KBUILD] make -j$(nproc) bzImage' },
       { delay: 1100, stream: 'stderr', stage: 'kernel', text: 'Cannot find libelf.h or gelf.h. Please install libelf-dev or elfutils-libelf-devel.' },
       { delay: 1400, stream: 'error', stage: 'kernel', text: 'make[1]: *** [Makefile:1924: scripts_basic] Error 2' },
-      { delay: 1800, stream: 'stderr', stage: 'kernel', text: 'FATAL ERROR: Failed to compile Linux Kernel 6.12 bzImage. Build process terminated with exit code 2.' },
-      { delay: 2200, stream: 'info', stage: 'general', text: '💡 [DIAGNÓSTICO AUTOMÁTICO] O pacote libelf-dev é obrigatório para compilar o subsistema eBPF/ORC unwinder do Kernel Linux 6.12+.' },
+      { delay: 1800, stream: 'stderr', stage: 'kernel', text: 'FATAL ERROR: Failed to compile Linux Kernel 7.3 bzImage. Build process terminated with exit code 2.' },
+      { delay: 2200, stream: 'info', stage: 'general', text: '💡 [DIAGNÓSTICO AUTOMÁTICO] O pacote libelf-dev e rustc são obrigatórios para compilar o subsistema eBPF 2.0 e drivers Rust do Kernel Linux 7.3 RT.' },
     ];
 
     setLogs([

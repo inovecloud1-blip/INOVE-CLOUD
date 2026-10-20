@@ -28,8 +28,8 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({
 }) => {
   const [activeTty, setActiveTty] = useState<'main' | 'dmesg' | 'syscalls'>('main');
   const [history, setHistory] = useState<string[]>([
-    'InoveCloud Pure Linux Kernel 6.12.10-inovecloud-x86_64 (SMP preempt)',
-    'Inove Init PID 1 Nativo | Syscalls API | DRM/KMS Framebuffer Active',
+    'InoveCloud Pure Linux Kernel 7.3.0-inovecloud-rt-pure (SMP PREEMPT_RT + Rust Core)',
+    'Inove Init PID 1 Nativo | Ring 0 Syscalls API | DRM/KMS Framebuffer Active (Sem GNOME)',
     'Conectado ao subsistema nativo do host via /api/terminal/exec (REST & PTY)',
     'Digite "help" para ver comandos do sistema ou execute comandos do Kernel Linux.',
     '',
@@ -76,12 +76,12 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({
 
     if (main === 'help') {
       newHistory.push('Comandos do Sistema & Pure Linux Kernel API:');
-      newHistory.push('  uname -a                     - Informações do Kernel Linux 6.12+');
+      newHistory.push('  uname -a                     - Informações do Kernel Linux 7.3 RT');
       newHistory.push('  fastfetch / neofetch         - Telemetria de hardware e arquitetura');
       newHistory.push('  dmesg                        - Buffer de mensagens e logs do Kernel');
       newHistory.push('  ps aux / top                 - Lista processos ativos gerenciados pelo Inove Init');
       newHistory.push('  free -h                      - Estatísticas de memória RAM física e swap');
-      newHistory.push('  df -h                        - Sistemas de arquivos montados (ZSTD SquashFS, Ext4, Btrfs)');
+      newHistory.push('  df -h                        - Sistemas de arquivos montados (ZSTD SquashFS, Ext4, Bcachefs)');
       newHistory.push('  ls -la /                     - Estrutura de diretórios do Micro-Rootfs');
       newHistory.push('  cat /proc/cpuinfo            - Informações detalhadas dos núcleos da CPU');
       newHistory.push('  inovectl status              - Status do cluster, DRM compositor e VNs');
@@ -93,22 +93,22 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({
     }
 
     if (main === 'fastfetch' || main === 'neofetch') {
-      newHistory.push('       .---.         OS: InoveCloud OS 2026.1 (Pure Linux Kernel Standalone) x86_64');
-      newHistory.push('      /     \\        Host: InoveCloud Native Station (DRM/KMS / Liquid Glass UI)');
-      newHistory.push('     | () () |       Kernel: 6.12.10-inovecloud-x86_64 (SMP Preempt RT)');
+      newHistory.push('       .---.         OS: InoveCloud OS 3.0 (Pure Linux Kernel 7.3 Standalone) x86_64');
+      newHistory.push('      /     \\        Host: InoveCloud Native Station (DRM/KMS Direct Compositor - Sem GNOME)');
+      newHistory.push('     | () () |       Kernel: 7.3.0-inovecloud-rt-pure (SMP Preempt RT + Rust Core)');
       newHistory.push('      \\  _  /        Init: Inove Init (PID 1 Nativo via Kernel Syscalls)');
       newHistory.push('       \'---\'         Uptime: 14 dias, 8 horas, 42 mins');
-      newHistory.push('                     Display: Direct DRM/KMS Wayland Compositor (Mesa 24.3)');
+      newHistory.push('                     Display: Direct DRM/KMS Framebuffer Compositor (Mesa 24.3)');
       newHistory.push('                     Shell: inove-sh 5.2.21 (Musl Libc & POSIX)');
       newHistory.push('                     CPU: AMD EPYC 9654 / Intel Xeon Scalable @ 3.20GHz');
-      newHistory.push('                     Memory: 1.4GB / 16.0GB (SquashFS RAM Rootfs)');
+      newHistory.push('                     Memory: 1.4GB / 32.0GB (SquashFS RAM Rootfs)');
       setHistory(newHistory);
       setInput('');
       return;
     }
 
     if (main === 'uname' && (parts[1] === '-a' || parts[1] === '-r' || !parts[1])) {
-      newHistory.push('Linux inovecloud-os 6.12.10-inovecloud-x86_64 #1 SMP PREEMPT_DYNAMIC Thu Sep 16 2026 x86_64 GNU/Linux');
+      newHistory.push('Linux inovecloud-os 7.3.0-inovecloud-rt-pure #1 SMP PREEMPT_RT Sun Oct 18 2026 x86_64 GNU/Linux');
       setHistory(newHistory);
       setInput('');
       return;
@@ -286,9 +286,9 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({
         {activeTty === 'dmesg' && (
           <div className="space-y-1 text-slate-300">
             <div className="text-cyan-400 font-bold mb-2">
-              [Kernel Ring Buffer / dmesg Telemetry - Linux 6.12.10-inovecloud-x86_64]
+              [Kernel Ring Buffer / dmesg Telemetry - Linux 7.3.0-inovecloud-rt-pure]
             </div>
-            <div className="text-slate-400 font-mono">[ 0.000000] Linux version 6.12.10-inovecloud (gcc version 14.2.0) #1 SMP PREEMPT</div>
+            <div className="text-slate-400 font-mono">[ 0.000000] Linux version 7.3.0-inovecloud-rt-pure (gcc version 15.1.0 + rustc 1.85.0) #1 SMP PREEMPT_RT</div>
             <div className="text-slate-400 font-mono">[ 0.000000] Command line: BOOT_IMAGE=/boot/vmlinuz-inovecloud quiet splash init=/init</div>
             <div className="text-slate-400 font-mono">[ 0.004210] x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'</div>
             <div className="text-slate-400 font-mono">[ 0.012480] e820: [mem 0x0000000000000000-0x00000003ffffffff] usable (16384 MB)</div>

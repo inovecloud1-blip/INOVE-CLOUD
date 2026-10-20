@@ -142,7 +142,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
     host: {
       distro: 'Debian GNU/Linux 13 (Trixie)',
       distroVersion: '13.0 Trixie (LTS/Testing)',
-      kernel: '6.12.18-inovecloud-pure',
+      kernel: '7.3.0-inovecloud-rt-pure',
       arch: 'x86_64 (AMD64)',
       hostname: 'inovecloud-kernel',
       initSystem: 'inove-init (PID 1) / systemd-compat',
@@ -572,7 +572,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
 
         {/* Host Status Footer */}
         <div className="pt-2 border-t border-white/10 text-[10px] text-slate-400 flex items-center justify-between px-2">
-          <span>InoveCloud OS 6.12+</span>
+          <span>InoveCloud OS 7.3 RT</span>
           <span className="flex items-center space-x-1 text-emerald-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span>Kernel Puro (DRM)</span>
@@ -766,7 +766,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                   <span>Configurações & Integração com Base Linux LFS</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Gerenciamento direto do Kernel Linux 6.12+ puro, serviços inove-init, repositórios nativos e aceleração DRM/KMS (Sem GNOME).
+                  Gerenciamento direto do Kernel Linux 7.3 RT puro, serviços inove-init, repositórios nativos e aceleração DRM/KMS (Sem GNOME).
                 </p>
               </div>
 
@@ -3021,10 +3021,10 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                 IC
               </div>
               <div>
-                <h4 className="text-base font-bold text-white">InoveCloud OS 2026.1 Pure Kernel</h4>
-                <p className="text-xs text-slate-300">Base: Kernel Linux 6.12+ LTS Puro Nativo (Autônomo • Sem GNOME)</p>
+                <h4 className="text-base font-bold text-white">InoveCloud OS 3.0 Pure Kernel</h4>
+                <p className="text-xs text-slate-300">Base: Kernel Linux 7.3 Real-Time Puro Nativo (Autônomo • Rust Subsystems • Sem GNOME)</p>
                 <div className="flex items-center space-x-3 text-[11px] text-slate-400 mt-1">
-                  <span>Kernel: Linux 6.12.18-inovecloud-pure</span>
+                  <span>Kernel: Linux 7.3.0-inovecloud-rt-pure</span>
                   <span>•</span>
                   <span>DRM/KMS Direct Compositor</span>
                 </div>

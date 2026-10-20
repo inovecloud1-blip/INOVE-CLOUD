@@ -140,7 +140,7 @@ export const PowerDialog: React.FC<PowerDialogProps> = ({
                 </div>
                 <div className="text-left">
                   <div className="font-bold text-xs text-white">Alternar para Modo Kernel Puro (TTY1)</div>
-                  <div className="text-[10px] text-emerald-400/80">Ambiente Bare-Metal sem GNOME • Inove Init PID 1</div>
+                  <div className="text-[10px] text-emerald-400/80">Ambiente Bare-Metal Linux 7.3 RT sem GNOME • Inove Init PID 1</div>
                 </div>
               </div>
               <span className="text-[10px] font-mono bg-black/40 px-2 py-1 rounded text-slate-300 border border-white/10">
