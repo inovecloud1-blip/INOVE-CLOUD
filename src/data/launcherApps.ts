@@ -6,7 +6,7 @@ export const LAUNCHER_APPS: LauncherAppInfo[] = [
     id: 'vn',
     name: 'Máquinas Virtuais (KVM)',
     category: 'Infraestrutura & KVM',
-    description: 'Hypervisor KVM para rodar Ubuntu, Windows 11, Debian e Alpine com GPU dedicada.',
+    description: 'Hypervisor KVM para rodar Ubuntu, Windows 11, Alpine e FreeDOS com GPU dedicada.',
     badge: 'KVM/QEMU',
     badgeColor: 'bg-blue-500',
     iconName: 'Server',

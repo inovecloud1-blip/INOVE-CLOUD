@@ -702,7 +702,7 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
           <div className="p-4 sm:p-5 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-black/20">
             <div className="text-xs text-slate-400 flex items-center space-x-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>InoveCloud OS 2026.1 LTS (Pure Debian 13 Kernel)</span>
+              <span>InoveCloud OS 2026.1 LTS (Linux Kernel 7.3 RT Puro Standalone)</span>
             </div>
 
             <div className="flex items-center space-x-3">
@@ -743,7 +743,7 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
                 {activeModal === 'backups' && 'Gerenciador de Backups & Snapshots'}
                 {activeModal === 'migracao' && 'Assistente de Migração do Sistema'}
                 {activeModal === 'solucionar_auto' && 'Auto-Configuração & Auto-Reparo Inteligente'}
-                {activeModal === 'debian_kernel' && 'Debian 13 Trixie & Pure Kernel Host'}
+                {activeModal === 'debian_kernel' && 'Linux Kernel 7.3 RT Puro Host (Zero Debian 13 / Zero GNOME)'}
               </h3>
               <button
                 onClick={() => setActiveModal(null)}

@@ -1746,7 +1746,7 @@ export const FLATHUB_APPS: FlathubAppDetail[] = [
     screenshots: [
       {
         title: 'Instalação via DPKG do Linux',
-        description: 'Extração e configuração dos binários e atalhos de desktop pelo instalador Debian nativo.',
+        description: 'Extração e configuração dos binários e atalhos de desktop pelo motor DPKG nativo.',
         caption: 'Navegação rápida com motor Blink',
         type: 'ui_mock',
         themeColor: '#4285f4'

@@ -36,10 +36,10 @@ export const INITIAL_VNS: VirtualNode[] = [
     ports: [3389, 445, 80, 443],
   },
   {
-    id: 'vn-debian-k8s',
-    name: 'debian-k8s-worker-01',
-    os: 'debian',
-    version: 'Debian 13 Trixie Cloud-Init',
+    id: 'vn-inove-k8s',
+    name: 'inove-k8s-worker-01',
+    os: 'alpine',
+    version: 'InoveCloud OS 7.3 RT Minimal Cloud-Init',
     status: 'running',
     ip: '10.240.0.25',
     vCpu: 4,
@@ -157,7 +157,7 @@ export const INITIAL_IDAAS_USERS: IdaasUser[] = [
     status: 'active',
     mfaEnabled: true,
     lastLogin: 'Agora mesmo',
-    assignedVns: ['vn-ubuntu-prod', 'vn-windows-erp', 'vn-debian-k8s', 'vn-alpine-proxy'],
+    assignedVns: ['vn-ubuntu-prod', 'vn-windows-erp', 'vn-inove-k8s', 'vn-alpine-proxy'],
   },
   {
     id: 'usr-2',
@@ -168,7 +168,7 @@ export const INITIAL_IDAAS_USERS: IdaasUser[] = [
     status: 'active',
     mfaEnabled: true,
     lastLogin: 'Há 32 min',
-    assignedVns: ['vn-ubuntu-prod', 'vn-debian-k8s'],
+    assignedVns: ['vn-ubuntu-prod', 'vn-inove-k8s'],
   },
   {
     id: 'usr-3',

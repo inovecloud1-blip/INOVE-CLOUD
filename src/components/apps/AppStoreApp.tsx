@@ -241,7 +241,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = () => {
     const isPiStore = app.packageManager === 'pi-store';
 
     if (isDeb) {
-      setInstallStage(`dpkg: Baixando pacote Debian ${app.debPackageName || app.name}...`);
+      setInstallStage(`dpkg: Baixando pacote .deb ${app.debPackageName || app.name}...`);
     } else if (isAppImage) {
       setInstallStage(`AppImage: Baixando binário portátil (${app.size})...`);
     } else if (isPiStore) {

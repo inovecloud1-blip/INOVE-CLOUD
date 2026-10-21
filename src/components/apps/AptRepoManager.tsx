@@ -43,25 +43,25 @@ export interface AptRepo {
 
 const DEFAULT_PRESETS = [
   {
-    name: 'Debian 13 (Trixie) Backports',
-    url: 'http://deb.debian.org/debian',
-    suite: 'trixie-backports',
-    components: ['main', 'contrib', 'non-free', 'non-free-firmware'],
+    name: 'InoveCloud Linux 7.3 RT Backports',
+    url: 'https://repo.inovecloud.org/backports',
+    suite: 'rt-pure',
+    components: ['main', 'hardware', 'mesa-3d'],
     type: 'deb' as const,
-    description: 'Pacotes e drivers mais recentes (Mesa 24, novos Kernels) compilados para o Debian.',
+    description: 'Pacotes e drivers mais recentes (Mesa 24, novos módulos do Kernel 7.3 RT) compilados nativamente.',
   },
   {
-    name: 'WineHQ Debian Repository',
-    url: 'https://dl.winehq.org/wine-builds/debian',
-    suite: 'trixie',
+    name: 'WineHQ Linux Binary Repository',
+    url: 'https://dl.winehq.org/wine-builds/inove',
+    suite: 'stable',
     components: ['main'],
     type: 'deb' as const,
     description: 'Camada de compatibilidade oficial para executar jogos e programas Windows no Linux.',
   },
   {
-    name: 'Docker CE Debian Repository',
-    url: 'https://download.docker.com/linux/debian',
-    suite: 'trixie',
+    name: 'Docker CE Linux Engine Repository',
+    url: 'https://download.docker.com/linux/static',
+    suite: 'stable',
     components: ['stable'],
     type: 'deb' as const,
     description: 'Motor oficial do Docker Engine, containerd e Docker Compose CLI.',
@@ -75,83 +75,83 @@ const DEFAULT_PRESETS = [
     description: 'Ambiente de execução JavaScript Node.js 22 LTS e gerenciador npm mais recente.',
   },
   {
-    name: 'Google Chrome Official Repository',
+    name: 'Google Chrome Official Linux Repository',
     url: 'http://dl.google.com/linux/chrome/deb',
     suite: 'stable',
     components: ['main'],
     type: 'deb' as const,
-    description: 'Repositório oficial de atualizações do Google Chrome para distribuições Debian.',
+    description: 'Repositório oficial de pacotes .deb do Google Chrome para Linux.',
   },
 ];
 
 export const AptRepoManager: React.FC = () => {
   const [repositories, setRepositories] = useState<AptRepo[]>([
     {
-      id: 'debian-trixie-main',
-      name: 'Debian 13 (Trixie) - Main & Firmwares',
-      url: 'http://deb.debian.org/debian',
-      suite: 'trixie',
-      components: ['main', 'contrib', 'non-free', 'non-free-firmware'],
+      id: 'inove-kernel-7.3-core',
+      name: 'InoveCloud OS Kernel 7.3 RT Core (Ring 0 & RootFS)',
+      url: 'https://repo.inovecloud.org/kernel/7.3-rt',
+      suite: 'core',
+      components: ['main', 'system', 'kernel-rt', 'drivers'],
       enabled: true,
       type: 'deb',
       gpgStatus: 'verified',
-      description: 'Repositório base do sistema operacional Debian com softwares livres e firmwares de hardware.',
+      description: 'Repositório base do sistema InoveCloud OS com Kernel Linux 7.3 RT puro e bibliotecas Ring 0 (Zero Debian 13).',
       sourceFile: '/etc/apt/sources.list',
       isSystemCore: true,
-      latencyMs: 38,
+      latencyMs: 32,
     },
     {
-      id: 'debian-trixie-updates',
-      name: 'Debian 13 (Trixie) - Updates Recomendados',
-      url: 'http://deb.debian.org/debian',
-      suite: 'trixie-updates',
-      components: ['main', 'contrib', 'non-free', 'non-free-firmware'],
+      id: 'inove-kernel-drivers',
+      name: 'InoveCloud Linux Drivers & Firmwares (DRM/KMS & Wi-Fi)',
+      url: 'https://repo.inovecloud.org/firmware',
+      suite: 'firmware-7.3',
+      components: ['main', 'hardware', 'mesa-3d', 'pipewire'],
       enabled: true,
       type: 'deb',
       gpgStatus: 'verified',
-      description: 'Atualizações estáveis recomendadas e correções de bugs publicadas com urgência.',
+      description: 'Firmwares de aceleração gráfica 3D, Wi-Fi 6E/7, Bluetooth LE e codecs multimídia.',
       sourceFile: '/etc/apt/sources.list',
       isSystemCore: true,
-      latencyMs: 38,
+      latencyMs: 35,
     },
     {
-      id: 'debian-security',
-      name: 'Debian Security Updates (security.debian.org)',
-      url: 'http://security.debian.org/debian-security',
-      suite: 'trixie-security',
-      components: ['main', 'contrib', 'non-free', 'non-free-firmware'],
+      id: 'inove-security',
+      name: 'InoveCloud Security & CVE Kernel Patches',
+      url: 'https://security.inovecloud.org/kernel',
+      suite: 'security-updates',
+      components: ['main', 'security', 'ebpf-filters'],
       enabled: true,
       type: 'deb',
       gpgStatus: 'verified',
-      description: 'Patches de vulnerabilidade e atualizações de segurança emitidas pelo Security Team do Debian.',
+      description: 'Patches de segurança e correções em tempo real para o Kernel Linux 7.3 RT Puro.',
       sourceFile: '/etc/apt/sources.list',
       isSystemCore: true,
-      latencyMs: 42,
+      latencyMs: 28,
     },
     {
       id: 'inovecloud-official',
       name: 'InoveCloud OS Core & Liquid Glass Desktop',
-      url: 'https://repo.inovecloud.org/os/debian',
+      url: 'https://repo.inovecloud.org/os/kernel-pure',
       suite: 'stable',
       components: ['main', 'ui', 'drivers', 'icpkg'],
       enabled: true,
       type: 'deb',
       gpgStatus: 'verified',
-      description: 'Pacotes oficiais do InoveCloud OS: temas Liquid Glass, icpkg, scripts de instalação e utilitários.',
+      description: 'Pacotes oficiais do InoveCloud OS: interface Liquid Glass, utilitários e executores de app.',
       sourceFile: '/etc/apt/sources.list.d/inovecloud.list',
       isSystemCore: true,
       latencyMs: 24,
     },
     {
-      id: 'debian-trixie-backports',
-      name: 'Debian 13 Backports (Drivers & Kernels Modernos)',
-      url: 'http://deb.debian.org/debian',
-      suite: 'trixie-backports',
-      components: ['main', 'contrib', 'non-free', 'non-free-firmware'],
+      id: 'inove-rt-backports',
+      name: 'InoveCloud Real-Time & Mesa 3D Backports',
+      url: 'https://repo.inovecloud.org/backports',
+      suite: 'rt-pure',
+      components: ['main', 'rust-core', 'io-uring'],
       enabled: false,
       type: 'deb',
       gpgStatus: 'verified',
-      description: 'Mesa 24+, novos Kernels Linux e módulos compatíveis com hardware moderno de última geração.',
+      description: 'Mesa 3D avançado, novos módulos Rust do Kernel Linux e aceleração de latência zero.',
       sourceFile: '/etc/apt/sources.list.d/backports.list',
       isSystemCore: false,
       latencyMs: 40,
@@ -175,8 +175,8 @@ export const AptRepoManager: React.FC = () => {
   // Form States for Add/Edit
   const [formName, setFormName] = useState('');
   const [formUrl, setFormUrl] = useState('');
-  const [formSuite, setFormSuite] = useState('trixie');
-  const [formComponents, setFormComponents] = useState('main contrib non-free non-free-firmware');
+  const [formSuite, setFormSuite] = useState('core');
+  const [formComponents, setFormComponents] = useState('main hardware kernel-rt firmware');
   const [formType, setFormType] = useState<'deb' | 'deb-src'>('deb');
   const [formDescription, setFormDescription] = useState('');
 
@@ -221,19 +221,19 @@ export const AptRepoManager: React.FC = () => {
     const steps = [
       {
         pct: 25,
-        log: 'Hit:1 http://deb.debian.org/debian trixie InRelease [142 kB]',
+        log: 'Hit:1 https://repo.inovecloud.org/kernel/7.3-rt core InRelease [142 kB]',
       },
       {
         pct: 45,
-        log: 'Hit:2 http://security.debian.org/debian-security trixie-security InRelease [89.2 kB]',
+        log: 'Hit:2 https://security.inovecloud.org/kernel security-updates InRelease [89.2 kB]',
       },
       {
         pct: 65,
-        log: 'Get:3 https://repo.inovecloud.org/os/debian stable InRelease [12.4 kB]',
+        log: 'Get:3 https://repo.inovecloud.org/firmware firmware-7.3 InRelease [12.4 kB]',
       },
       {
         pct: 80,
-        log: 'Get:4 http://deb.debian.org/debian trixie-updates InRelease [65.1 kB]',
+        log: 'Get:4 https://repo.inovecloud.org/os/kernel-pure stable InRelease [65.1 kB]',
       },
       {
         pct: 90,
@@ -294,8 +294,8 @@ export const AptRepoManager: React.FC = () => {
     setEditingRepo(null);
     setFormName('');
     setFormUrl('');
-    setFormSuite('trixie');
-    setFormComponents('main contrib non-free non-free-firmware');
+    setFormSuite('core');
+    setFormComponents('main hardware kernel-rt firmware');
     setFormType('deb');
     setFormDescription('');
     setShowAddModal(true);
@@ -333,7 +333,7 @@ export const AptRepoManager: React.FC = () => {
                 ...r,
                 name: formName.trim(),
                 url: formUrl.trim(),
-                suite: formSuite.trim() || 'trixie',
+                suite: formSuite.trim() || 'core',
                 components: componentsArray.length > 0 ? componentsArray : ['main'],
                 type: formType,
                 description: formDescription.trim() || 'Repositório personalizado do sistema.',
@@ -352,7 +352,7 @@ export const AptRepoManager: React.FC = () => {
         id: `repo-${Date.now()}`,
         name: formName.trim(),
         url: formUrl.trim(),
-        suite: formSuite.trim() || 'trixie',
+        suite: formSuite.trim() || 'core',
         components: componentsArray.length > 0 ? componentsArray : ['main'],
         enabled: true,
         type: formType,
@@ -427,7 +427,7 @@ export const AptRepoManager: React.FC = () => {
         <div>
           <div className="flex items-center space-x-2">
             <Server className="w-4 h-4 text-blue-400" />
-            <h3 className="text-sm font-bold text-white">Gerenciador de Repositórios APT (Debian Linux)</h3>
+            <h3 className="text-sm font-bold text-white">Gerenciador de Repositórios &amp; Pacotes (InoveCloud OS Kernel 7.3 RT)</h3>
             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
               {enabledCount} de {repositories.length} ativos
             </span>
@@ -749,7 +749,7 @@ export const AptRepoManager: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="ex: Debian Backports ou Docker CE"
+                    placeholder="ex: InoveCloud Backports ou Docker CE"
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
@@ -762,7 +762,7 @@ export const AptRepoManager: React.FC = () => {
                     <input
                       type="text"
                       required
-                      placeholder="http://deb.debian.org/debian"
+                      placeholder="https://repo.inovecloud.org/kernel/7.3-rt"
                       value={formUrl}
                       onChange={(e) => setFormUrl(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-blue-500"
@@ -786,7 +786,7 @@ export const AptRepoManager: React.FC = () => {
                     <label className="block text-slate-300 font-semibold mb-1">Distribuição / Suite:</label>
                     <input
                       type="text"
-                      placeholder="trixie ou trixie-backports"
+                      placeholder="core ou rt-pure"
                       value={formSuite}
                       onChange={(e) => setFormSuite(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-blue-500"
@@ -796,7 +796,7 @@ export const AptRepoManager: React.FC = () => {
                     <label className="block text-slate-300 font-semibold mb-1">Componentes:</label>
                     <input
                       type="text"
-                      placeholder="main contrib non-free non-free-firmware"
+                      placeholder="main hardware kernel-rt firmware"
                       value={formComponents}
                       onChange={(e) => setFormComponents(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-blue-500"
@@ -819,7 +819,7 @@ export const AptRepoManager: React.FC = () => {
                 <div className="p-3 rounded-xl bg-black/60 border border-blue-500/20 text-[11px] font-mono text-cyan-300 space-y-1">
                   <div className="text-[10px] text-slate-400 font-sans">Visualização da entrada APT:</div>
                   <div>
-                    {formType} {formUrl || 'http://...'} {formSuite || 'trixie'} {formComponents || 'main'}
+                    {formType} {formUrl || 'https://...'} {formSuite || 'core'} {formComponents || 'main'}
                   </div>
                 </div>
 

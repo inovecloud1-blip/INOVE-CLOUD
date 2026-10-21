@@ -147,28 +147,28 @@ const DEBOOTSTRAP_STEPS = [
   { progress: 18, tag: 'STEP', text: 'mount /dev/nvme0n1p2 /mnt && mkdir -p /mnt/boot/efi && mount /dev/nvme0n1p1 /mnt/boot/efi' },
   { progress: 21, tag: 'OK', text: 'Partições montadas com sucesso em /mnt e /mnt/boot/efi' },
 
-  // DEBOOTSTRAP PHASE
-  { progress: 24, tag: 'DEBOOTSTRAP', text: 'debootstrap --arch=amd64 --variant=minbase trixie /mnt http://deb.debian.org/debian' },
-  { progress: 26, tag: 'INFO', text: 'I: Retrieving InRelease ... [152 kB / 152 kB 100%]' },
-  { progress: 28, tag: 'INFO', text: 'I: Checking Release signature with debian-archive-keyring (Trixie GPG Valid)...' },
-  { progress: 30, tag: 'INFO', text: 'I: Valid Release signature (SHA256: 8f42b10a9c72e...) verified.' },
-  { progress: 32, tag: 'DEBOOTSTRAP', text: 'I: Retrieving Packages.xz ... [9.8 MB / 9.8 MB 1.4 MB/s]' },
-  { progress: 35, tag: 'DEBOOTSTRAP', text: 'I: Validating Base System Packages (libc6, dpkg, coreutils, bash, tar, gzip, sed, grep)...' },
-  { progress: 38, tag: 'DEBOOTSTRAP', text: 'I: Unpacking libc6:amd64 (2.39-4)...' },
-  { progress: 40, tag: 'DEBOOTSTRAP', text: 'I: Unpacking dpkg:amd64 (1.22.6)...' },
-  { progress: 42, tag: 'DEBOOTSTRAP', text: 'I: Unpacking systemd:amd64 (256.4-2)...' },
-  { progress: 45, tag: 'DEBOOTSTRAP', text: 'I: Configuring base system in /mnt (debootstrap completed successfully).' },
+  // PURE KERNEL ROOTFS BUILD (LFS STANDALONE - ZERO DEBIAN 13)
+  { progress: 24, tag: 'ROOTFS', text: 'inove-rootfs-build --arch=x86_64 --kernel=7.3.0-rt-pure /mnt https://repo.inovecloud.org/core' },
+  { progress: 26, tag: 'INFO', text: 'I: Verificando integridade SHA256 do InoveCloud OS Standalone LFS RootFS...' },
+  { progress: 28, tag: 'INFO', text: 'I: Assinatura GPG válida: InoveCloud Standalone Core Authority (100% Livre de Debian 13)...' },
+  { progress: 30, tag: 'INFO', text: 'I: Descompactando Base Minimal Ring 0 (glibc 2.40, musl, dpkg-standalone, busybox 1.36.1)...' },
+  { progress: 32, tag: 'ROOTFS', text: 'I: Configurando subsistemas de VFS: /proc, /sys, /dev/pts, /run, /tmp...' },
+  { progress: 35, tag: 'ROOTFS', text: 'I: Criando binários essenciais do userspace em /usr/bin e /sbin...' },
+  { progress: 38, tag: 'ROOTFS', text: 'I: Instalando compilador nativo GCC 15 e toolchain Rustc 1.85...' },
+  { progress: 40, tag: 'ROOTFS', text: 'I: Configurando motor de pacotes DPKG Standalone e AppImage FUSE 3...' },
+  { progress: 42, tag: 'ROOTFS', text: 'I: Configurando init nativo inove-init (PID 1 direto em Ring 0)...' },
+  { progress: 45, tag: 'ROOTFS', text: 'I: RootFS do InoveCloud OS Kernel 7.3 RT Puro concluído com sucesso.' },
 
-  // APT-GET REPOSITORIES & PACKAGES
-  { progress: 48, tag: 'STEP', text: 'chroot /mnt /bin/bash -c "cat <<EOF > /etc/apt/sources.list"' },
-  { progress: 50, tag: 'INFO', text: 'deb http://deb.debian.org/debian trixie main contrib non-free non-free-firmware' },
-  { progress: 52, tag: 'INFO', text: 'deb http://security.debian.org/debian-security trixie-security main contrib non-free' },
-  { progress: 54, tag: 'APT', text: 'chroot /mnt apt-get update' },
-  { progress: 56, tag: 'INFO', text: 'Hit:1 http://deb.debian.org/debian trixie InRelease [152 kB]' },
-  { progress: 58, tag: 'INFO', text: 'Reading package lists... Done (Building dependency tree... Done)' },
-  { progress: 60, tag: 'APT', text: 'chroot /mnt apt-get install -y --no-install-recommends linux-image-7.3-rt-inovecloud linux-headers-7.3-rt-inovecloud rustc gcc-15' },
+  // KERNEL LINUX 7.3 RT PURO STANDALONE & DRIVERS
+  { progress: 48, tag: 'STEP', text: 'chroot /mnt /sbin/inove-init-setup --kernel=7.3.0-rt-pure' },
+  { progress: 50, tag: 'INFO', text: 'repo https://repo.inovecloud.org/kernel/7.3-rt/core x86_64 main firmware' },
+  { progress: 52, tag: 'INFO', text: 'repo https://repo.inovecloud.org/kernel/firmware/nonfree iwlwifi amdgpu nouveau' },
+  { progress: 54, tag: 'KERNEL', text: 'Instalando Kernel Linux 7.3 RT Puro: vmlinuz-7.3.0-inovecloud-rt-pure' },
+  { progress: 56, tag: 'INFO', text: 'Configurando EEVDFv2 latency engine, io_uring v3 e eBPF 2.0 JIT...' },
+  { progress: 58, tag: 'INFO', text: 'Compilando módulos do Kernel 7.3 RT: DRM/KMS, Mesa 3D, PipeWire ALSA...' },
+  { progress: 60, tag: 'APT', text: 'chroot /mnt dpkg -i /var/cache/inove-kernel-7.3-rt-pure.deb' },
   { progress: 63, tag: 'KERNEL', text: 'Setting up linux-image-7.3-rt-inovecloud (7.3.0-rt-pure)... Generating /boot/vmlinuz-7.3' },
-  { progress: 66, tag: 'KERNEL', text: 'update-initramfs: Generating /boot/initrd.img-7.3 (ZSTD, DRM/KMS, io_uring v3, eBPF 2.0 included)' },
+  { progress: 66, tag: 'KERNEL', text: 'inove-initramfs: Generating /boot/initrd.img-7.3 (ZSTD, DRM/KMS, io_uring v3, eBPF 2.0)' },
 
   // DESKTOP ENVIRONMENT & PURE INOVECLOUD OS (SEM GNOME)
   { progress: 70, tag: 'KERNEL', text: 'chroot /mnt apt-get install -y inove-init inove-core busybox-static drm-kms-direct weston pipewire wireplumber flatpak' },
@@ -1096,7 +1096,7 @@ export const InstallerApp: React.FC<InstallerAppProps> = ({
                   </div>
 
                   <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
-                    <span>Etapa ativa: <strong>{progress >= 90 ? 'GRUB Bootloader' : progress >= 70 ? 'Kernel Puro & DRM Compositor' : progress >= 48 ? 'Debian Apt-Get' : 'Debootstrap & Partições'}</strong></span>
+                    <span>Etapa ativa: <strong>{progress >= 90 ? 'GRUB Bootloader' : progress >= 70 ? 'Kernel Puro & DRM Compositor' : progress >= 48 ? 'Kernel 7.3 RT & Drivers' : 'Pure RootFS & Partições'}</strong></span>
                     <span className="font-mono text-emerald-400">Gravando em {selectedDisk}</span>
                   </div>
                 </div>

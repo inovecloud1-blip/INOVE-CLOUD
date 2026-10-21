@@ -125,7 +125,7 @@ export const StorageApp: React.FC<StorageAppProps> = ({
       source: 'local',
       folder: 'downloads',
       tags: ['Markdown', 'Sistema'],
-      content: `# InoveCloud OS - Sistema Operacional Debian 13 Liquid Glass\n\nBem-vindo ao ambiente de produtividade e desenvolvimento do **InoveCloud OS**.\n\n## Principais Recursos:\n- Suporte completo a pacotes Flatpak e APT Debian.\n- Gerenciador de Repositórios com suporte a fontes oficiais e PPAs.\n- Kernel Linux com namespaces e cgroups ativos.\n- Terminal interativo e integração gráfica.\n\n*InoveCloud Team - 2026*`,
+      content: `# InoveCloud OS - Sistema Operacional Kernel Linux 7.3 RT Puro (LFS Standalone)\n\nBem-vindo ao ambiente de produtividade e desenvolvimento do **InoveCloud OS**.\n\n## Principais Recursos:\n- Kernel Linux 7.3 Real-Time Puro compilado do zero (100% Livre de Debian 13 e GNOME).\n- Execução nativa de pacotes .deb (dpkg), AppImage portátil e Flathub.\n- Acesso direto a hardware, GPU DRM/KMS Framebuffer e áudio PipeWire de baixa latência.\n- Terminal interativo Ring 0 e interface Liquid Glass.\n\n*InoveCloud Team - 2026*`,
     },
     {
       id: 'sh-build',
@@ -136,7 +136,7 @@ export const StorageApp: React.FC<StorageAppProps> = ({
       source: 'local',
       folder: 'downloads',
       tags: ['Shell', 'DevOps'],
-      content: `#!/usr/bin/env bash\n# Script de Deploy e Inicialização de Serviços InoveCloud OS\nset -euo pipefail\n\necho "[InoveCloud] Atualizando pacotes locais..."\nsudo apt-get update -y\n\necho "[InoveCloud] Verificando serviços do systemd..."\nsystemctl status NetworkManager || true\nsystemctl status pipewire || true\n\necho "✓ Deploy concluído com sucesso no Kernel Linux!"`,
+      content: `#!/usr/bin/env bash\n# Script de Deploy e Inicialização de Serviços InoveCloud OS\nset -euo pipefail\n\necho "[InoveCloud] Inicializando módulos do Kernel 7.3 RT..."\nlsmod | grep inove || true\n\necho "[InoveCloud] Verificando serviços do inove-init..."\ninove-init status || true\n\necho "✓ Deploy concluído com sucesso no Kernel Linux 7.3 RT Puro!"`,
     },
     {
       id: 'json-config',
@@ -147,7 +147,7 @@ export const StorageApp: React.FC<StorageAppProps> = ({
       source: 'local',
       folder: 'documents',
       tags: ['Config', 'JSON'],
-      content: `{\n  "system": "InoveCloud OS",\n  "version": "2.4.0",\n  "theme": "liquid-glass",\n  "cursor": "macOS-Adwaita",\n  "desktop": {\n    "resolution": "1920x1080",\n    "refreshRate": 60,\n    "wayland": true\n  },\n  "features": {\n    "flatpakEnabled": true,\n    "aptManager": true,\n    "realtimeLogs": true\n  }\n}`,
+      content: `{\n  "system": "InoveCloud OS",\n  "kernel": "7.3.0-rt-pure",\n  "theme": "liquid-glass",\n  "cursor": "macOS-Adwaita",\n  "desktop": {\n    "resolution": "1920x1080",\n    "refreshRate": 60,\n    "wayland": true\n  },\n  "features": {\n    "flatpakEnabled": true,\n    "dpkgManager": true,\n    "realtimeLogs": true\n  }\n}`,
     },
     {
       id: 'js-app',
@@ -158,18 +158,18 @@ export const StorageApp: React.FC<StorageAppProps> = ({
       source: 'local',
       folder: 'documents',
       tags: ['Node.js', 'Dev'],
-      content: `// Verificador de integridade do cluster InoveCloud\nconst http = require('http');\n\nconst server = http.createServer((req, res) => {\n  res.writeHead(200, { 'Content-Type': 'application/json' });\n  res.end(JSON.stringify({\n    status: 'online',\n    timestamp: new Date().toISOString(),\n    host: 'inovecloud-kernel'\n  }));\n});\n\nserver.listen(8080, () => {\n  console.log('Monitor ativo na porta 8080');\n});`,
+      content: `// Verificador de integridade do cluster InoveCloud\nconst http = require('http');\n\nconst server = http.createServer((req, res) => {\n  res.writeHead(200, { 'Content-Type': 'application/json' });\n  res.end(JSON.stringify({\n    status: 'online',\n    timestamp: new Date().toISOString(),\n    host: 'inovecloud-kernel-pure'\n  }));\n});\n\nserver.listen(8080, () => {\n  console.log('Monitor ativo na porta 8080');\n});`,
     },
     {
       id: 'dl-iso',
-      name: 'inovecloud-os-amd64.iso',
+      name: 'inovecloud-os-kernel-pure-7.3-x86_64.iso',
       type: 'iso',
       size: '840 MB',
       date: 'Hoje, 10:00',
       source: 'local',
       folder: 'downloads',
       tags: ['ISO', 'Sistema'],
-      content: 'Imagem ISO oficial inicializável do InoveCloud OS (Debian 13 Trixie x86_64).',
+      content: 'Imagem ISO oficial inicializável do InoveCloud OS (Kernel Linux 7.3 RT Puro x86_64 Standalone - Sem Debian 13 / Sem GNOME).',
     },
     {
       id: 'dl-wallpaper',

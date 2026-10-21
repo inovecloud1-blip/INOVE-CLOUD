@@ -54,7 +54,7 @@ const DEFAULT_NOTES: NoteItem[] = [
     isPinned: true,
     tags: ['#welcome', '#liquid-glass', '#beta', '#docs'],
     content: `# 🚀 InoveCloud OS Puro Kernel & Liquid Glass
-Bem-vindo ao **InoveCloud OS**, a plataforma em nuvem e sistema operacional baseada em Debian 13 (Trixie) e KVM Hypervisor de alta performance.
+Bem-vindo ao **InoveCloud OS**, o sistema operacional autônomo com Kernel Linux 7.3 RT Puro (Standalone / LFS - Zero GNOME e Zero Debian 13).
 
 ### 🌟 Principais Recursos:
 - **Liquid Glass UI**: Interface translúcida com efeitos modernos em tempo real.

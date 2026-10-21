@@ -214,7 +214,7 @@ export const AppScreenshotModal: React.FC<AppScreenshotModalProps> = ({
                       >
                         <Download className="w-5 h-5" />
                         {app.packageManager === 'deb'
-                          ? 'Instalar Pacote Debian (dpkg -i)'
+                          ? 'Instalar Pacote .DEB (dpkg -i)'
                           : app.packageManager === 'pi-store'
                           ? 'Instalar via Pi Store'
                           : app.packageManager === 'appimage'

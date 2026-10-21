@@ -521,7 +521,7 @@ export const DesktopWidgets: React.FC<DesktopWidgetsProps> = ({
       case 'kvm':
         return {
           title: 'Card KVM Virtualization (Run Any OS)',
-          desc: 'Acesso a máquinas virtuais Ubuntu, Windows e Debian',
+          desc: 'Acesso a máquinas virtuais Ubuntu, Windows e Alpine',
           icon: <Server className="w-4 h-4 text-indigo-400" />,
         };
     }
@@ -1243,7 +1243,7 @@ export const DesktopWidgets: React.FC<DesktopWidgetsProps> = ({
                           Virtualização Hypervisor KVM
                         </h4>
                         <p className="text-xs text-slate-300 leading-snug">
-                          Execute Ubuntu 24.04, Windows 11 Pro ou Debian com GPU passthrough e VNC nativo.
+                          Execute Ubuntu 24.04, Windows 11 Pro ou Alpine com GPU passthrough e VNC nativo.
                         </p>
                       </div>
 

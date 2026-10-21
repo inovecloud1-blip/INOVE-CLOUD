@@ -137,29 +137,30 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
     }
   }, [initialSection]);
 
-  // Debian 13 Host Integration States
+  // InoveCloud OS Pure Kernel 7.3 RT Standalone Host Integration States
   const [debianInfo, setDebianInfo] = useState<any>({
     host: {
-      distro: 'Debian GNU/Linux 13 (Trixie)',
-      distroVersion: '13.0 Trixie (LTS/Testing)',
+      distro: 'InoveCloud OS (Kernel Linux 7.3 RT Puro Standalone)',
+      distroVersion: '2026.1 LTS Pure LFS (Zero Debian 13 / Zero GNOME)',
       kernel: '7.3.0-inovecloud-rt-pure',
       arch: 'x86_64 (AMD64)',
       hostname: 'inovecloud-kernel',
-      initSystem: 'inove-init (PID 1) / systemd-compat',
+      initSystem: 'inove-init (PID 1 Nativo em Ring 0)',
       displayServer: 'InoveCloud Direct KMS / DRM Framebuffer Compositor (100% Puro, Sem GNOME)',
       graphicsDriver: 'Mesa 24.2.3 (OpenGL 4.6 / Vulkan 1.3 / DRI3)',
       uptime: '14 dias, 8 horas, 42 min',
       timezone: 'America/Sao_Paulo (UTC-03:00)',
       locale: 'pt_BR.UTF-8',
-      storage: { total: '512 GB', free: '438 GB', filesystem: 'ext4 / SquashFS' },
-      memory: { total: '16384 MB', used: '4210 MB', free: '12174 MB' }
+      storage: { total: '512 GB', free: '438 GB', filesystem: 'Bcachefs / ext4 / ZSTD' },
+      memory: { total: '16384 MB', used: '2110 MB', free: '14274 MB' }
     },
     services: [
-      { name: 'inove-init.service', description: 'InoveCloud Core PID 1 Supervisor', status: 'active', enabled: true },
-      { name: 'inove-drm.service', description: 'DRM/KMS Direct Compositor (Sem GNOME)', status: 'active', enabled: true },
-      { name: 'NetworkManager', description: 'Gerenciador de Redes Wi-Fi & Ethernet', status: 'active', enabled: true },
-      { name: 'pipewire.service', description: 'Servidor de Áudio PipeWire', status: 'active', enabled: true },
-      { name: 'flatpak-system-helper', description: 'Suporte de Permissões Flatpak', status: 'active', enabled: true },
+      { name: 'inove-init (PID 1)', description: 'Supervisor de Processos & Montagem do Kernel 7.3 RT', status: 'active', enabled: true },
+      { name: 'inove-drm.service', description: 'DRM/KMS Direct Compositor (Zero GNOME)', status: 'active', enabled: true },
+      { name: 'inove-network-netlink', description: 'Gerenciador de Redes Wi-Fi & Ethernet DMA', status: 'active', enabled: true },
+      { name: 'pipewire-native', description: 'Servidor de Áudio PipeWire de Baixa Latência', status: 'active', enabled: true },
+      { name: 'dpkg-standalone-engine', description: 'Suporte a Instalação de Binários .deb e AppImage', status: 'active', enabled: true },
+      { name: 'flatpak-system-helper', description: 'Suporte de Permissões Flatpak / Flathub', status: 'active', enabled: true },
       { name: 'inovecloud.service', description: 'InoveCloud Web Desktop Local Server', status: 'active', enabled: true }
     ],
     network: {
@@ -171,10 +172,10 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
       mac: '52:54:00:12:34:56'
     },
     repositories: [
-      { name: 'Debian 13 Trixie Main', url: 'deb.debian.org/debian trixie main', active: true },
-      { name: 'Debian 13 Contrib & Non-Free', url: 'deb.debian.org/debian trixie contrib non-free non-free-firmware', active: true },
-      { name: 'Debian 13 Security Updates', url: 'security.debian.org/debian-security trixie-security main', active: true },
-      { name: 'Flathub Official', url: 'https://dl.flathub.org/repo/flathub.flatpakrepo', active: true }
+      { name: 'InoveCloud Pure Kernel 7.3 Core', url: 'repo.inovecloud.org/kernel/7.3-rt/core', active: true },
+      { name: 'InoveCloud Linux RT Firmware & Drivers', url: 'repo.inovecloud.org/kernel/firmware/main', active: true },
+      { name: 'InoveCloud Security & Package Engine', url: 'security.inovecloud.org/updates', active: true },
+      { name: 'Flathub Standalone Sandbox', url: 'https://dl.flathub.org/repo/flathub.flatpakrepo', active: true }
     ]
   });
 
@@ -430,7 +431,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
   // Navigation Items
   const menuItems = [
     { id: 'autoconfig', label: 'Automação & Auto-Reparo', icon: Wrench, badge: 'Auto-Fix' },
-    { id: 'debian', label: 'Debian 13 & Pure Kernel Host', icon: Server, badge: 'Trixie' },
+    { id: 'debian', label: 'Kernel 7.3 RT Puro Host', icon: Server, badge: 'LFS Puro' },
     { id: 'wifi', label: 'Wi-Fi & Sem Fio', icon: Wifi, badge: sysSettings.wifiEnabled ? (connectedSsid || 'Conectado') : 'Desligado' },
     { id: 'ethernet', label: 'Internet a Cabo (Ethernet)', icon: Network, badge: sysSettings.ethernetEnabled ? '10 Gbps' : 'Desativado' },
     { id: 'camera', label: 'Câmera, Vídeo & V4L2 ISP', icon: Camera, badge: '/dev/video0' },
@@ -754,7 +755,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
           </div>
         )}
         {/* =================================================================== */}
-        {/* 0. DEBIAN 13 & GNOME HOST LINUX INTEGRATION */}
+        {/* 0. INOVECLOUD OS KERNEL 7.3 RT PURO HOST LINUX (ZERO DEBIAN 13) */}
         {/* =================================================================== */}
         {activeSection === 'debian' && (
           <div className="space-y-6 max-w-4xl">
@@ -763,10 +764,10 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
               <div>
                 <h3 className="text-base font-bold text-white flex items-center space-x-2">
                   <Server className="w-5 h-5 text-cyan-400" />
-                  <span>Configurações & Integração com Base Linux LFS</span>
+                  <span>Kernel Linux 7.3 RT Puro &amp; Host Bare-Metal (Sem Debian / Sem GNOME)</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Gerenciamento direto do Kernel Linux 7.3 RT puro, serviços inove-init, repositórios nativos e aceleração DRM/KMS (Sem GNOME).
+                  Gerenciamento direto do Kernel Linux 7.3 RT puro, serviços inove-init, repositórios nativos e aceleração DRM/KMS (100% Livre de Debian 13 e GNOME).
                 </p>
               </div>
 
@@ -941,7 +942,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
                   <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center space-x-2">
                     <Zap className="w-4 h-4 text-amber-400" />
-                    <span>Ações de Manutenção do Sistema Debian</span>
+                    <span>Ações de Manutenção do Kernel &amp; Pacotes InoveCloud OS</span>
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <button
@@ -1139,7 +1140,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                     <div className="p-3 rounded-xl bg-black/40 border border-white/10 space-y-1">
                       <span className="text-[10px] font-bold text-slate-400 uppercase">Gerenciador de Janelas & Display</span>
                       <p className="text-xs font-bold text-white">{debianInfo.host?.displayServer}</p>
-                      <p className="text-[10px] text-emerald-400">Suporte a janelas nativas Debian / Flatpak flutuantes</p>
+                      <p className="text-[10px] text-emerald-400">Suporte a janelas nativas InoveCloud / Flatpak flutuantes</p>
                     </div>
 
                     <div className="p-3 rounded-xl bg-black/40 border border-white/10 space-y-1">
@@ -1195,8 +1196,8 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                   <Power className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white">Controle de Energia do Host Debian</h4>
-                  <p className="text-[11px] text-slate-400">Envie comandos diretos do systemd para reiniciar ou desligar o computador.</p>
+                  <h4 className="text-xs font-bold text-white">Controle de Energia do Kernel Linux 7.3 RT</h4>
+                  <p className="text-[11px] text-slate-400">Envie comandos diretos do inove-init para reiniciar ou desligar o computador.</p>
                 </div>
               </div>
 
@@ -1205,7 +1206,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                   onClick={() => handleExecuteDebianAction('reboot')}
                   className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition cursor-pointer"
                 >
-                  Reiniciar Debian
+                  Reiniciar InoveCloud OS
                 </button>
                 <button
                   onClick={() => handleExecuteDebianAction('poweroff')}

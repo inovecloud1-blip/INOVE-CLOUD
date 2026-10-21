@@ -117,7 +117,7 @@ export const DEFAULT_THEME_PRESETS: ThemePreset[] = [
     isDark: true,
     glassOpacity: 85,
     dockStyle: 'neon',
-    tags: ['Oficial', 'Carmesim', 'Debian 13'],
+    tags: ['Oficial', 'Carmesim', 'Kernel 7.3 RT Puro'],
   },
   {
     id: 'synthwave',

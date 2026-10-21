@@ -391,7 +391,7 @@ export const SpotlightSearch: React.FC<SpotlightSearchProps> = ({
       category: 'components',
       categoryLabel: 'Hypervisor KVM',
       title: 'Nós Virtuais (VN) & Virtual Machines',
-      desc: 'Gerenciar instâncias KVM Ubuntu 24.04, Windows Server e Debian 13',
+      desc: 'Gerenciar instâncias KVM Ubuntu 24.04, Windows Server e Alpine Linux',
       pathOrDetail: 'App / Componente do Sistema',
       badge: '5 VMs',
       badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
@@ -500,7 +500,7 @@ export const SpotlightSearch: React.FC<SpotlightSearchProps> = ({
       badge: 'BUILDER',
       badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30',
       icon: <Disc className="w-4 h-4 text-red-400" />,
-      tags: ['iso', 'builder', 'gerador', 'compilar', 'live os', 'debian', 'distro'],
+      tags: ['iso', 'builder', 'gerador', 'compilar', 'live os', 'kernel-pure', 'distro'],
     },
     {
       id: 'comp-linuxpedia',

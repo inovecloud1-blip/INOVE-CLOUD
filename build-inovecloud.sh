@@ -291,10 +291,10 @@ if [ -d /usr/share/icons ]; then
   cp -a /usr/share/icons/* "${ROOTFS_DIR}/usr/share/icons/" 2>/dev/null || true
 fi
 
-# Configurar repositório do APT Linux
+# Configurar repositório do Kernel Linux 7.3 RT Puro (InoveCloud OS LFS Standalone)
 cat << 'EOF' > "${ROOTFS_DIR}/etc/apt/sources.list"
-deb http://deb.debian.org/debian trixie main contrib non-free non-free-firmware
-deb http://security.debian.org/debian-security trixie-security main contrib non-free non-free-firmware
+deb https://repo.inovecloud.org/kernel/7.3-rt core main firmware
+deb https://security.inovecloud.org/kernel security-updates main
 EOF
 
 # Configurar CUPS (Impressoras)
