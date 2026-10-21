@@ -166,9 +166,9 @@ const DEBOOTSTRAP_STEPS = [
   { progress: 54, tag: 'APT', text: 'chroot /mnt apt-get update' },
   { progress: 56, tag: 'INFO', text: 'Hit:1 http://deb.debian.org/debian trixie InRelease [152 kB]' },
   { progress: 58, tag: 'INFO', text: 'Reading package lists... Done (Building dependency tree... Done)' },
-  { progress: 60, tag: 'APT', text: 'chroot /mnt apt-get install -y --no-install-recommends linux-image-6.12-amd64 linux-headers-6.12-amd64' },
-  { progress: 63, tag: 'KERNEL', text: 'Setting up linux-image-6.12-amd64 (6.12.0-trixie)... Generating /boot/vmlinuz-6.12' },
-  { progress: 66, tag: 'KERNEL', text: 'update-initramfs: Generating /boot/initrd.img-6.12 (ZSTD compression, DRM/KMS drivers included)' },
+  { progress: 60, tag: 'APT', text: 'chroot /mnt apt-get install -y --no-install-recommends linux-image-7.3-rt-inovecloud linux-headers-7.3-rt-inovecloud rustc gcc-15' },
+  { progress: 63, tag: 'KERNEL', text: 'Setting up linux-image-7.3-rt-inovecloud (7.3.0-rt-pure)... Generating /boot/vmlinuz-7.3' },
+  { progress: 66, tag: 'KERNEL', text: 'update-initramfs: Generating /boot/initrd.img-7.3 (ZSTD, DRM/KMS, io_uring v3, eBPF 2.0 included)' },
 
   // DESKTOP ENVIRONMENT & PURE INOVECLOUD OS (SEM GNOME)
   { progress: 70, tag: 'KERNEL', text: 'chroot /mnt apt-get install -y inove-init inove-core busybox-static drm-kms-direct weston pipewire wireplumber flatpak' },
@@ -1037,7 +1037,7 @@ export const InstallerApp: React.FC<InstallerAppProps> = ({
                   <div>
                     <span className="font-bold block">Atenção: Os dados no disco selecionado serão gravados</span>
                     <span className="text-[11px] opacity-90 leading-relaxed block mt-0.5">
-                      O instalador criará as partições GPT e instalará o kernel Linux 6.12+ puro, o Inove Init e a interface nativa DRM/KMS (100% autônomo, sem GNOME).
+                      O instalador criará as partições GPT e instalará o kernel Linux 7.3 RT puro, o Inove Init e a interface nativa DRM/KMS (100% autônomo, sem GNOME).
                     </span>
                   </div>
                 </div>
@@ -1072,7 +1072,7 @@ export const InstallerApp: React.FC<InstallerAppProps> = ({
                       Instalando o InoveCloud OS no Disco...
                     </h3>
                     <p className="text-xs text-slate-300 mt-1">
-                      Copiando arquivos do sistema, instalando Kernel Linux 6.12+ puro e configurando drivers DRM/KMS.
+                      Copiando arquivos do sistema, instalando Kernel Linux 7.3 RT puro e configurando drivers DRM/KMS.
                     </p>
                   </div>
                 </div>

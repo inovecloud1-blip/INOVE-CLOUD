@@ -13,8 +13,10 @@ export interface FlathubAppDetail {
   reviewsCount: number;
   downloads: string;
   installed: boolean;
-  packageManager: 'flatpak' | 'apt' | 'appimage';
+  packageManager: 'flatpak' | 'apt' | 'appimage' | 'deb' | 'pi-store';
+  storeSource?: 'flathub' | 'pi-store' | 'deb-repo' | 'appimage-hub';
   executable?: string;
+  debPackageName?: string;
   appimageUrl?: string;
   verified: boolean;
   license: string;
@@ -109,7 +111,7 @@ export const FLATHUB_APPS: FlathubAppDetail[] = [
       'Extração de áudio sem perda de qualidade bit-perfect (AccurateRip)',
       'Preenchimento automático de capa, artista e faixas via MusicBrainz',
       'Conversão para FLAC, ALAC, Opus, MP3 e Ogg Vorbis',
-      'Design nativo GNOME Libadwaita com suporte a tema escuro'
+      'Design nativo acelerado por hardware com suporte a tema escuro'
     ],
     permissions: ['Acesso a Drive Óptico / CD-ROM', 'Rede para metadados', 'Acesso à Pasta de Músicas'],
     screenshots: [
@@ -1567,6 +1569,333 @@ export const FLATHUB_APPS: FlathubAppDetail[] = [
         caption: 'Edição de vídeo portátil completa',
         type: 'media',
         themeColor: '#0ea5e9'
+      }
+    ]
+  },
+  // --- PI STORE (Raspberry Pi Ecosystem & ARM/x86 Embedded) ---
+  {
+    id: 'raspberry-pi-imager',
+    appId: 'org.raspberrypi.imagingutility',
+    name: 'Raspberry Pi Imager',
+    tagline: 'Gravador oficial de imagens e ISOs para SD/USB',
+    description: 'Ferramenta essencial para gravar imagens do InoveCloud OS, Raspberry Pi OS e outras distros Linux diretamente em cartões SD e pendrives USB bootáveis com suporte a SSH e Wi-Fi pré-configurados.',
+    category: 'Utilitários',
+    version: '1.8.5',
+    developer: 'Raspberry Pi Ltd',
+    developerUrl: 'https://www.raspberrypi.com/software/',
+    size: '34 MB',
+    rating: 4.9,
+    reviewsCount: 38400,
+    downloads: '45.2M',
+    installed: false,
+    packageManager: 'pi-store',
+    storeSource: 'pi-store',
+    debPackageName: 'rpi-imager_1.8.5_amd64.deb',
+    executable: 'rpi-imager',
+    verified: true,
+    license: 'Apache-2.0',
+    releaseDate: '10 Outubro 2026',
+    memoryUsage: '65 MB RAM',
+    iconType: 'rpi_imager',
+    hotTrending: true,
+    features: ['Gravação rápida com verificação SHA256 em tempo real', 'Personalização de Wi-Fi e usuário pré-boot', 'Compatível com ISO InoveCloud OS Kernel 7.3'],
+    permissions: ['Acesso Direto a Discos de Bloco', 'Rede'],
+    screenshots: [
+      {
+        title: 'Seleção de SO e Dispositivo',
+        description: 'Interface simplificada para escolher a imagem do sistema e o cartão de destino.',
+        caption: 'Gravação descomplicada em 3 cliques',
+        type: 'ui_mock',
+        themeColor: '#c51a4a'
+      }
+    ]
+  },
+  {
+    id: 'scratch3-desktop',
+    appId: 'edu.mit.scratch.scratch-desktop',
+    name: 'Scratch 3 Desktop',
+    tagline: 'Ambiente visual de criação de jogos e animações',
+    description: 'Ambiente de programação em blocos do MIT oficial para o ecossistema Pi Store. Perfeito para aprender lógica de programação, criar histórias interativas e jogos.',
+    category: 'Educação',
+    version: '3.29.1',
+    developer: 'MIT Media Lab / Raspberry Pi Foundation',
+    developerUrl: 'https://scratch.mit.edu',
+    size: '145 MB',
+    rating: 4.8,
+    reviewsCount: 22100,
+    downloads: '18.9M',
+    installed: false,
+    packageManager: 'pi-store',
+    storeSource: 'pi-store',
+    executable: 'scratch-desktop',
+    verified: true,
+    license: 'GPL-2.0',
+    releaseDate: '15 Setembro 2026',
+    memoryUsage: '180 MB RAM',
+    iconType: 'scratch',
+    features: ['Programação visual intuitiva por blocos de arrastar', 'Biblioteca completa de sons, sprites e cenários', 'Extensões de robótica e sensores GPIO'],
+    permissions: ['Áudio/Microfone', 'Armazenamento Local'],
+    screenshots: [
+      {
+        title: 'Editor de Blocos Interativo',
+        description: 'Construa scripts arrastando blocos lógicos com resposta visual imediata no palco.',
+        caption: 'Aprenda programação brincando',
+        type: 'editor',
+        themeColor: '#ffab19'
+      }
+    ]
+  },
+  {
+    id: 'thonny-ide',
+    appId: 'org.thonny.Thonny',
+    name: 'Thonny Python IDE',
+    tagline: 'IDE Python oficial para iniciantes e robótica',
+    description: 'Ambiente de desenvolvimento Python padrão do Raspberry Pi OS. Inclui depurador passo a passo transparente, visualizador de variáveis na memória e terminal interativo.',
+    category: 'Desenvolvimento',
+    version: '4.1.4',
+    developer: 'Aivar Annamaa / Raspberry Pi Foundation',
+    developerUrl: 'https://thonny.org',
+    size: '42 MB',
+    rating: 4.9,
+    reviewsCount: 16800,
+    downloads: '14.1M',
+    installed: false,
+    packageManager: 'pi-store',
+    storeSource: 'pi-store',
+    debPackageName: 'thonny_4.1.4_all.deb',
+    executable: 'thonny',
+    verified: true,
+    license: 'MIT',
+    releaseDate: '20 Setembro 2026',
+    memoryUsage: '90 MB RAM',
+    iconType: 'thonny',
+    features: ['Depuração detalhada sem conceitos complexos', 'Visualização de árvores de chamadas e referências', 'Terminal REPL Python 3.12 integrado'],
+    permissions: ['Execução de Processos', 'Portas Seriais/USB'],
+    screenshots: [
+      {
+        title: 'Depuração Visual de Variáveis',
+        description: 'Veja exatamente o que cada linha de código faz na memória da CPU.',
+        caption: 'Depurador amigável passo a passo',
+        type: 'code',
+        themeColor: '#3d7a99'
+      }
+    ]
+  },
+  {
+    id: 'sonic-pi',
+    appId: 'net.sonic_pi.SonicPi',
+    name: 'Sonic Pi',
+    tagline: 'Sintetizador musical e live coding de música',
+    description: 'O famoso software de síntese musical do ecossistema Raspberry Pi. Programe beats de synthwave, batidas eletrônicas e acordes usando código Ruby em tempo real.',
+    category: 'Áudio e Vídeo',
+    version: '4.5.1',
+    developer: 'Sam Aaron / Sonic Pi Ltd',
+    developerUrl: 'https://sonic-pi.net',
+    size: '180 MB',
+    rating: 4.9,
+    reviewsCount: 12400,
+    downloads: '9.8M',
+    installed: false,
+    packageManager: 'pi-store',
+    storeSource: 'pi-store',
+    executable: 'sonic-pi',
+    verified: true,
+    license: 'MIT',
+    releaseDate: '01 Outubro 2026',
+    memoryUsage: '220 MB RAM',
+    iconType: 'sonic_pi',
+    features: ['Sintetizadores e samplers de nível de estúdio', 'Live coding musical ao vivo sem interrupções', 'Integração direta com PipeWire e ALSA'],
+    permissions: ['Áudio em Tempo Real', 'Acesso MIDI'],
+    screenshots: [
+      {
+        title: 'Estúdio de Live Coding Musical',
+        description: 'Escreva código em tempo real e ouça loops e melodias sintetizadas na hora.',
+        caption: 'Música gerada por código',
+        type: 'media',
+        themeColor: '#eb005a'
+      }
+    ]
+  },
+  // --- PACOTES DEBIAN .DEB (DPKG NATIVO LINUX) ---
+  {
+    id: 'google-chrome-deb',
+    appId: 'com.google.Chrome',
+    name: 'Google Chrome (.deb)',
+    tagline: 'Navegador web com renderização V8 e DRM',
+    description: 'Pacote oficial .deb do navegador Google Chrome para sistemas Linux de 64 bits. Totalmente compatível com o instalador DPKG do InoveCloud OS Kernel 7.3.',
+    category: 'Internet',
+    version: '129.0.6668.70',
+    developer: 'Google LLC',
+    developerUrl: 'https://www.google.com/chrome/',
+    size: '108 MB',
+    rating: 4.7,
+    reviewsCount: 92000,
+    downloads: '210M',
+    installed: false,
+    packageManager: 'deb',
+    storeSource: 'deb-repo',
+    debPackageName: 'google-chrome-stable_current_amd64.deb',
+    executable: 'google-chrome-stable',
+    verified: true,
+    license: 'Proprietary',
+    releaseDate: '18 Outubro 2026',
+    memoryUsage: '350 MB RAM',
+    iconType: 'chrome',
+    features: ['Instalação nativa via dpkg -i', 'Sincronização de contas e extensões Chrome Web Store', 'Aceleração de hardware VAAPI GPU'],
+    permissions: ['Rede', 'Áudio/Vídeo', 'GPU'],
+    screenshots: [
+      {
+        title: 'Instalação via DPKG do Linux',
+        description: 'Extração e configuração dos binários e atalhos de desktop pelo instalador Debian nativo.',
+        caption: 'Navegação rápida com motor Blink',
+        type: 'ui_mock',
+        themeColor: '#4285f4'
+      }
+    ]
+  },
+  {
+    id: 'vscode-deb',
+    appId: 'com.visualstudio.code.deb',
+    name: 'Visual Studio Code (.deb)',
+    tagline: 'Editor de código profissional da Microsoft em .deb',
+    description: 'Pacote binário .deb oficial do VS Code para distribuições baseadas em Linux. Instalado e desempacotado diretamente com DPKG no InoveCloud OS.',
+    category: 'Desenvolvimento',
+    version: '1.94.2',
+    developer: 'Microsoft Corporation',
+    developerUrl: 'https://code.visualstudio.com',
+    size: '98 MB',
+    rating: 4.9,
+    reviewsCount: 145000,
+    downloads: '180M',
+    installed: false,
+    packageManager: 'deb',
+    storeSource: 'deb-repo',
+    debPackageName: 'code_1.94.2_amd64.deb',
+    executable: 'code',
+    verified: true,
+    license: 'MIT',
+    releaseDate: '16 Outubro 2026',
+    memoryUsage: '280 MB RAM',
+    iconType: 'vscode',
+    hotTrending: true,
+    features: ['Suporte nativo a extensões e depuradores', 'Terminal integrado com bash e zsh', 'Instalação instantânea via dpkg'],
+    permissions: ['Sistema de Arquivos', 'Terminal', 'Rede'],
+    screenshots: [
+      {
+        title: 'Ambiente de Código VS Code',
+        description: 'Editor completo com IntelliSense, git e extensões de desenvolvimento.',
+        caption: 'Editor padrão para desenvolvedores',
+        type: 'code',
+        themeColor: '#007acc'
+      }
+    ]
+  },
+  {
+    id: 'virtualbox-guest-deb',
+    appId: 'org.virtualbox.guest-utils',
+    name: 'VirtualBox Guest Utils (.deb)',
+    tagline: 'Módulos e utilitários de integração com VirtualBox',
+    description: 'Módulos do kernel e serviços de integração para máquinas virtuais VirtualBox: redimensionamento dinâmico de tela, pastas compartilhadas (vboxsf), área de transferência bidirecional e aceleração de vídeo VMSVGA.',
+    category: 'Utilitários',
+    version: '7.1.2',
+    developer: 'Oracle Corporation',
+    developerUrl: 'https://www.virtualbox.org',
+    size: '18 MB',
+    rating: 4.8,
+    reviewsCount: 8400,
+    downloads: '12M',
+    installed: true,
+    packageManager: 'deb',
+    storeSource: 'deb-repo',
+    debPackageName: 'virtualbox-guest-utils_7.1.2_amd64.deb',
+    executable: 'VBoxClient-all',
+    verified: true,
+    license: 'GPL-2.0',
+    releaseDate: '14 Outubro 2026',
+    memoryUsage: '22 MB RAM',
+    iconType: 'virtualbox',
+    features: ['Redimensionamento automático da resolução de tela na VM', 'Suporte a pastas compartilhadas host/guest', 'Área de transferência bidirecional'],
+    permissions: ['Módulos do Kernel', 'Display Server'],
+    screenshots: [
+      {
+        title: 'Integração VirtualBox 7.x',
+        description: 'Comunicação direta com o hipervisor para alto desempenho em máquina virtual.',
+        caption: 'Drivers de VM em Ring 0',
+        type: 'dashboard',
+        themeColor: '#18346c'
+      }
+    ]
+  },
+  // --- MAIS APLICATIVOS DE MÚSICA & ÁUDIO ---
+  {
+    id: 'audacious-deb',
+    appId: 'org.atheme.audacious',
+    name: 'Audacious Audio Player (.deb)',
+    tagline: 'Player de áudio leve compatível com skins Winamp',
+    description: 'Reprodutor de música nativo ultrarrápido para Linux, focado em alta fidelidade de áudio e baixo uso de memória RAM. Suporta MP3, FLAC, WAV, OGG, AAC e streaming de rádios.',
+    category: 'Áudio e Vídeo',
+    version: '4.4.1',
+    developer: 'Audacious Dev Team',
+    developerUrl: 'https://audacious-media-player.org',
+    size: '14 MB',
+    rating: 4.8,
+    reviewsCount: 9200,
+    downloads: '8.4M',
+    installed: false,
+    packageManager: 'deb',
+    storeSource: 'deb-repo',
+    debPackageName: 'audacious_4.4.1_amd64.deb',
+    executable: 'audacious',
+    verified: true,
+    license: 'BSD-2-Clause',
+    releaseDate: '02 Outubro 2026',
+    memoryUsage: '35 MB RAM',
+    iconType: 'music',
+    features: ['Equalizador gráfico de 10 bandas', 'Compatibilidade com skins clássicas do Winamp', 'Consumo mínimo de recursos (<40MB RAM)'],
+    permissions: ['Saída de Áudio PipeWire', 'Armazenamento de Mídia'],
+    screenshots: [
+      {
+        title: 'Player com Equalizador de Alta Precisão',
+        description: 'Reprodução cristalina de bibliotecas de música locais e rádios web.',
+        caption: 'Áudio de alta fidelidade no Linux',
+        type: 'media',
+        themeColor: '#10b981'
+      }
+    ]
+  },
+  {
+    id: 'audacity-appimage',
+    appId: 'org.audacityteam.Audacity.AppImage',
+    name: 'Audacity Studio (AppImage)',
+    tagline: 'Gravador e editor de áudio multipista portátil',
+    description: 'O mais renomado gravador e editor de áudio digital de código aberto do mundo em pacote AppImage portátil pronto para rodar sem instalação.',
+    category: 'Áudio e Vídeo',
+    version: '3.6.4',
+    developer: 'Muse Group / Audacity Team',
+    developerUrl: 'https://www.audacityteam.org',
+    appimageUrl: 'https://github.com/audacity/audacity/releases',
+    size: '95 MB',
+    rating: 4.9,
+    reviewsCount: 42000,
+    downloads: '68M',
+    installed: false,
+    packageManager: 'appimage',
+    storeSource: 'appimage-hub',
+    executable: 'Audacity-3.6.4-x86_64.AppImage',
+    verified: true,
+    license: 'GPL-3.0',
+    releaseDate: '12 Outubro 2026',
+    memoryUsage: '140 MB RAM',
+    iconType: 'audacity',
+    features: ['Gravação multipista de microfone e instrumentos', 'Efeitos de redução de ruído, equalizador e compressão', 'Portátil em AppImage executável com 1 clique'],
+    permissions: ['Microfone', 'Áudio PipeWire', 'Arquivos Locais'],
+    screenshots: [
+      {
+        title: 'Visualizador de Formas de Onda Espectrais',
+        description: 'Edição de precisão milimétrica em formas de onda estéreo.',
+        caption: 'Edição e masterização de som',
+        type: 'media',
+        themeColor: '#0047ba'
       }
     ]
   }

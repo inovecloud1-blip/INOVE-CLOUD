@@ -229,7 +229,7 @@ export const StorageApp: React.FC<StorageAppProps> = ({
       folder: 'usb_drive',
       isUsb: true,
       tags: ['PenDrive', 'USB 3.2', 'PDF'],
-      content: 'Documento executivo sobre o InoveCloud OS Standalone Linux Kernel 6.12+.',
+      content: 'Documento executivo sobre o InoveCloud OS Standalone Linux Kernel 7.3 RT Puro (Sem GNOME).',
     },
     {
       id: 'usb-file-2',

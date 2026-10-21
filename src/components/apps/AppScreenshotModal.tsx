@@ -131,10 +131,23 @@ export const AppScreenshotModal: React.FC<AppScreenshotModalProps> = ({
                     <span className="text-blue-400 hover:underline cursor-pointer flex items-center gap-1">
                       {app.developer} <ExternalLink className="w-3 h-3" />
                     </span>
-                    <span>&bull;</span>
                     <span className="bg-[#2b2836] px-2 py-0.5 rounded text-gray-300 font-mono">v{app.version}</span>
                     <span>&bull;</span>
                     <span>Licença {app.license}</span>
+                    <span>&bull;</span>
+                    <span className={`px-2 py-0.5 rounded font-mono font-bold text-[11px] ${
+                      app.packageManager === 'deb'
+                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                        : app.packageManager === 'pi-store'
+                        ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                        : app.packageManager === 'appimage'
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                        : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                    }`}>
+                      {app.packageManager === 'deb' ? 'DEBIAN .DEB (DPKG)' :
+                       app.packageManager === 'pi-store' ? 'PI STORE (RASPBERRY PI)' :
+                       app.packageManager === 'appimage' ? 'APPIMAGE PORTABLE' : 'FLATPAK (FLATHUB)'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -190,13 +203,23 @@ export const AppScreenshotModal: React.FC<AppScreenshotModalProps> = ({
                       <button
                         onClick={() => onInstall(app)}
                         className={`w-full sm:w-auto px-8 py-3 rounded-xl ${
-                          app.packageManager === 'appimage'
+                          app.packageManager === 'deb'
+                            ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/25'
+                            : app.packageManager === 'pi-store'
+                            ? 'bg-red-600 hover:bg-red-700 shadow-red-500/25'
+                            : app.packageManager === 'appimage'
                             ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/25'
                             : 'bg-[#4A86CF] hover:bg-[#3D72B4] shadow-blue-500/25'
                         } text-white font-semibold flex items-center justify-center gap-2.5 shadow-lg transition-all active:scale-95 cursor-pointer text-base`}
                       >
                         <Download className="w-5 h-5" />
-                        {app.packageManager === 'appimage' ? 'Baixar & Executar AppImage' : 'Instalar Flatpak'}
+                        {app.packageManager === 'deb'
+                          ? 'Instalar Pacote Debian (dpkg -i)'
+                          : app.packageManager === 'pi-store'
+                          ? 'Instalar via Pi Store'
+                          : app.packageManager === 'appimage'
+                          ? 'Baixar & Executar AppImage'
+                          : 'Instalar Flatpak'}
                       </button>
                     )}
                   </div>

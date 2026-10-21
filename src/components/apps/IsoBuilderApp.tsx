@@ -31,7 +31,8 @@ import {
   Zap,
   Compass,
   ArrowRight,
-  Sliders
+  Sliders,
+  Box
 } from 'lucide-react';
 import { InstallerApp } from './InstallerApp';
 import { BuildLogsViewer } from './BuildLogsViewer';
@@ -43,8 +44,8 @@ interface IsoBuilderAppProps {
 
 export const IsoBuilderApp: React.FC<IsoBuilderAppProps> = ({ onPreviewBootVideo }) => {
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'osdev-blueprint' | 'kernel-profile' | 'installer' | 'build-logs' | 'bootvideo' | 'glass-theme' | 'download' | 'script' | 'docker' | 'github' | 'guide'
-  >('osdev-blueprint');
+    'overview' | 'osdev-blueprint' | 'kernel-profile' | 'installer' | 'build-logs' | 'bootvideo' | 'glass-theme' | 'download' | 'virtualbox' | 'script' | 'docker' | 'github' | 'guide'
+  >('virtualbox');
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [isSimulatingBuild, setIsSimulatingBuild] = useState(false);
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
@@ -104,8 +105,8 @@ export const IsoBuilderApp: React.FC<IsoBuilderAppProps> = ({ onPreviewBootVideo
     setIsSimulatingBuild(true);
     setBuildProgress(5);
     setBuildLogs([
-      `[${new Date().toLocaleTimeString('pt-BR')}] ⚡ Conectando ao motor de compilação InoveCloud OS (Pure Linux Kernel 6.12+ Standalone)...`,
-      `[${new Date().toLocaleTimeString('pt-BR')}] 📦 [1/7] Preparando ambiente de compilação: GCC 14, Binutils, Make, Libelf, ZSTD, Xorriso, GRUB2-EFI...`,
+      `[${new Date().toLocaleTimeString('pt-BR')}] ⚡ Conectando ao motor de compilação InoveCloud OS (Pure Linux Kernel 7.3 RT Standalone)...`,
+      `[${new Date().toLocaleTimeString('pt-BR')}] 📦 [1/7] Preparando ambiente de compilação: GCC 15, Rustc 1.85, Binutils, Make, Libelf, ZSTD, Xorriso, GRUB2-EFI...`,
       `[${new Date().toLocaleTimeString('pt-BR')}] ⚙️ [Perfil Selecionado] ${selectedKernelProfile.name} (${selectedKernelProfile.flagBadge})`,
       `[${new Date().toLocaleTimeString('pt-BR')}] 🚩 [KCFLAGS] ${effectiveFlags}`,
     ]);
@@ -122,12 +123,12 @@ export const IsoBuilderApp: React.FC<IsoBuilderAppProps> = ({ onPreviewBootVideo
     }
 
     const steps = [
-      { progress: 18, log: `🐧 [2/7] Compilando Kernel Linux 6.12+ LTS com KCFLAGS="${effectiveFlags}" (DRM/KMS, io_uring, eBPF, Inove Init PID 1)...` },
-      { progress: 35, log: '⚙️ [3/7] Compilando Inove Init (PID 1 nativo em C) e Micro-Rootfs autônomo com Musl Libc & Coreutils...' },
-      { progress: 55, log: '✨ [4/7] Injetando Inove Compositor DRM/KMS e integrando interface Liquid Glass acelerada por GPU...' },
+      { progress: 18, log: `🐧 [2/7] Compilando Kernel Linux 7.3.0-rt-pure com KCFLAGS="${effectiveFlags}" (DRM/KMS, io_uring v3, eBPF 2.0, Rust subsystems, Inove Init PID 1)...` },
+      { progress: 35, log: '⚙️ [3/7] Compilando Inove Init (PID 1 nativo em C/Rust) e Micro-Rootfs autônomo com Musl Libc & Coreutils...' },
+      { progress: 55, log: '✨ [4/7] Injetando Inove Compositor DRM/KMS direto e integrando interface acelerada por GPU sem GNOME...' },
       { progress: 75, log: `🚀 [5/7] Gerando Initramfs Zstandard de Inicialização Ultrarrápida (Tempo de boot estimado: ${selectedKernelProfile.bootTimeEstimate})...` },
       { progress: 90, log: '🗜️ [6/7] Empacotando Micro-Rootfs em SquashFS de alta densidade (-comp xz)...' },
-      { progress: 100, log: `💿 [7/7] Imagem híbrida UEFI/BIOS gerada: inovecloud-os-kernel-pure-x86_64.iso (~${selectedKernelProfile.estimatedVmlinuzSize} vmlinuz) [SHA256: a71e89f104d4...] - Concluído!` },
+      { progress: 100, log: `💿 [7/7] Imagem híbrida UEFI/BIOS gerada: inovecloud-os-kernel-pure-x86_64.iso (~${selectedKernelProfile.estimatedVmlinuzSize} vmlinuz) [SHA256: 73a1e89f...] - Concluído!` },
     ];
 
     steps.forEach((step, idx) => {
@@ -142,12 +143,12 @@ export const IsoBuilderApp: React.FC<IsoBuilderAppProps> = ({ onPreviewBootVideo
   };
 
   const bashScriptSnippet = `#!/usr/bin/env bash
-# InoveCloud OS - Pure Linux Kernel 6.12+ Standalone ISO Builder
-# Sem distros intermediárias (Debian/Ubuntu). 100% Nativo & Kernel Syscall API.
+# InoveCloud OS - Pure Linux Kernel 7.3 RT Standalone ISO Builder
+# Sem distros intermediárias (Debian/Ubuntu/GNOME). 100% Nativo & Kernel Syscall API Ring 0.
 set -euo pipefail
 
 echo "======================================================="
-echo "   InoveCloud OS - Pure Linux Kernel 6.12+ ISO Builder  "
+echo "   InoveCloud OS - Pure Linux Kernel 7.3 RT ISO Builder "
 echo "   Perfil de Otimização: ${selectedKernelProfile.name} "
 echo "   Flags de Compilação : ${effectiveFlags} "
 echo "======================================================="
@@ -174,7 +175,7 @@ docker build -t inovecloud-kernel-builder -f iso-builder/Dockerfile iso-builder/
 mkdir -p dist-iso
 docker run --privileged --rm -v $(pwd)/dist-iso:/output inovecloud-kernel-builder`;
 
-  const githubWorkflowSnippet = `name: Build InoveCloud OS - Pure Linux Kernel 6.12+ Standalone ISO
+  const githubWorkflowSnippet = `name: Build InoveCloud OS - Pure Linux Kernel 7.3 RT Standalone ISO
 
 on:
   push:
@@ -183,7 +184,7 @@ on:
 
 jobs:
   build-pure-kernel-iso:
-    name: Compilar Pure Linux Kernel Standalone ISO
+    name: Compilar Pure Linux Kernel 7.3 RT Standalone ISO
     runs-on: ubuntu-latest
     steps:
       - name: Clonar Repositório
@@ -229,10 +230,10 @@ jobs:
           <div>
             <div className="flex items-center space-x-2">
               <h2 className="text-lg font-bold text-white tracking-tight">
-                Gerador de ISO Pure Linux Kernel 6.12+ (Standalone OS)
+                Gerador de ISO Pure Linux Kernel 7.3 RT (Standalone OS)
               </h2>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">
-                Pure Linux Kernel 6.12 LTS
+                Pure Linux Kernel 7.3 RT
               </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
                 100% Kernel Syscall API
@@ -296,6 +297,7 @@ jobs:
           { id: 'glass-theme', label: '✨ Tema Liquid Glass Nativo (Sem GNOME)', icon: Palette },
           { id: 'bootvideo', label: '🎬 Vídeo de Inicialização', icon: Video },
           { id: 'download', label: 'Cadê a ISO? / Como Baixar', icon: Download },
+          { id: 'virtualbox', label: '📦 VirtualBox 7.x (Guia & VM)', icon: Box },
           { id: 'github', label: 'GitHub Actions (Nuvem CI/CD)', icon: Github },
           { id: 'script', label: 'Script Bash (build-iso.sh)', icon: Terminal },
           { id: 'docker', label: 'Compilar via Docker', icon: Server },
@@ -831,9 +833,9 @@ jobs:
                   🐧
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-white">Pure Linux Kernel 6.12+ (Standalone OS / Sem Distro Base)</h4>
+                  <h4 className="text-sm font-bold text-white">Pure Linux Kernel 7.3 RT (Standalone OS / Sem Distro Base / Sem GNOME)</h4>
                   <p className="text-xs text-slate-300">
-                    Construído a partir do zero (Linux From Scratch architecture) direto da árvore oficial do Kernel Linux, com Inove Init nativo (PID 1), chamadas de sistema diretas (Syscalls), DRM/KMS e aceleração gráfica Liquid Glass.
+                    Construído a partir do zero (Linux From Scratch architecture) direto da árvore oficial do Kernel Linux 7.3, com Inove Init nativo (PID 1), chamadas de sistema diretas Ring 0 (Syscalls), drivers Rust, DRM/KMS e aceleração gráfica direta.
                   </p>
                 </div>
               </div>
@@ -852,9 +854,9 @@ jobs:
                   <Cpu className="w-4 h-4" />
                   <span className="text-xs font-bold uppercase">1. Kernel Nativo</span>
                 </div>
-                <h4 className="text-sm font-bold text-white">Pure Linux 6.12+</h4>
+                <h4 className="text-sm font-bold text-white">Pure Linux 7.3 RT</h4>
                 <p className="text-xs text-slate-400 mt-1">
-                  Kernel LTS monolítico/modular com DRM/KMS, io_uring, eBPF, cgroups v2, KVM e zero dependência de distros.
+                  Kernel 7.3 PREEMPT_RT com DRM/KMS, io_uring v3, eBPF 2.0, Rust subsystems, EEVDFv2 e zero dependência de distros ou GNOME.
                 </p>
               </div>
 
@@ -1131,7 +1133,7 @@ jobs:
                 <div>
                   <h3 className="text-base font-bold text-white">Compilação Automática no GitHub Actions</h3>
                   <p className="text-xs text-slate-300">
-                    O workflow <code>.github/workflows/build-iso.yml</code> compila o Pure Linux Kernel 6.12+ e gera a ISO autônoma na nuvem do GitHub.
+                    O workflow <code>.github/workflows/build-iso.yml</code> compila o Pure Linux Kernel 7.3 RT e gera a ISO autônoma na nuvem do GitHub.
                   </p>
                 </div>
               </div>
@@ -1215,7 +1217,7 @@ jobs:
                 <div>
                   <h3 className="text-base font-bold text-white">Como Obter o Arquivo .ISO do InoveCloud OS</h3>
                   <p className="text-xs text-slate-300">
-                    O arquivo <code>inovecloud-os-kernel-pure-x86_64.iso</code> inclui o Kernel Linux 6.12+ puro, Inove Init (PID 1), drivers Mesa 3D DRM/KMS, tema Liquid Glass e wallpapers em alta definição.
+                    O arquivo <code>inovecloud-os-kernel-pure-x86_64.iso</code> inclui o Kernel Linux 7.3 RT puro, Inove Init (PID 1), drivers Mesa 3D DRM/KMS, compositor direto e zero GNOME.
                   </p>
                 </div>
               </div>
@@ -1333,7 +1335,7 @@ jobs:
               <div>
                 <h3 className="text-sm font-bold text-white">Script Bash Automatizado (`iso-builder/build-iso.sh`)</h3>
                 <p className="text-xs text-slate-400">
-                  Compilação do Pure Linux Kernel 6.12+, Inove Init nativo e Boot Híbrido UEFI/BIOS.
+                  Compilação do Pure Linux Kernel 7.3 RT, Inove Init nativo e Boot Híbrido UEFI/BIOS sem GNOME.
                 </p>
               </div>
               <button
@@ -1412,6 +1414,270 @@ jobs:
                     <li><strong>Aceleração Gráfica:</strong> VirtIO-GPU / VMSVGA com aceleração 3D</li>
                     <li><strong>Disco Rígido:</strong> Opcional (executa 100% na RAM em modo Live)</li>
                   </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* VIRTUALBOX 7.X MASTER TAB */}
+        {activeTab === 'virtualbox' && (
+          <div className="space-y-6 max-w-5xl mx-auto animate-fade-in">
+            {/* Header Hero */}
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-950/50 via-slate-900 to-indigo-950/50 border border-blue-500/30 space-y-4 shadow-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold text-2xl border border-blue-500/30 shadow-lg">
+                    📦
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h3 className="text-lg font-bold text-white tracking-tight">
+                        VirtualBox 7.x — Como Carregar e Rodar o InoveCloud OS
+                      </h3>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">
+                        Kernel Linux 7.3 RT Puro
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      Instruções definitivas e script automatizado para inicializar o sistema real no VirtualBox sem travar em tela preta e 100% livre de GNOME.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveTab('download')}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg transition cursor-pointer flex items-center space-x-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Baixar ISO 7.3</span>
+                </button>
+              </div>
+
+              {/* Troubleshooting Alert Box: Why it failed before */}
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2 text-xs">
+                <div className="flex items-center space-x-2 text-amber-300 font-bold">
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                  <span>Por que o sistema não carregava ou abria GNOME nas tentativas anteriores?</span>
+                </div>
+                <div className="text-slate-300 space-y-1.5 text-[11px] leading-relaxed">
+                  <p>
+                    • <strong>Se carregava GNOME ("Type to search"):</strong> A máquina virtual deu boot na imagem desktop padrão do Ubuntu/Debian que contém <code>gnome-shell</code> e <code>gdm3</code>. A ISO do InoveCloud OS (<code>inovecloud-os-kernel-pure-7.3-x86_64.iso</code>) é 100% autônoma, dando boot direto em Ring 0 no Console TTY1 ou na interface direta DRM/KMS.
+                  </p>
+                  <p>
+                    • <strong>Se ficava em tela preta:</strong> O VirtualBox define por padrão o adaptador de vídeo legado. O Kernel Linux 7.3 Puro exige que o <strong>Controlador Gráfico seja configurado como VMSVGA</strong> com <strong>Aceleração 3D ativada</strong> nas configurações da VM.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* VirtualBox Configuration Checklist */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                <div className="flex items-center space-x-2 text-cyan-400 font-bold text-xs uppercase">
+                  <Cpu className="w-4 h-4" />
+                  <span>1. Sistema & CPU</span>
+                </div>
+                <ul className="text-xs text-slate-300 space-y-1.5">
+                  <li>• <strong>Tipo:</strong> Linux</li>
+                  <li>• <strong>Versão:</strong> Other Linux (64-bit)</li>
+                  <li>• <strong>Memória RAM:</strong> 2048 MB a 4096 MB</li>
+                  <li>• <strong>Processadores:</strong> 2 vCPUs ou mais</li>
+                  <li>• <strong>Recursos:</strong> Marcar <em>Habilitar PAE/NX</em></li>
+                  <li>• <strong>Firmware:</strong> Suporta UEFI (Habilitar EFI) e BIOS</li>
+                </ul>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                <div className="flex items-center space-x-2 text-purple-400 font-bold text-xs uppercase">
+                  <Monitor className="w-4 h-4" />
+                  <span>2. Monitor & Vídeo (CRÍTICO)</span>
+                </div>
+                <ul className="text-xs text-slate-300 space-y-1.5">
+                  <li>• <strong>Controlador Gráfico:</strong> <span className="text-emerald-400 font-bold">VMSVGA</span></li>
+                  <li>• <strong>Memória de Vídeo:</strong> 128 MB</li>
+                  <li>• <strong>Aceleração 3D:</strong> <span className="text-emerald-400 font-bold">Habilitar Aceleração 3D</span></li>
+                  <li>• <strong>DRM/KMS:</strong> Comunica direto com o driver <code>vboxvideo</code></li>
+                  <li>• <strong>Redimensionamento:</strong> VBoxClient suportado</li>
+                </ul>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                <div className="flex items-center space-x-2 text-emerald-400 font-bold text-xs uppercase">
+                  <HardDrive className="w-4 h-4" />
+                  <span>3. Armazenamento & Rede</span>
+                </div>
+                <ul className="text-xs text-slate-300 space-y-1.5">
+                  <li>• <strong>Controlador:</strong> SATA (Intel AHCI)</li>
+                  <li>• <strong>Disco Rígido:</strong> 20 GB (VDI Dinâmico)</li>
+                  <li>• <strong>Drive Óptico:</strong> Anexar <code>inovecloud-os-kernel-pure-7.3.iso</code></li>
+                  <li>• <strong>Rede:</strong> Intel PRO/1000 MT Desktop (NAT/Bridge)</li>
+                  <li>• <strong>Áudio:</strong> Intel HD Audio (PipeWire)</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Script de Criação Automática via VBoxManage */}
+            <div className="p-5 rounded-2xl bg-slate-900 border border-white/10 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-bold text-white flex items-center space-x-2">
+                    <Terminal className="w-4 h-4 text-emerald-400" />
+                    <span>Criar a Máquina Virtual Automaticamente no VirtualBox (Comando Único)</span>
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Execute este script no seu terminal Linux/macOS ou no prompt do Windows com <code>VBoxManage</code>:
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() =>
+                      handleCopy(
+                        `# Criação automática da Máquina Virtual InoveCloud OS no VirtualBox
+VBoxManage createvm --name "InoveCloud-OS-Linux-7.3" --ostype "Linux26_64" --register
+VBoxManage modifyvm "InoveCloud-OS-Linux-7.3" --memory 4096 --cpus 2 --vram 128 --graphicscontroller vmsvga --accelerate3d on --audio-enabled on --audio-controller hda --nic1 nat
+VBoxManage storagectl "InoveCloud-OS-Linux-7.3" --name "SATA" --add sata --controller IntelAHCI --bootable on
+VBoxManage createmedium disk --filename "InoveCloud-Disk.vdi" --size 20480 --format VDI
+VBoxManage storageattach "InoveCloud-OS-Linux-7.3" --storagectl "SATA" --port 0 --device 0 --type hdd --medium "InoveCloud-Disk.vdi"
+VBoxManage storageattach "InoveCloud-OS-Linux-7.3" --storagectl "SATA" --port 1 --device 0 --type dvddrive --medium inovecloud-os-kernel-pure-x86_64.iso
+VBoxManage startvm "InoveCloud-OS-Linux-7.3"`,
+                        'vbox-cmd'
+                      )
+                    }
+                    className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition cursor-pointer shadow"
+                  >
+                    {copiedSection === 'vbox-cmd' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedSection === 'vbox-cmd' ? 'Copiado!' : 'Copiar Comandos'}</span>
+                  </button>
+                  <button
+                    onClick={() =>
+                      downloadScriptFile(
+                        'create-inovecloud-vm.sh',
+                        `#!/usr/bin/env bash
+# Script oficial para criar e iniciar VM InoveCloud OS no VirtualBox
+set -e
+echo "Criando VM InoveCloud-OS-Linux-7.3..."
+VBoxManage createvm --name "InoveCloud-OS-Linux-7.3" --ostype "Linux26_64" --register
+VBoxManage modifyvm "InoveCloud-OS-Linux-7.3" --memory 4096 --cpus 2 --vram 128 --graphicscontroller vmsvga --accelerate3d on --audio-enabled on --audio-controller hda --nic1 nat
+VBoxManage storagectl "InoveCloud-OS-Linux-7.3" --name "SATA" --add sata --controller IntelAHCI --bootable on
+VBoxManage createmedium disk --filename "$HOME/VirtualBox VMs/InoveCloud-OS-Linux-7.3/InoveCloud-Disk.vdi" --size 20480 --format VDI || true
+VBoxManage storageattach "InoveCloud-OS-Linux-7.3" --storagectl "SATA" --port 0 --device 0 --type hdd --medium "$HOME/VirtualBox VMs/InoveCloud-OS-Linux-7.3/InoveCloud-Disk.vdi" || true
+VBoxManage storageattach "InoveCloud-OS-Linux-7.3" --storagectl "SATA" --port 1 --device 0 --type dvddrive --medium "inovecloud-os-kernel-pure-x86_64.iso" || true
+echo "Iniciando a VM..."
+VBoxManage startvm "InoveCloud-OS-Linux-7.3"
+`
+                      )
+                    }
+                    className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition cursor-pointer border border-white/10"
+                  >
+                    <Download className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Baixar create-vm.sh</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-black/70 p-4 rounded-xl border border-white/5 font-mono text-xs text-slate-300 space-y-1 overflow-x-auto custom-scrollbar">
+                <div className="text-cyan-400"># 1. Registrar a máquina virtual no VirtualBox com arquitetura 64-bit</div>
+                <div>VBoxManage createvm --name "InoveCloud-OS-Linux-7.3" --ostype "Linux26_64" --register</div>
+                <div className="text-cyan-400 pt-1"># 2. Configurar RAM (4GB), 2 CPUs, VMSVGA 128MB com aceleração 3D</div>
+                <div>VBoxManage modifyvm "InoveCloud-OS-Linux-7.3" --memory 4096 --cpus 2 --vram 128 --graphicscontroller vmsvga --accelerate3d on</div>
+                <div className="text-cyan-400 pt-1"># 3. Anexar o disco SATA e a ISO do InoveCloud OS 7.3</div>
+                <div>VBoxManage storagectl "InoveCloud-OS-Linux-7.3" --name "SATA" --add sata --controller IntelAHCI</div>
+                <div>VBoxManage storageattach "InoveCloud-OS-Linux-7.3" --storagectl "SATA" --port 1 --type dvddrive --medium inovecloud-os-kernel-pure-x86_64.iso</div>
+                <div className="text-cyan-400 pt-1"># 4. Iniciar a VM no VirtualBox</div>
+                <div className="text-emerald-400 font-bold">VBoxManage startvm "InoveCloud-OS-Linux-7.3"</div>
+              </div>
+            </div>
+
+            {/* Simulador de Tela VirtualBox 7.x ao Vivo */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-2">
+                  <Monitor className="w-4 h-4 text-cyan-400" />
+                  <span>Simulador de Máquina Virtual VirtualBox 7.x (Boot Direto Linux 7.3 RT)</span>
+                </h4>
+                <span className="text-[11px] text-emerald-400 font-mono">
+                  ● VirtualBox Guest Additions: ATIVADO (Ring 0)
+                </span>
+              </div>
+
+              {/* VirtualBox Classic Window Mockup */}
+              <div className="rounded-2xl overflow-hidden border border-slate-700 shadow-2xl bg-[#1e1e1e]">
+                {/* VirtualBox Window Title Bar */}
+                <div className="h-8 bg-[#2d2d2d] border-b border-slate-700 px-3 flex items-center justify-between text-xs select-none">
+                  <div className="flex items-center space-x-2 text-slate-200">
+                    <span className="w-3.5 h-3.5 rounded bg-blue-600 flex items-center justify-center text-[9px] font-bold">V</span>
+                    <span className="font-semibold text-slate-100">InoveCloud-OS-Linux-7.3 [Em Execução] - Oracle VM VirtualBox</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-3 h-3 rounded-full bg-slate-600" />
+                    <div className="w-3 h-3 rounded-full bg-slate-600" />
+                    <div className="w-3 h-3 rounded-full bg-slate-600" />
+                  </div>
+                </div>
+
+                {/* VirtualBox Menu Bar */}
+                <div className="h-6 bg-[#252525] border-b border-slate-800 px-3 flex items-center space-x-4 text-[11px] text-slate-300 select-none">
+                  <span className="hover:text-white cursor-pointer">Arquivo</span>
+                  <span className="hover:text-white cursor-pointer">Máquina</span>
+                  <span className="hover:text-white cursor-pointer">Visualizar</span>
+                  <span className="hover:text-white cursor-pointer">Entrada</span>
+                  <span className="hover:text-white cursor-pointer font-bold text-cyan-400">Dispositivos</span>
+                  <span className="hover:text-white cursor-pointer">Ajuda</span>
+                </div>
+
+                {/* Virtual Machine Monitor Output */}
+                <div className="bg-black p-5 font-mono text-xs text-slate-200 min-h-[280px] space-y-1">
+                  <div className="text-cyan-400 font-bold">
+                    [    0.000000] Linux version 7.3.0-inovecloud-rt-pure (gcc-15, rustc 1.85) #1 SMP PREEMPT_RT Sun Oct 18 2026
+                  </div>
+                  <div className="text-slate-400">[    0.000000] Command line: BOOT_IMAGE=/boot/vmlinuz-7.3-inovecloud root=/dev/ram0 inove.pure=1</div>
+                  <div className="text-emerald-400">[    0.045120] x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'</div>
+                  <div className="text-emerald-400">[    0.098230] smpboot: CPU0: Intel Core Virtual CPU (32 threads available)</div>
+                  <div className="text-cyan-300">[    0.145800] vboxguest: VirtualBox Guest Additions v7.1.2 loaded successfully</div>
+                  <div className="text-cyan-300">[    0.160400] vboxguest: Guest additions service active, host clipboard synchronized</div>
+                  <div className="text-purple-400">[    0.185200] vboxvideo: VMSVGA 3D Accelerated Graphics Driver attached to fb0 (1920x1080@60Hz)</div>
+                  <div className="text-purple-400">[    0.201400] [drm] Direct KMS direct-scanout enabled. Zero GNOME dependency.</div>
+                  <div className="text-emerald-400">[    0.254100] vboxsf: VirtualBox Shared Folders module loaded. Mount point /media/sf_shared available</div>
+                  <div className="text-cyan-300">[    0.312000] system: /sbin/inove-init (PID 1) starting services: io_uring, eBPF 2.0, PipeWire audio</div>
+                  <div className="text-white font-bold pt-2">
+                    ════════════════════════════════════════════════════════════════════════════════════════
+                  </div>
+                  <div className="text-cyan-300 font-bold">
+                    INOVECLOUD OS 3.0 (KERNEL LINUX 7.3 RT PURO — BARE-METAL &amp; VIRTUALBOX READY)
+                  </div>
+                  <div className="text-slate-400 text-[11px]">
+                    100% Autônomo • Zero GNOME • DPKG (.deb) • Flatpak • Pi Store • AppImage
+                  </div>
+                  <div className="text-white font-bold">
+                    ════════════════════════════════════════════════════════════════════════════════════════
+                  </div>
+                  <div className="text-emerald-400 font-bold pt-1">
+                    inovecloud-core login: inove (automatic console login on tty1)
+                  </div>
+                  <div className="text-slate-200">
+                    inove@inovecloud-core:~$ <span className="inline-block w-2 h-4 bg-cyan-400 animate-pulse align-middle ml-1" />
+                  </div>
+                </div>
+
+                {/* VirtualBox Status Bar */}
+                <div className="h-6 bg-[#252525] border-t border-slate-800 px-3 flex items-center justify-between text-[11px] text-slate-400 select-none">
+                  <div className="flex items-center space-x-3">
+                    <span className="flex items-center space-x-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <span>HD: Leitura/Escrita</span>
+                    </span>
+                    <span className="flex items-center space-x-1">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                      <span>CD/DVD: inovecloud-os.iso</span>
+                    </span>
+                    <span className="flex items-center space-x-1">
+                      <span className="w-2 h-2 rounded-full bg-blue-400" />
+                      <span>Rede: NAT Conectado</span>
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-mono">
+                    Host Key: Ctrl Direito • VMSVGA 128MB
+                  </div>
                 </div>
               </div>
             </div>

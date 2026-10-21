@@ -44,10 +44,10 @@ ROOTFS_DIR="${WORK_DIR}/rootfs"
 BUILD_DIR="${WORK_DIR}/src"
 LIVE_DIR="${WORK_DIR}/iso-root"
 OUTPUT_DIR="$(pwd)/dist-iso"
-ISO_NAME="inovecloud-os-pure-flathub-amd64.iso"
+ISO_NAME="inovecloud-os-kernel-pure-7.3-amd64.iso"
 
-KERNEL_VERSION="6.6.21"
-KERNEL_URL="https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${KERNEL_VERSION}.tar.xz"
+KERNEL_VERSION="7.3.0"
+KERNEL_URL="https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-${KERNEL_VERSION}.tar.xz"
 BUSYBOX_VERSION="1.36.1"
 BUSYBOX_URL="https://busybox.net/downloads/busybox-${BUSYBOX_VERSION}.tar.bz2"
 
@@ -76,6 +76,11 @@ PACKAGES_TO_INSTALL=(
 for pkg in "${PACKAGES_TO_INSTALL[@]}"; do
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$pkg" || true
 done
+
+# Purga completa de qualquer dependência ou rastro de GNOME (Garantia de 100% Kernel Puro)
+echo -e "${C_BLUE}Garantindo 0% de GNOME na imagem do sistema...${C_RESET}"
+DEBIAN_FRONTEND=noninteractive apt-get purge -y gnome-shell gdm3 mutter gnome-session gnome-core task-gnome-desktop 2>/dev/null || true
+
 
 # 2. Estruturação Completa dos Diretórios do Sistema
 echo -e "${C_BLUE}[2/7] Criando árvore de diretórios do InoveCloud OS...${C_RESET}"

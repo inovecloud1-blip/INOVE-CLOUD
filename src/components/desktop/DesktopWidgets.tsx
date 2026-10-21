@@ -559,11 +559,11 @@ export const DesktopWidgets: React.FC<DesktopWidgetsProps> = ({
                 </span>
                 <span className="text-slate-600 font-mono text-xs">·</span>
                 <span className="text-xs text-slate-300">
-                  Kernel 6.12
+                  Kernel 7.3 RT
                 </span>
               </div>
               <p className="text-[11px] text-slate-300 font-medium drop-shadow">
-                Sistema Operacional Linux Nativo com Interface Liquid Glass
+                Sistema Operacional Linux Kernel 7.3 Puro (Sem GNOME) com DRM/KMS
               </p>
             </div>
           </div>

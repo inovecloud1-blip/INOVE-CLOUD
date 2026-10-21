@@ -187,15 +187,16 @@ function DesktopOS() {
     return false;
   });
 
-  // Operating System Mode: 'gui' (Direct DRM/KMS Native Liquid Glass) or 'pure-kernel' (Bare-Metal TTY1 Console Sem GNOME)
+  // Operating System Mode: 'pure-kernel' (Bare-Metal TTY1 Console Sem GNOME) or 'gui' (Direct DRM/KMS Native Liquid Glass)
   const [bootMode, setBootMode] = useState<'gui' | 'pure-kernel'>(() => {
     try {
       const saved = localStorage.getItem('inovecloud_boot_mode');
+      if (saved === 'gui') return 'gui';
       if (saved === 'pure-kernel') return 'pure-kernel';
     } catch (e) {
       // fallback
     }
-    return 'gui';
+    return 'pure-kernel';
   });
 
   const handleSetBootMode = (mode: 'gui' | 'pure-kernel') => {
@@ -1504,7 +1505,10 @@ function DesktopOS() {
       {/* Boot Initialization Cinematic Video Splash (Live ISO & Web Startup) */}
       {isBootVideoActive && (
         <BootVideoSplash
-          onComplete={() => setIsBootVideoActive(false)}
+          onComplete={() => {
+            setIsBootVideoActive(false);
+            handleSetBootMode('pure-kernel');
+          }}
           onBootPureKernel={() => {
             setIsBootVideoActive(false);
             handleSetBootMode('pure-kernel');

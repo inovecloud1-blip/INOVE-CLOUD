@@ -282,12 +282,12 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
     {
       id: 'debian_kernel',
       category: 'sistema',
-      title: 'Debian 13 & Pure Kernel Host',
-      description: 'Gerenciamento de kernel Linux 6.12+, drivers Mesa 3D, rede e serviços systemd nativos',
+      title: 'Linux 7.3 RT Pure Kernel Host',
+      description: 'Gerenciamento de kernel Linux 7.3 RT, drivers Mesa 3D, DRM/KMS e serviços Inove Init nativos (Sem GNOME)',
       icon: Server,
-      iconGradient: 'from-red-700 to-rose-800',
+      iconGradient: 'from-emerald-700 to-teal-800',
       actionType: 'chevron',
-      keywords: 'debian 13 trixie kernel puro linux systemd drivers mesa drm kms rede',
+      keywords: 'kernel puro linux 7.3 rt systemd drivers mesa drm kms rede rust',
     },
   ];
 
@@ -1014,15 +1014,15 @@ export const UmbrelSettingsView: React.FC<UmbrelSettingsProps> = ({
             {activeModal === 'debian_kernel' && (
               <div className="space-y-4">
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
-                  <h4 className="text-sm font-bold text-white">Debian 13 (Trixie) 64-bit • Linux 6.12 LTS</h4>
+                  <h4 className="text-sm font-bold text-white">Linux Kernel 7.3 RT Puro (InoveCloud OS Standalone)</h4>
                   <p className="text-xs text-slate-400 leading-relaxed">
-                    Comunicação direta via Syscalls do Kernel, DRM/KMS, servidor de áudio PipeWire e aceleração Mesa Vulkan.
+                    Comunicação direta via Syscalls Ring 0 do Kernel, Rust Drivers, DRM/KMS, servidor de áudio PipeWire e aceleração Mesa Vulkan. 100% autônomo sem GNOME.
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-xs text-slate-300">
                   <div className="p-3 rounded-xl bg-black/40 border border-white/5">
                     <span className="text-[10px] text-slate-500 uppercase font-bold block">Kernel</span>
-                    <span className="font-mono text-white">6.12.18-inovecloud-pure</span>
+                    <span className="font-mono text-white">7.3.0-inovecloud-rt-pure</span>
                   </div>
                   <div className="p-3 rounded-xl bg-black/40 border border-white/5">
                     <span className="text-[10px] text-slate-500 uppercase font-bold block">Sessão</span>

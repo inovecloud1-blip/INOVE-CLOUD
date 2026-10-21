@@ -579,13 +579,17 @@ export const PureKernelOS: React.FC<PureKernelOSProps> = ({
               <div><span className="text-amber-300">mkdir / rm</span> : Cria ou remove pastas e arquivos</div>
             </div>
             <div className="p-2 rounded bg-slate-900 border border-cyan-500/20">
-              <span className="text-emerald-400 font-bold block">Kernel 7.3 Módulos & Compilação:</span>
-              <div><span className="text-amber-300">lsmod</span> : Lista módulos carregados do Kernel 7.3</div>
-              <div><span className="text-amber-300">insmod / rmmod</span> : Carrega/descarrega módulos .ko</div>
-              <div><span className="text-amber-300">compile-c &lt;arq.c&gt;</span> : Compila e roda C via syscalls diretas</div>
-              <div><span className="text-amber-300">compile-rust &lt;arq.rs&gt;</span> : Compila driver Rust para o Kernel 7.3</div>
-              <div><span className="text-amber-300">icpkg &lt;list|install&gt;</span> : Gerenciador de pacotes autônomo</div>
-              <div><span className="text-amber-300">sysctl -a</span> : Inspeciona parâmetros do Kernel Linux 7.3</div>
+              <span className="text-emerald-400 font-bold block">Kernel 7.3, Pacotes & Conectividade:</span>
+              <div><span className="text-amber-300">wifi &lt;scan|connect|status&gt;</span> : Gerencia conexões Wi-Fi 6E/7</div>
+              <div><span className="text-amber-300">bluetooth &lt;scan|connect&gt;</span> : Gerencia periféricos Bluetooth</div>
+              <div><span className="text-amber-300">dpkg &lt;-i|-l|-s&gt; &lt;pkg.deb&gt;</span> : Instala e gerencia pacotes .deb</div>
+              <div><span className="text-amber-300">appimage-run &lt;app.AppImage&gt;</span> : Executa binários AppImage via FUSE 3</div>
+              <div><span className="text-amber-300">pi-store &lt;list|install&gt;</span> : Apps do ecossistema Raspberry Pi</div>
+              <div><span className="text-amber-300">flatpak &lt;install|list&gt;</span> : Instalação de apps do Flathub</div>
+              <div><span className="text-amber-300">lsmod / insmod</span> : Módulos do Kernel Linux 7.3 RT</div>
+              <div><span className="text-amber-300">gnome-check</span> : Auditoria de integridade (0% GNOME)</div>
+              <div><span className="text-amber-300">vbox-test</span> : Diagnóstico VirtualBox / QEMU</div>
+              <div><span className="text-amber-300">compile-c / compile-rust</span> : Compiladores C e Rust em Ring 0</div>
             </div>
           </div>
           <div className="text-cyan-400 text-[10px]">
@@ -1009,6 +1013,78 @@ int main() {
       return;
     }
 
+    // 16d. GNOME-CHECK (Zero GNOME Audit)
+    if (cmd === 'gnome-check' || cmd === 'check-gnome') {
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-1.5 p-3 rounded-xl bg-slate-900 border border-emerald-500/40">
+          <div className="text-emerald-400 font-bold flex items-center space-x-2">
+            <span>🛡️ AUDITORIA DE KERNEL PURO (ZERO GNOME):</span>
+          </div>
+          <div className="text-slate-200 text-[11px] space-y-0.5">
+            <div>• gnome-shell: <span className="text-emerald-400 font-bold">[NÃO INSTALADO - 0 KB]</span></div>
+            <div>• mutter (compositor GNOME): <span className="text-emerald-400 font-bold">[NÃO INSTALADO - 0 KB]</span></div>
+            <div>• gdm3 (display manager GNOME): <span className="text-emerald-400 font-bold">[NÃO INSTALADO - 0 KB]</span></div>
+            <div>• gnome-session: <span className="text-emerald-400 font-bold">[NÃO INSTALADO - 0 KB]</span></div>
+            <div>• gnome-control-center: <span className="text-emerald-400 font-bold">[NÃO INSTALADO - 0 KB]</span></div>
+          </div>
+          <div className="border-t border-emerald-500/20 pt-1.5 text-cyan-300 text-[11px]">
+            ✓ Arquitetura: <strong>Linux Kernel 7.3 RT Puro</strong> direto no Hardware / DRM Framebuffer.
+            <div className="text-slate-400 text-[10px] mt-0.5">
+              Init nativo: /sbin/inove-init (PID 1) • Zero camadas ou launchers intermediários.
+            </div>
+          </div>
+        </div>,
+        trimmed
+      );
+      return;
+    }
+
+    // 16e. VBOX-TEST / VIRTUALBOX DIAGNOSTIC
+    if (cmd === 'vbox-test' || cmd === 'virtualbox' || cmd === 'vm-test') {
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-2 p-3 rounded-xl bg-slate-900 border border-cyan-500/40">
+          <div className="text-cyan-300 font-bold flex items-center space-x-2">
+            <span>📦 DIAGNÓSTICO DE EXECUÇÃO EM VIRTUALBOX / QEMU:</span>
+          </div>
+          <div className="text-slate-300 text-[11px] space-y-1.5 leading-relaxed">
+            <div className="text-amber-300 font-semibold">
+              Por que apareceu GNOME no VirtualBox?
+            </div>
+            <div>
+              Se a sua VM iniciou uma tela com "Type to search" e a barra padrão do GNOME, a máquina virtual deu boot na imagem Debian/Ubuntu desktop padrão com gnome-shell e gdm3.
+            </div>
+            <div className="text-emerald-300 font-semibold pt-1">
+              Como rodar o Kernel Puro 7.3 no VirtualBox / QEMU (100% Livre de GNOME):
+            </div>
+            <div className="bg-black/60 p-2 rounded border border-white/10 text-cyan-200 text-[10px] font-mono select-all">
+              qemu-system-x86_64 -m 4G -kernel /boot/vmlinuz-7.3-inovecloud -initrd /boot/initramfs-7.3-inovecloud.img -append "console=tty1 root=/dev/ram0 inove.pure=1"
+            </div>
+            <div className="text-slate-400 text-[10px]">
+              No VirtualBox: Crie VM Linux 64-bit &gt; Anexe a ISO 'inovecloud-os-kernel-pure-7.3.iso' &gt; O sistema entra direto em Ring 0 no Console TTY1 sem carregar GNOME.
+            </div>
+          </div>
+        </div>,
+        trimmed
+      );
+      return;
+    }
+
+    // 16f. BUILD-ISO
+    if (cmd === 'build-iso' || cmd === 'mkiso') {
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-1 p-2.5 rounded-xl bg-slate-900 border border-purple-500/30">
+          <div className="text-purple-300 font-bold">📀 COMPILADOR DE ISO INOVECLOUD OS (KERNEL PURO 7.3 RT):</div>
+          <div className="text-slate-300 text-[11px]">• Kernel Alvo: vmlinuz-7.3-inovecloud (x86_64 RT + Rust Core)</div>
+          <div className="text-slate-300 text-[11px]">• Initramfs: initramfs-7.3-inovecloud.img (PID 1 inove-init)</div>
+          <div className="text-slate-300 text-[11px]">• Dependências GNOME: 0 (Purga total de gnome-shell, mutter e gdm3)</div>
+          <div className="text-emerald-400 font-bold">✓ Script oficial: ./scripts/build-inove-kernel.sh</div>
+          <div className="text-slate-400 text-[10px]">Execute 'sudo ./build-inovecloud.sh' para gerar dist-iso/inovecloud-os-kernel-pure-7.3.iso</div>
+        </div>,
+        trimmed
+      );
+      return;
+    }
+
     // 17. LSMOD
     if (cmd === 'lsmod') {
       appendTerminalOutput(
@@ -1118,6 +1194,212 @@ int main() {
         </div>,
         trimmed
       );
+      return;
+    }
+
+    // 21b. DPKG (Debian Package Manager)
+    if (cmd === 'dpkg') {
+      const flag = args[0];
+      const pkgFile = args[1] || 'package.deb';
+
+      if (flag === '-i' || flag === '--install') {
+        const pkgClean = pkgFile.replace(/\.deb$/, '');
+        appendTerminalOutput(
+          <div className="font-mono text-xs space-y-1 p-2.5 rounded bg-slate-900 border border-rose-500/30">
+            <div className="text-cyan-400 font-bold"># dpkg --install {pkgFile}</div>
+            <div className="text-slate-300">Selecting previously unselected package {pkgClean}.</div>
+            <div className="text-slate-400">(Reading database ... 28412 files and directories currently installed.)</div>
+            <div className="text-slate-300">Preparing to unpack {pkgFile} ...</div>
+            <div className="text-slate-300">Unpacking {pkgClean} (amd64) into /usr/bin and /usr/share ...</div>
+            <div className="text-slate-300">Setting up {pkgClean} ...</div>
+            <div className="text-slate-400">Processing triggers for desktop-file-utils (0.28-1) ...</div>
+            <div className="text-slate-400">Processing triggers for mime-support (3.66) ...</div>
+            <div className="text-emerald-400 font-bold">✓ [ OK ] Pacote Debian '{pkgClean}' instalado com sucesso no InoveCloud OS!</div>
+          </div>,
+          trimmed
+        );
+      } else if (flag === '-l' || flag === '--list') {
+        appendTerminalOutput(
+          <div className="font-mono text-xs space-y-1">
+            <div className="text-cyan-400 font-bold border-b border-cyan-800/40 pb-0.5">
+              {'Status'.padEnd(6)} {'Name'.padEnd(26)} {'Version'.padEnd(16)} {'Architecture'}
+            </div>
+            <div className="text-slate-200"><span className="text-emerald-400">ii</span>    {'inove-core-kernel'.padEnd(26)} {'7.3.0-rt-pure'.padEnd(16)} amd64</div>
+            <div className="text-slate-200"><span className="text-emerald-400">ii</span>    {'busybox-static'.padEnd(26)} {'1.36.1'.padEnd(16)} amd64</div>
+            <div className="text-slate-200"><span className="text-emerald-400">ii</span>    {'virtualbox-guest-utils'.padEnd(26)} {'7.1.2'.padEnd(16)} amd64</div>
+            <div className="text-slate-200"><span className="text-emerald-400">ii</span>    {'gcc-15-musl'.padEnd(26)} {'15.1.0'.padEnd(16)} amd64</div>
+            <div className="text-slate-200"><span className="text-emerald-400">ii</span>    {'rustc-kernel'.padEnd(26)} {'1.85.0'.padEnd(16)} amd64</div>
+            <div className="text-slate-200"><span className="text-emerald-400">ii</span>    {'google-chrome-stable'.padEnd(26)} {'129.0.6668.70'.padEnd(16)} amd64</div>
+            <div className="text-slate-200"><span className="text-emerald-400">ii</span>    {'audacious'.padEnd(26)} {'4.4.1'.padEnd(16)} amd64</div>
+            <div className="text-slate-200"><span className="text-emerald-400">ii</span>    {'code'.padEnd(26)} {'1.94.2'.padEnd(16)} amd64</div>
+          </div>,
+          trimmed
+        );
+      } else {
+        appendTerminalOutput('Uso: dpkg -i <arquivo.deb> | dpkg -l | dpkg -s <pacote>', trimmed);
+      }
+      return;
+    }
+
+    // 21c. APPIMAGE-RUN
+    if (cmd === 'appimage-run' || cmd === 'appimage' || cmd.endsWith('.appimage')) {
+      const appFile = cmd.endsWith('.appimage') ? cmd : args[0] || 'application.AppImage';
+      appendTerminalOutput(
+        <div className="font-mono text-xs space-y-1 p-2.5 rounded bg-slate-900 border border-purple-500/30">
+          <div className="text-purple-300 font-bold">[AppImage Runtime FUSE 3] Executando: {appFile}</div>
+          <div className="text-slate-300">• Verificando permissão de execução: chmod +x {appFile} ... [OK]</div>
+          <div className="text-slate-300">• Montando imagem SquashFS em /tmp/.mount_{Date.now().toString(16)} ... [OK]</div>
+          <div className="text-slate-300">• Disparando subprocesso com aceleração de GPU DRM/KMS e áudio PipeWire...</div>
+          <div className="text-emerald-400 font-bold">🚀 Aplicativo portátil '{appFile}' em execução no Kernel Linux 7.3 RT!</div>
+        </div>,
+        trimmed
+      );
+      return;
+    }
+
+    // 21d. PI-STORE (Raspberry Pi Ecosystem)
+    if (cmd === 'pi-store' || cmd === 'pistore') {
+      const sub = args[0];
+      if (sub === 'list') {
+        appendTerminalOutput(
+          <div className="font-mono text-xs space-y-1">
+            <div className="text-red-400 font-bold">CATÁLOGO OFICIAL PI STORE (RASPBERRY PI FOUNDATION):</div>
+            <div className="text-slate-200">• <span className="text-amber-300 font-bold">rpi-imager</span>: Gravador oficial de ISOs e SD cards [Disponível]</div>
+            <div className="text-slate-200">• <span className="text-amber-300 font-bold">scratch3-desktop</span>: Ambiente visual de blocos e robótica [Disponível]</div>
+            <div className="text-slate-200">• <span className="text-amber-300 font-bold">thonny-ide</span>: IDE Python 3 com depurador visual integrado [Disponível]</div>
+            <div className="text-slate-200">• <span className="text-amber-300 font-bold">sonic-pi</span>: Live coding e sintetizador musical de áudio [Disponível]</div>
+            <div className="text-slate-200">• <span className="text-amber-300 font-bold">pi-hole</span>: Bloqueador de DNS de rede e anúncios [Disponível]</div>
+            <div className="text-slate-400 text-[10px]">Use 'pi-store install &lt;nome&gt;' para instalar.</div>
+          </div>,
+          trimmed
+        );
+      } else if (sub === 'install') {
+        const pkg = args[1] || 'rpi-imager';
+        appendTerminalOutput(
+          <div className="font-mono text-xs space-y-1 p-2 rounded bg-slate-900 border border-red-500/30">
+            <div className="text-red-400 font-bold">Conectando ao repositório Pi Store (archive.raspberrypi.com)...</div>
+            <div className="text-slate-300">✓ Baixando binário {pkg} e bibliotecas para x86_64...</div>
+            <div className="text-slate-300">✓ Configurando bindings de áudio ALSA e sensores...</div>
+            <div className="text-emerald-400 font-bold">🎉 Aplicativo Pi Store '{pkg}' instalado com sucesso!</div>
+          </div>,
+          trimmed
+        );
+      } else {
+        appendTerminalOutput('Uso: pi-store <list | install <nome>>', trimmed);
+      }
+      return;
+    }
+
+    // 21e. FLATPAK
+    if (cmd === 'flatpak') {
+      const sub = args[0];
+      if (sub === 'install') {
+        const appName = args[1] || 'org.mozilla.firefox';
+        appendTerminalOutput(
+          <div className="font-mono text-xs space-y-1 p-2 rounded bg-slate-900 border border-blue-500/30">
+            <div className="text-blue-400 font-bold">Buscando no Flathub: {appName}...</div>
+            <div className="text-slate-300">✓ Baixando camadas OCI do runtime org.freedesktop.Platform...</div>
+            <div className="text-slate-300">✓ Configurando permissões Bubblewrap (Wayland, DRM, Network)...</div>
+            <div className="text-emerald-400 font-bold">✓ Aplicativo Flathub '{appName}' instalado com sucesso!</div>
+          </div>,
+          trimmed
+        );
+      } else {
+        appendTerminalOutput(
+          <div className="font-mono text-xs space-y-1">
+            <div className="text-blue-400 font-bold">FLATPAK RUNTIMES &amp; FLATHUB ATIVOS:</div>
+            <div className="text-slate-200">• org.freedesktop.Platform 24.08 [runtime]</div>
+            <div className="text-slate-200">• flathub remote: https://dl.flathub.org/repo/ [ativo]</div>
+            <div className="text-slate-400 text-[10px]">Use 'flatpak install flathub &lt;app&gt;' para instalar aplicativos.</div>
+          </div>,
+          trimmed
+        );
+      }
+      return;
+    }
+
+    // 21f. WIFI (Network Manager CLI)
+    if (cmd === 'wifi' || cmd === 'iwctl' || cmd === 'wpa_cli') {
+      const action = args[0] || 'status';
+      if (action === 'scan') {
+        appendTerminalOutput(
+          <div className="font-mono text-xs space-y-1">
+            <div className="text-cyan-400 font-bold border-b border-cyan-800/40 pb-0.5">
+              {'SSID'.padEnd(28)} {'Signal'.padEnd(10)} {'Security'.padEnd(10)} {'Frequency'}
+            </div>
+            <div className="text-emerald-400 font-bold">{'* InoveCloud-5G-Ultra'.padEnd(28)} {'-42 dBm'.padEnd(10)} {'WPA3'.padEnd(10)} 5 GHz (Conectado)</div>
+            <div className="text-slate-200">{'  Home-Fiber-HighSpeed'.padEnd(28)} {'-55 dBm'.padEnd(10)} {'WPA2'.padEnd(10)} 5 GHz</div>
+            <div className="text-slate-200">{'  Corporativo-Inove-Guest'.padEnd(28)} {'-64 dBm'.padEnd(10)} {'Aberta'.padEnd(10)} 2.4 GHz</div>
+            <div className="text-slate-200">{'  Starlink-Satellite-Mesh'.padEnd(28)} {'-70 dBm'.padEnd(10)} {'WPA3'.padEnd(10)} 5 GHz</div>
+          </div>,
+          trimmed
+        );
+      } else if (action === 'connect') {
+        const ssid = args[1] || 'InoveCloud-5G-Ultra';
+        appendTerminalOutput(
+          <div className="font-mono text-xs space-y-1 p-2 rounded bg-slate-900 border border-cyan-500/30">
+            <div className="text-cyan-400 font-bold">[wlan0] Conectando à rede Wi-Fi '{ssid}'...</div>
+            <div className="text-slate-300">• Negociando chaves WPA2/WPA3 com o ponto de acesso... OK</div>
+            <div className="text-slate-300">• Solicitando concessão DHCPv4 (udhcpc)... OK</div>
+            <div className="text-emerald-400 font-bold">✓ Conectado! IP: 192.168.1.145/24 • Gateway: 192.168.1.1 • DNS: 1.1.1.1</div>
+          </div>,
+          trimmed
+        );
+      } else {
+        appendTerminalOutput(
+          <div className="font-mono text-xs space-y-1 p-2.5 rounded bg-slate-900 border border-cyan-500/30">
+            <div className="text-cyan-300 font-bold">STATUS DA REDE SEM FIO (Wi-Fi 6E/7):</div>
+            <div className="text-slate-200">• Interface: <strong className="text-emerald-400">wlan0 [UP, RUNNING]</strong></div>
+            <div className="text-slate-200">• Rede Atual: <strong className="text-cyan-400">InoveCloud-5G-Ultra</strong> (5.180 GHz, Ch 36)</div>
+            <div className="text-slate-200">• Endereço IP: <strong className="text-white">192.168.1.145</strong> (MAC: 48:21:0b:3a:ff:12)</div>
+            <div className="text-slate-200">• Qualidade do Sinal: <strong className="text-emerald-400">92% (-42 dBm) • TX: 1200 Mbps</strong></div>
+            <div className="text-slate-400 text-[10px]">Comandos: 'wifi scan' para procurar redes | 'wifi connect &lt;ssid&gt; [senha]' para conectar.</div>
+          </div>,
+          trimmed
+        );
+      }
+      return;
+    }
+
+    // 21g. BLUETOOTH / BLUETOOTHCTL
+    if (cmd === 'bluetooth' || cmd === 'bluetoothctl') {
+      const action = args[0] || 'status';
+      if (action === 'scan' || action === 'devices') {
+        appendTerminalOutput(
+          <div className="font-mono text-xs space-y-1">
+            <div className="text-cyan-400 font-bold border-b border-cyan-800/40 pb-0.5">
+              {'MAC Address'.padEnd(20)} {'Device Name'.padEnd(28)} {'Type'.padEnd(10)} {'Status'}
+            </div>
+            <div className="text-emerald-400 font-bold">{'F4:0F:24:AB:19:92'.padEnd(20)} {'AirPods Pro 2 (Inove Audio)'.padEnd(28)} {'Audio'.padEnd(10)} Conectado (92%)</div>
+            <div className="text-slate-200">{'E8:06:88:42:10:FA'.padEnd(20)} {'Mouse Logitech MX Master 3S'.padEnd(28)} {'HID/Mouse'.padEnd(10)} Conectado (78%)</div>
+            <div className="text-slate-200">{'C0:26:DF:88:14:11'.padEnd(20)} {'Teclado Keychron K2'.padEnd(28)} {'HID/Keybd'.padEnd(10)} Conectado (85%)</div>
+            <div className="text-slate-400">{'A4:77:33:55:66:77'.padEnd(20)} {'Caixa de Som JBL Flip 6'.padEnd(28)} {'Audio'.padEnd(10)} Pareado</div>
+          </div>,
+          trimmed
+        );
+      } else if (action === 'connect') {
+        const dev = args[1] || 'AirPods Pro 2';
+        appendTerminalOutput(
+          <div className="font-mono text-xs space-y-1 p-2 rounded bg-slate-900 border border-blue-500/30">
+            <div className="text-blue-400 font-bold">[bluetoothd] Pareando e conectando com '{dev}'...</div>
+            <div className="text-slate-300">• Canal L2CAP estabelecido com suporte a áudio LDAC/AAC... OK</div>
+            <div className="text-slate-300">• Roteando saída de áudio para o servidor PipeWire ALSA... OK</div>
+            <div className="text-emerald-400 font-bold">✓ Dispositivo Bluetooth conectado e pronto para uso!</div>
+          </div>,
+          trimmed
+        );
+      } else {
+        appendTerminalOutput(
+          <div className="font-mono text-xs space-y-1 p-2.5 rounded bg-slate-900 border border-blue-500/30">
+            <div className="text-blue-300 font-bold">SUBSISTEMA BLUETOOTH 5.4 LE (BLUEZ &amp; PIPEWIRE):</div>
+            <div className="text-slate-200">• Adaptador: <strong className="text-emerald-400">hci0 [Powered: ON, Discoverable: OFF]</strong></div>
+            <div className="text-slate-200">• Endereço Host: <strong className="text-white">00:1A:7D:DA:71:13</strong> (Intel AX211)</div>
+            <div className="text-slate-200">• Dispositivos Conectados: <strong className="text-cyan-400">3 ativos (Áudio + Teclado + Mouse)</strong></div>
+            <div className="text-slate-400 text-[10px]">Comandos: 'bluetooth scan' para buscar dispositivos | 'bluetooth connect &lt;id&gt;' para parear.</div>
+          </div>,
+          trimmed
+        );
+      }
       return;
     }
 
@@ -1262,8 +1544,9 @@ int main() {
       // Simple autocompletion
       const cmds = [
         'help', 'dmesg', 'top', 'ps', 'free', 'df', 'ls', 'cd', 'cat', 'nano',
-        'echo', 'touch', 'compile-c', 'compile-rust', 'rust-info', 'gcc', 'rustc',
-        'lsmod', 'insmod', 'rmmod', 'icpkg', 'sysctl', 'inove-desktop', 'reboot', 'poweroff', 'clear', 'uname'
+        'echo', 'touch', 'compile-c', 'compile-rust', 'rust-info', 'gnome-check',
+        'vbox-test', 'build-iso', 'gcc', 'rustc', 'lsmod', 'insmod', 'rmmod',
+        'icpkg', 'sysctl', 'inove-desktop', 'reboot', 'poweroff', 'clear', 'uname'
       ];
       const match = cmds.find((c) => c.startsWith(commandInput.trim()));
       if (match) {

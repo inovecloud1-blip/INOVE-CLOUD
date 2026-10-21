@@ -52,8 +52,8 @@ export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
   });
 
   const biosMenuItems = [
-    { key: 'Enter', label: '🚀 InoveCloud OS (Interface Nativa Direta - Sem GNOME)', desc: 'Sistema gráfico nativo executando direto sobre o Kernel Linux 7.3 RT' },
-    { key: 'F3', label: '⚡ InoveCloud OS (Modo Kernel Puro — TTY1 Bare-Metal Console)', desc: 'Inicialização direta no Kernel Linux 7.3 com PID 1 inove-init, sem interface gráfica' },
+    { key: 'Enter', label: '⚡ InoveCloud OS (Modo Kernel Puro 7.3 — TTY1 Bare-Metal Console) [PADRÃO]', desc: 'Inicialização direta no Kernel Linux 7.3 com PID 1 inove-init, sem GNOME' },
+    { key: 'F2', label: '🚀 InoveCloud OS (Interface Nativa Direta - Sem GNOME)', desc: 'Sistema gráfico nativo DRM/KMS Framebuffer executando sobre o Kernel Linux 7.3 RT' },
     { key: 'F10', label: '💿 Instalar InoveCloud OS no Disco', desc: 'Assistente com idioma, partição e conta de usuário' },
     { key: 'F1', label: 'Informações do Sistema & Hardware (Linux 7.3)', desc: 'CPU, RAM DDR5, Discos NVMe Gen5 e GPU DRM/KMS' },
     { key: 'F11', label: 'Modo Gráfico Seguro (SimpleDRM / VESA)', desc: 'Fallback de vídeo para compatibilidade máxima' },
@@ -74,7 +74,10 @@ export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
         if (next >= 100) {
           clearInterval(interval);
           if (autoDismiss) {
-            setTimeout(onComplete, 450);
+            setTimeout(() => {
+              if (onBootPureKernel) onBootPureKernel();
+              else onComplete();
+            }, 450);
           }
           return 100;
         }
@@ -83,7 +86,7 @@ export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
     }, 45);
 
     return () => clearInterval(interval);
-  }, [autoDismiss, onComplete, viewMode]);
+  }, [autoDismiss, onComplete, onBootPureKernel, viewMode]);
 
   // Teclas de atalho para alternar ou navegar
   useEffect(() => {
@@ -94,6 +97,9 @@ export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
       } else if (e.key === 'F10') {
         e.preventDefault();
         setViewMode('installer');
+      } else if (e.key === 'F2') {
+        e.preventDefault();
+        onComplete();
       } else if (e.key === 'F3') {
         e.preventDefault();
         if (onBootPureKernel) onBootPureKernel();
@@ -102,15 +108,18 @@ export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
       } else if (e.key === 'ArrowUp' && viewMode === 'bios') {
         setSelectedBiosIndex((i) => (i - 1 + biosMenuItems.length) % biosMenuItems.length);
       } else if (e.key === 'Enter' && viewMode === 'bios') {
-        if (biosMenuItems[selectedBiosIndex].key === 'F10') {
+        const selectedKey = biosMenuItems[selectedBiosIndex].key;
+        if (selectedKey === 'F10') {
           setViewMode('installer');
-        } else if (biosMenuItems[selectedBiosIndex].key === 'F3') {
-          if (onBootPureKernel) onBootPureKernel();
-        } else {
+        } else if (selectedKey === 'F2') {
           onComplete();
+        } else {
+          if (onBootPureKernel) onBootPureKernel();
+          else onComplete();
         }
       } else if (e.key === 'Escape') {
-        onComplete();
+        if (onBootPureKernel) onBootPureKernel();
+        else onComplete();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -406,7 +415,10 @@ export const BootVideoSplash: React.FC<BootVideoSplashProps> = ({
       {canSkip && (
         <div className="absolute top-6 right-6">
           <button
-            onClick={onComplete}
+            onClick={() => {
+              if (onBootPureKernel) onBootPureKernel();
+              else onComplete();
+            }}
             className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition cursor-pointer"
           >
             <span>Pular</span>
