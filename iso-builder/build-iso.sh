@@ -76,7 +76,7 @@ done
 
 rm -rf "${WORK_DIR}"
 mkdir -p "${ROOTFS_DIR}"/{bin,sbin,usr/bin,usr/sbin,usr/lib,usr/share,lib,lib64,lib/firmware,etc,proc,sys,dev,tmp,var/log,home/inove}
-mkdir -p "${IMAGE_DIR}/boot/grub" "${OUTPUT_DIR}"
+mkdir -p "${IMAGE_DIR}/casper" "${IMAGE_DIR}/boot/grub" "${OUTPUT_DIR}"
 
 echo -e "${YELLOW}[2/5] Montando RootFS LFS com Drivers de Hardware Reais (~600 MB)...${YELLOW}"
 cp -a /lib/modules "${ROOTFS_DIR}/lib/" 2>/dev/null || true
