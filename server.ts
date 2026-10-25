@@ -813,6 +813,31 @@ app.post('/api/iso/logs/clear', (req, res) => {
   res.json({ success: true, message: 'Logs de compilação limpos com sucesso.' });
 });
 
+// Helper function to ensure required build pipeline directories exist and log status in real-time
+function ensureBuildDirectories() {
+  const dirs = [
+    { name: 'dist-iso/', path: path.join(__dirname, 'dist-iso') },
+    { name: 'iso_build_workspace/casper/', path: path.join(__dirname, 'iso_build_workspace', 'casper') },
+    { name: 'iso_build_workspace/boot/grub/', path: path.join(__dirname, 'iso_build_workspace', 'boot', 'grub') },
+    { name: 'iso_build_workspace/rootfs/', path: path.join(__dirname, 'iso_build_workspace', 'rootfs') },
+  ];
+  for (const d of dirs) {
+    if (!fs.existsSync(d.path)) {
+      try {
+        fs.mkdirSync(d.path, { recursive: true });
+        const entry: LogEntry = {
+          id: `${Date.now()}_mkdir_${Math.floor(Math.random() * 1000)}`,
+          timestamp: new Date().toLocaleTimeString('pt-BR'),
+          stream: 'stdout',
+          stage: 'general',
+          text: `>>> [PIPELINE] Diretório de compilação criado: ${d.name}`,
+        };
+        persistentLogs.push(entry);
+      } catch (e) {}
+    }
+  }
+}
+
 // 8.4 API: Trigger ISO Build
 app.post('/api/iso/build', (req, res) => {
   if (currentIsoBuild.status === 'building') {
@@ -822,6 +847,8 @@ app.post('/api/iso/build', (req, res) => {
       ...currentIsoBuild,
     });
   }
+
+  ensureBuildDirectories();
 
   const startEntry: LogEntry = {
     id: `${Date.now()}_start`,
