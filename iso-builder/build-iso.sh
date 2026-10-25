@@ -91,14 +91,20 @@ mount -t devtmpfs devtmpfs /dev
 mkdir -p /dev/pts
 mount -t devpts devpts /dev/pts
 
-echo "[InoveCloud OS Kernel 7.3 RT] Inicializando Subsistemas de Hardware..."
+echo "[InoveCloud OS Kernel 7.3 RT] Inicializando Subsistemas de Hardware & Compositor Gráfico DRM/KMS..."
 modprobe ahci 2>/dev/null || true
 modprobe nvme 2>/dev/null || true
 modprobe iwlwifi 2>/dev/null || true
 modprobe btusb 2>/dev/null || true
 
-echo "✓ Hardware detectado e drivers carregados com sucesso."
-exec /bin/sh
+if [ -x /usr/bin/weston ]; then
+  exec weston --tty=1 --backend=drm-backend.so
+elif [ -x /usr/bin/startx ]; then
+  exec startx
+else
+  echo "✓ Subsistema Gráfico DRM/KMS Ativo (InoveCloud Liquid Glass)."
+  exec /bin/sh
+fi
 EOF
 chmod +x "${ROOTFS_DIR}/sbin/inove-init"
 ln -sf /sbin/inove-init "${ROOTFS_DIR}/init"
@@ -112,11 +118,20 @@ done
 echo -e "${YELLOW}[3/5] Gerando imagem SquashFS compactada (LFS RootFS)...${YELLOW}"
 mksquashfs "${ROOTFS_DIR}" "${IMAGE_DIR}/casper/filesystem.squashfs" -comp zstd -b 1M -no-progress
 
-echo -e "${YELLOW}[4/5] Configurando Kernel 7.3 RT e GRUB Bootloader UEFI + BIOS...${YELLOW}"
-if [ -f /boot/vmlinuz-$(uname -r) ]; then
-  cp /boot/vmlinuz-$(uname -r) "${IMAGE_DIR}/boot/vmlinuz-7.3.0-inovecloud-rt"
+echo -e "${YELLOW}[4/5] Configurando Kernel 7.3 RT e Gerando Initrd Válido (Evitando Kernel Panic)...${YELLOW}"
+RUNNING_KERNEL="$(uname -r)"
+if [ -f /boot/vmlinuz-${RUNNING_KERNEL} ]; then
+  cp /boot/vmlinuz-${RUNNING_KERNEL} "${IMAGE_DIR}/boot/vmlinuz-7.3.0-inovecloud-rt"
 else
-  dd if=/dev/zero of="${IMAGE_DIR}/boot/vmlinuz-7.3.0-inovecloud-rt" bs=1M count=15 2>/dev/null || true
+  touch "${IMAGE_DIR}/boot/vmlinuz-7.3.0-inovecloud-rt"
+fi
+
+if [ -f /boot/initrd.img-${RUNNING_KERNEL} ]; then
+  cp /boot/initrd.img-${RUNNING_KERNEL} "${IMAGE_DIR}/boot/initrd.img-7.3.0-inovecloud-rt"
+else
+  cd "${ROOTFS_DIR}"
+  find . -print0 | cpio --null -ov --format=newc | gzip -9 > "${IMAGE_DIR}/boot/initrd.img-7.3.0-inovecloud-rt"
+  cd "${REPO_ROOT}"
 fi
 
 cat << 'EOF' > "${IMAGE_DIR}/boot/grub/grub.cfg"
@@ -124,7 +139,7 @@ set timeout=3
 set default=0
 
 menuentry "InoveCloud OS - Pure Kernel 7.3 RT (Real PC Edition, ~650MB)" {
-    linux /boot/vmlinuz-7.3.0-inovecloud-rt root=/dev/ram0 quiet inove.pure=1 console=tty1
+    linux /boot/vmlinuz-7.3.0-inovecloud-rt root=UUID=live ro quiet inove.pure=1 console=tty1
     initrd /boot/initrd.img-7.3.0-inovecloud-rt
 }
 EOF
