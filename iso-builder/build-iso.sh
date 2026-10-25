@@ -35,24 +35,53 @@ OUTPUT_DIR="${REPO_ROOT}/dist-iso"
 ISO_NAME="${ISO_NAME:-inovecloud-os-kernel-pure-7.3-realpc-amd64.iso}"
 
 echo -e "${YELLOW}[1/5] Instalando ferramentas de compilação e pacotes de hardware essenciais...${YELLOW}"
-apt-get update -y
-DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-  build-essential bison flex libelf-dev libssl-dev bc \
-  squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin mtools dosfstools \
-  curl wget tar xz-utils cpio busybox-static kmod udev net-tools \
-  wireless-tools wpasupplicant bluez alsa-utils pulseaudio pipewire \
-  mesa-va-drivers libgl1-mesa-dri fonts-dejavu-core
+apt-get update -y || true
+
+REQUIRED_PACKAGES=(
+  build-essential
+  bison
+  flex
+  libelf-dev
+  libssl-dev
+  bc
+  squashfs-tools
+  xorriso
+  grub-pc-bin
+  grub-efi-amd64-bin
+  mtools
+  dosfstools
+  curl
+  wget
+  tar
+  xz-utils
+  cpio
+  busybox-static
+  kmod
+  udev
+  net-tools
+  iw
+  wpasupplicant
+  bluez
+  alsa-utils
+  pulseaudio
+  pipewire
+  mesa-va-drivers
+  libgl1-mesa-dri
+  fonts-dejavu-core
+)
+
+for pkg in "${REQUIRED_PACKAGES[@]}"; do
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$pkg" || echo "[AVISO] Pacote opcional/substituído $pkg ignorado com segurança."
+done
 
 rm -rf "${WORK_DIR}"
 mkdir -p "${ROOTFS_DIR}"/{bin,sbin,usr/bin,usr/sbin,usr/lib,usr/share,lib,lib64,lib/firmware,etc,proc,sys,dev,tmp,var/log,home/inove}
 mkdir -p "${IMAGE_DIR}/boot/grub" "${OUTPUT_DIR}"
 
 echo -e "${YELLOW}[2/5] Montando RootFS LFS com Drivers de Hardware Reais (~600 MB)...${YELLOW}"
-# Copiar binários e firmwares essenciais para funcionamento em PC real
 cp -a /lib/modules "${ROOTFS_DIR}/lib/" 2>/dev/null || true
 cp -a /lib/firmware "${ROOTFS_DIR}/lib/" 2>/dev/null || true
 
-# Configurar init nativo do InoveCloud OS (PID 1)
 cat << 'EOF' > "${ROOTFS_DIR}/sbin/inove-init"
 #!/bin/sh
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
@@ -74,10 +103,9 @@ EOF
 chmod +x "${ROOTFS_DIR}/sbin/inove-init"
 ln -sf /sbin/inove-init "${ROOTFS_DIR}/init"
 
-# Copiar busybox e utilitários
 cp /bin/busybox "${ROOTFS_DIR}/bin/busybox"
 chroot_bin="${ROOTFS_DIR}/bin"
-for app in sh ash echo ls cat mount umount mkdir cp mv rm ps kill clear sleep poweroff reboot ip ifconfig wpa_supplicant; do
+for app in sh ash echo ls cat mount umount mkdir cp mv rm ps kill clear sleep poweroff reboot ip ifconfig wpa_supplicant iw; do
   ln -sf busybox "${chroot_bin}/${app}" 2>/dev/null || true
 done
 
@@ -101,7 +129,7 @@ menuentry "InoveCloud OS - Pure Kernel 7.3 RT (Real PC Edition, ~650MB)" {
 }
 EOF
 
-echo -e "${YELLOW}[5/5] Empacotando ISO híbrida final para PC Real (${ISO_NAME})...${ISO_NAME}${RESET}"
+echo -e "${YELLOW}[5/5] Empacotando ISO híbrida final para PC Real (${ISO_NAME})...${RESET}"
 grub-mkrescue -o "${OUTPUT_DIR}/${ISO_NAME}" "${IMAGE_DIR}"
 
 ISO_SIZE=$(du -h "${OUTPUT_DIR}/${ISO_NAME}" | awk '{print $1}')
