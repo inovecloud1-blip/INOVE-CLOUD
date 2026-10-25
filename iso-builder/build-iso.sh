@@ -118,7 +118,7 @@ done
 echo -e "${YELLOW}[3/5] Gerando imagem SquashFS compactada (LFS RootFS)...${YELLOW}"
 mksquashfs "${ROOTFS_DIR}" "${IMAGE_DIR}/casper/filesystem.squashfs" -comp zstd -b 1M -no-progress
 
-echo -e "${YELLOW}[4/5] Configurando Kernel 7.3 RT e Gerando Initrd Válido (Evitando Kernel Panic)...${YELLOW}"
+echo -e "${YELLOW}[4/5] Configurando Kernel 7.3 RT e Gerando Initrd Universal a partir do RootFS LFS...${YELLOW}"
 RUNNING_KERNEL="$(uname -r)"
 if [ -f /boot/vmlinuz-${RUNNING_KERNEL} ]; then
   cp /boot/vmlinuz-${RUNNING_KERNEL} "${IMAGE_DIR}/boot/vmlinuz-7.3.0-inovecloud-rt"
@@ -126,20 +126,16 @@ else
   touch "${IMAGE_DIR}/boot/vmlinuz-7.3.0-inovecloud-rt"
 fi
 
-if [ -f /boot/initrd.img-${RUNNING_KERNEL} ]; then
-  cp /boot/initrd.img-${RUNNING_KERNEL} "${IMAGE_DIR}/boot/initrd.img-7.3.0-inovecloud-rt"
-else
-  cd "${ROOTFS_DIR}"
-  find . -print0 | cpio --null -ov --format=newc | gzip -9 > "${IMAGE_DIR}/boot/initrd.img-7.3.0-inovecloud-rt"
-  cd "${REPO_ROOT}"
-fi
+cd "${ROOTFS_DIR}"
+find . -print0 | cpio --null -ov --format=newc | gzip -9 > "${IMAGE_DIR}/boot/initrd.img-7.3.0-inovecloud-rt"
+cd "${REPO_ROOT}"
 
 cat << 'EOF' > "${IMAGE_DIR}/boot/grub/grub.cfg"
 set timeout=3
 set default=0
 
-menuentry "InoveCloud OS - Pure Kernel 7.3 RT (Real PC Edition, ~650MB)" {
-    linux /boot/vmlinuz-7.3.0-inovecloud-rt root=UUID=live ro quiet inove.pure=1 console=tty1
+menuentry "InoveCloud OS - Pure Kernel 7.3 RT (Real PC Edition)" {
+    linux /boot/vmlinuz-7.3.0-inovecloud-rt root=/dev/ram0 rw quiet inove.pure=1 console=tty1
     initrd /boot/initrd.img-7.3.0-inovecloud-rt
 }
 EOF
