@@ -1,38 +1,34 @@
 # ==============================================================================
-# InoveCloud OS - Debian 13 (Trixie) GNOME Glass ISO Builder Container
-# Runs inside Docker on Linux, Mac, Windows, or GitHub Actions
+# InoveCloud OS - Pure Linux Kernel 7.3 RT LFS Standalone ISO Builder Dockerfile
+# Zero Debian • Zero GNOME • Ring 0 DRM/KMS Framebuffer • ~1.5 GB ISO
 # ==============================================================================
-FROM debian:trixie-slim
+FROM ubuntu:24.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install all ISO mastering tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    debootstrap \
-    debian-archive-keyring \
+    build-essential \
+    bison \
+    flex \
+    libelf-dev \
+    libssl-dev \
+    bc \
     squashfs-tools \
     xorriso \
-    isolinux \
-    syslinux-efi \
     grub-pc-bin \
     grub-efi-amd64-bin \
     mtools \
-    curl \
-    ca-certificates \
-    git \
-    rsync \
     dosfstools \
-    udev \
-    kmod \
+    curl \
+    wget \
+    tar \
+    xz-utils \
+    cpio \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /workspace
+WORKDIR /app
+COPY . /app
 
-# Copy build script and assets into container
-COPY build-iso.sh /workspace/build-iso.sh
-RUN chmod +x /workspace/build-iso.sh
+RUN chmod +x iso-builder/build-iso.sh build-inovecloud.sh
 
-# Volume to extract the generated ISO
-VOLUME ["/output"]
-
-CMD ["/bin/bash", "-c", "./build-iso.sh && cp dist-iso/*.iso* /output/"]
+CMD ["./iso-builder/build-iso.sh"]

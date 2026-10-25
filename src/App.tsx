@@ -1173,9 +1173,9 @@ function DesktopOS() {
               onInstallApp={(appId) => handleToggleInstall(appId)}
               onCreateVnAction={() => {
                 handleCreateVn({
-                  name: `vn-agent-ubuntu-${Math.floor(Math.random() * 90) + 10}`,
-                  os: 'ubuntu',
-                  version: 'Ubuntu 24.04 LTS',
+                  name: `vn-agent-pure-${Math.floor(Math.random() * 90) + 10}`,
+                  os: 'pure-kernel',
+                  version: 'InoveCloud OS 7.3 RT Puro',
                   status: 'running',
                   ip: `10.240.0.${Math.floor(Math.random() * 50) + 50}`,
                   vCpu: 4,

@@ -62,7 +62,7 @@ export interface UserProfile {
 export interface VirtualNode {
   id: string;
   name: string;
-  os: 'ubuntu' | 'windows' | 'debian' | 'alpine' | 'android';
+  os: 'pure-kernel' | 'windows' | 'arch' | 'alpine' | 'android';
   version: string;
   status: 'running' | 'stopped' | 'restarting' | 'error';
   ip: string;

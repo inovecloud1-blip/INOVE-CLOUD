@@ -66,8 +66,8 @@ export const VncApp: React.FC<VncAppProps> = ({
   const [isScanningLan, setIsScanningLan] = useState(false);
   const [discoveredLanPcs, setDiscoveredLanPcs] = useState([
     { ip: '192.168.1.105', name: 'Workstation i9 Windows 11', port: 5900, type: 'VNC', os: 'windows' as const },
-    { ip: '192.168.1.120', name: 'MacBook Pro M3 Max', port: 5900, type: 'VNC', os: 'ubuntu' as const },
-    { ip: '192.168.1.20', name: 'Servidor Proxmox Lab', port: 5900, type: 'VNC', os: 'ubuntu' as const },
+    { ip: '192.168.1.120', name: 'MacBook Pro M3 Max', port: 5900, type: 'VNC', os: 'macos' as const },
+    { ip: '192.168.1.20', name: 'Servidor Bare-Metal InoveCloud', port: 5900, type: 'VNC', os: 'pure-kernel' as const },
     { ip: '192.168.1.150', name: 'Dell Precision RTX', port: 3389, type: 'RDP', os: 'windows' as const },
   ]);
 

@@ -31,15 +31,11 @@ export const OsVectorIcon: React.FC<{ os: VirtualNode['os']; size?: string }> = 
   size = 'w-6 h-6',
 }) => {
   switch (os) {
-    case 'ubuntu':
+    case 'pure-kernel':
       return (
-        <div className={`${size} rounded-lg bg-[#E95420] flex items-center justify-center p-1 shadow shrink-0`} title="Ubuntu Linux">
-          <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
-            <circle cx="50" cy="50" r="38" stroke="#ffffff" strokeWidth="8" />
-            <circle cx="50" cy="18" r="7" fill="#ffffff" />
-            <circle cx="22" cy="66" r="7" fill="#ffffff" />
-            <circle cx="78" cy="66" r="7" fill="#ffffff" />
-            <path d="M50 18 L50 26 M22 66 L29 62 M78 66 L71 62" stroke="#E95420" strokeWidth="4" />
+        <div className={`${size} rounded-lg bg-red-600 flex items-center justify-center p-1 shadow shrink-0`} title="InoveCloud OS Pure Kernel 7.3 RT">
+          <svg viewBox="0 0 24 24" className="w-full h-full text-white" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
           </svg>
         </div>
       );
@@ -56,7 +52,7 @@ export const OsVectorIcon: React.FC<{ os: VirtualNode['os']; size?: string }> = 
         </div>
       );
 
-    case 'debian':
+    case 'arch':
       return (
         <div className={`${size} rounded-lg bg-[#D70A53] flex items-center justify-center p-1 shadow shrink-0`} title="Debian GNU/Linux">
           <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
@@ -124,7 +120,7 @@ export const VnApp: React.FC<VnAppProps> = ({
 
   // New VN Form state
   const [newName, setNewName] = useState('worker-node-02');
-  const [newOs, setNewOs] = useState<'ubuntu' | 'windows' | 'debian' | 'alpine' | 'android'>('ubuntu');
+  const [newOs, setNewOs] = useState<'pure-kernel' | 'windows' | 'arch' | 'alpine' | 'android'>('pure-kernel');
   const [newCpu, setNewCpu] = useState(4);
   const [newRam, setNewRam] = useState(8);
   const [newDisk, setNewDisk] = useState(100);
@@ -138,11 +134,11 @@ export const VnApp: React.FC<VnAppProps> = ({
       name: newName,
       os: newOs,
       version:
-        newOs === 'ubuntu'
-          ? 'Ubuntu 24.04 LTS'
+        newOs === 'pure-kernel'
+          ? 'InoveCloud OS 7.3 RT Puro'
           : newOs === 'windows'
           ? 'Windows Server 2025'
-          : newOs === 'debian'
+          : newOs === 'arch'
           ? 'Arch Linux 2026 Rolling'
           : newOs === 'alpine'
           ? 'Alpine 3.20'
@@ -197,12 +193,12 @@ export const VnApp: React.FC<VnAppProps> = ({
 
   const getOsBadge = (os: VirtualNode['os']) => {
     switch (os) {
-      case 'ubuntu':
-        return { name: 'Ubuntu', bg: 'bg-orange-500/20 border-orange-500/30 text-orange-300', dot: 'bg-orange-400' };
+      case 'pure-kernel':
+        return { name: 'Pure Kernel', bg: 'bg-red-500/20 border-red-500/30 text-red-300', dot: 'bg-red-400' };
       case 'windows':
         return { name: 'Windows Server', bg: 'bg-blue-500/20 border-blue-500/30 text-blue-300', dot: 'bg-blue-400' };
-      case 'debian':
-        return { name: 'Debian', bg: 'bg-rose-500/20 border-rose-500/30 text-rose-300', dot: 'bg-rose-400' };
+      case 'arch':
+        return { name: 'Arch Linux', bg: 'bg-rose-500/20 border-rose-500/30 text-rose-300', dot: 'bg-rose-400' };
       case 'alpine':
         return { name: 'Alpine', bg: 'bg-cyan-500/20 border-cyan-500/30 text-cyan-300', dot: 'bg-cyan-400' };
       case 'android':
@@ -646,7 +642,7 @@ export const VnApp: React.FC<VnAppProps> = ({
                 <label className="block text-slate-300 mb-1 font-medium">Sistema Operacional</label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { key: 'ubuntu', label: 'Ubuntu 24.04 LTS' },
+                    { key: 'pure-kernel', label: 'InoveCloud OS 7.3 RT' },
                     { key: 'windows', label: 'Windows Server 2025' },
                     { key: 'debian', label: 'Arch Linux 2026' },
                     { key: 'alpine', label: 'Alpine Linux 3.20' },

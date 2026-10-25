@@ -2,10 +2,10 @@ import { VirtualNode, WebApp, IdaasUser, IdaasSsoProvider, AppStoreItem, Storage
 
 export const INITIAL_VNS: VirtualNode[] = [
   {
-    id: 'vn-ubuntu-prod',
-    name: 'ubuntu-primary-db',
-    os: 'ubuntu',
-    version: 'Ubuntu 24.04 LTS Noble Numbat',
+    id: 'vn-inove-pure',
+    name: 'inove-kernel-pure-core',
+    os: 'pure-kernel',
+    version: 'InoveCloud OS 7.3 RT LFS Standalone',
     status: 'running',
     ip: '10.240.0.12',
     vCpu: 4,
@@ -417,10 +417,10 @@ export const STORAGE_FILES: StorageItem[] = [
   },
   {
     id: 'iso-1',
-    name: 'ubuntu-24.04-live-server-amd64.iso',
+    name: 'inovecloud-os-kernel-pure-7.3-amd64.iso',
     type: 'iso',
-    size: '2.6 GB',
-    date: '02/09/2026',
+    size: '1.5 GB',
+    date: '02/10/2026',
   },
   {
     id: 'iso-2',

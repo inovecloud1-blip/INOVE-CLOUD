@@ -69,7 +69,7 @@ export const AiAgentApp: React.FC<AiAgentAppProps> = ({
       action = 'Redis Stack provisionado.';
       onInstallApp('app-redis');
     } else if (lower.includes('vn') || lower.includes('máquina') || lower.includes('criar')) {
-      replyText = 'Iniciei o provisionamento de um novo nó virtual Ubuntu 24.04 LTS com 4 vCPUs e 8GB de RAM.';
+      replyText = 'Iniciei o provisionamento de um novo nó virtual InoveCloud OS 7.3 RT com 4 vCPUs e 8GB de RAM.';
       action = 'Nova VN provisionada.';
       onCreateVnAction();
     } else if (lower.includes('https') || lower.includes('ssl')) {
@@ -124,7 +124,7 @@ export const AiAgentApp: React.FC<AiAgentAppProps> = ({
         {[
           'Can you install Plex?',
           'Instalar Redis Stack',
-          'Criar uma nova VN Ubuntu',
+          'Criar uma nova VN LFS',
           'Ativar HTTPS em todos os Web Apps',
         ].map((prompt, i) => (
           <button
