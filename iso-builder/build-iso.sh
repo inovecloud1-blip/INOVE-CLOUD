@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# InoveCloud OS - Pure Kernel 7.3 RT LFS Standalone Live ISO Builder
-# Optimized Real PC Edition (~600 MB - 800 MB)
-# Complete Hardware Drivers, Wi-Fi, Bluetooth, PipeWire Audio, Mesa 3D GPU
-# 100% Free of Debian, Free of Ubuntu, Free of GNOME
+# InoveCloud OS Glass - Real Debian 12 Desktop Live ISO Builder
+# Xorg + LXDE + Node.js Backend API + Full Desktop Environment
 # ==============================================================================
 set -euo pipefail
 
@@ -16,8 +14,8 @@ RESET="\033[0m"
 
 echo -e "${CYAN}${BOLD}"
 echo "========================================================================"
-echo "    InoveCloud OS - Pure Kernel 7.3 RT Real PC ISO Builder (~650 MB)    "
-echo "    Full Hardware Drivers • Wi-Fi • Bluetooth • PipeWire • Mesa 3D      "
+echo "    InoveCloud OS Glass - Real Debian 12 Desktop Live ISO Builder       "
+echo "    Xorg + LXDE + Node.js API + Full Desktop Session                    "
 echo "========================================================================"
 echo -e "${RESET}"
 
@@ -29,180 +27,127 @@ fi
 WORK_DIR="$(pwd)/iso_build_workspace"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-ROOTFS_DIR="${WORK_DIR}/rootfs"
+ROOTFS_DIR="${WORK_DIR}/chroot"
 IMAGE_DIR="${WORK_DIR}/image"
 OUTPUT_DIR="${REPO_ROOT}/dist-iso"
-ISO_NAME="${ISO_NAME:-inovecloud-os-kernel-pure-7.3-realpc-amd64.iso}"
+ISO_NAME="inovecloud-os-glass-amd64.iso"
+DEBIAN_MIRROR="http://deb.debian.org/debian"
+DEBIAN_SUITE="bookworm"
 
-echo -e "${YELLOW}[1/5] Instalando ferramentas de compilação e pacotes de hardware essenciais...${YELLOW}"
-apt-get update -y || true
-
-REQUIRED_PACKAGES=(
-  build-essential
-  bison
-  flex
-  libelf-dev
-  libssl-dev
-  bc
-  squashfs-tools
-  xorriso
-  grub-pc-bin
-  grub-efi-amd64-bin
-  mtools
-  dosfstools
-  curl
-  wget
-  tar
-  xz-utils
-  cpio
-  busybox-static
-  kmod
-  udev
-  net-tools
-  iw
-  wpasupplicant
-  bluez
-  alsa-utils
-  pulseaudio
-  pipewire
-  mesa-va-drivers
-  libgl1-mesa-dri
-  fonts-dejavu-core
-)
-
-for pkg in "${REQUIRED_PACKAGES[@]}"; do
-  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$pkg" || echo "[AVISO] Pacote opcional $pkg ignorado com segurança."
-done
+echo "[INOVE_PROGRESS: 10%] [1/6] Instalando ferramentas de debootstrap e empacotamento de ISO..."
+apt-get update -y
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+  debootstrap debian-archive-keyring squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin mtools dosfstools curl wget rsync
 
 rm -rf "${WORK_DIR}"
-mkdir -p "${ROOTFS_DIR}"/{bin,sbin,usr/bin,usr/sbin,usr/lib,usr/share,lib,lib64,lib/firmware,etc,proc,sys,dev,tmp,var/log,home/inove}
-mkdir -p "${IMAGE_DIR}/casper" "${IMAGE_DIR}/boot/grub" "${OUTPUT_DIR}"
+mkdir -p "${ROOTFS_DIR}" "${IMAGE_DIR}/boot/grub" "${IMAGE_DIR}/casper" "${OUTPUT_DIR}"
 
-echo -e "${YELLOW}[2/5] Montando RootFS LFS com Drivers de Hardware Reais & Ambiente Liquid Glass (~600 MB)...${YELLOW}"
-cp -a /lib/modules "${ROOTFS_DIR}/lib/" 2>/dev/null || true
-cp -a /lib/firmware "${ROOTFS_DIR}/lib/" 2>/dev/null || true
+echo "[INOVE_PROGRESS: 30%] [2/6] Executando debootstrap para Debian 12 (Bookworm) minimal..."
+debootstrap --arch=amd64 --variant=minbase "${DEBIAN_SUITE}" "${ROOTFS_DIR}" "${DEBIAN_MIRROR}"
 
-# Criar script gráfico InoveCloud Liquid Glass (/usr/bin/inove-desktop)
-cat << 'EOF' > "${ROOTFS_DIR}/usr/bin/inove-desktop"
-#!/bin/sh
-while true; do
-  clear
-  echo "========================================================================"
-  echo " 🚀 INOVECLOUD OS - LIQUID GLASS DESKTOP (KERNEL 7.3 RT PURO)          "
-  echo "========================================================================"
-  echo " [1] Abrir Loja de Aplicativos & Flathub"
-  echo " [2] Terminal Interativo Ring 0"
-  echo " [3] Gerenciador KVM / Máquinas Virtuais"
-  echo " [4] Configurações & Status do Sistema"
-  echo " [5] Sair para Shell (ASH)"
-  echo " [6] Desligar / Reiniciar"
-  echo "========================================================================"
-  printf "Escolha uma opção [1-6]: "
-  read choice
-  case "$choice" in
-    1)
-      clear
-      echo "=== LOJA DE APLICATIVOS INOVECLOUD (FLATHUB / DPKG) ==="
-      echo " - Google Chrome (Instalado)"
-      echo " - VS Code (Instalado)"
-      echo " - Spotify (Instalado)"
-      echo "Pressione ENTER para voltar..."
-      read dummy
-      ;;
-    2)
-      clear
-      echo "=== TERMINAL RING 0 INOVECLOUD ==="
-      /bin/sh
-      ;;
-    3)
-      clear
-      echo "=== GERENCIADOR KVM / VIRTUALIZAÇÃO ==="
-      echo " - 0 VNs ativas (GPU Passthrough Ativo)"
-      echo "Pressione ENTER para voltar..."
-      read dummy
-      ;;
-    4)
-      clear
-      echo "=== CONFIGURAÇÕES DO SISTEMA ==="
-      echo "Kernel: 7.3.0-rt-pure | Uptime: $(uptime)"
-      echo "Pressione ENTER para voltar..."
-      read dummy
-      ;;
-    5)
-      exit 0
-      ;;
-    6)
-      poweroff
-      ;;
-    *)
-      echo "Opção inválida."
-      sleep 1
-      ;;
-  esac
-done
+echo "[INOVE_PROGRESS: 50%] [3/6] Configurando chroot, repositórios e instalando pacotes gráficos & Node.js..."
+cp /etc/resolv.conf "${ROOTFS_DIR}/etc/resolv.conf" 2>/dev/null || echo "nameserver 1.1.1.1" > "${ROOTFS_DIR}/etc/resolv.conf"
+
+cat << 'EOF' > "${ROOTFS_DIR}/etc/apt/sources.list"
+deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
 EOF
-chmod +x "${ROOTFS_DIR}/usr/bin/inove-desktop"
 
-# Configurar init nativo do InoveCloud OS (PID 1)
-cat << 'EOF' > "${ROOTFS_DIR}/sbin/inove-init"
-#!/bin/sh
-export PATH=/bin:/sbin:/usr/bin:/usr/sbin
-mount -t proc proc /proc
-mount -t sysfs sysfs /sys
-mount -t devtmpfs devtmpfs /dev
-mkdir -p /dev/pts
-mount -t devpts devpts /dev/pts
+mount --bind /dev "${ROOTFS_DIR}/dev"
+mount --bind /dev/pts "${ROOTFS_DIR}/dev/pts"
+mount --bind /proc "${ROOTFS_DIR}/proc"
+mount --bind /sys "${ROOTFS_DIR}/sys"
 
-echo "[InoveCloud OS Kernel 7.3 RT] Inicializando Subsistemas de Hardware & Interface Gráfica..."
-modprobe ahci 2>/dev/null || true
-modprobe nvme 2>/dev/null || true
-modprobe iwlwifi 2>/dev/null || true
-modprobe btusb 2>/dev/null || true
+cleanup() {
+  umount -lf "${ROOTFS_DIR}/dev/pts" 2>/dev/null || true
+  umount -lf "${ROOTFS_DIR}/dev" 2>/dev/null || true
+  umount -lf "${ROOTFS_DIR}/proc" 2>/dev/null || true
+  umount -lf "${ROOTFS_DIR}/sys" 2>/dev/null || true
+}
+trap cleanup EXIT
 
-echo "✓ Subsistema Gráfico DRM/KMS Ativo (InoveCloud Liquid Glass)."
-exec /usr/bin/inove-desktop
-EOF
-chmod +x "${ROOTFS_DIR}/sbin/inove-init"
-ln -sf /sbin/inove-init "${ROOTFS_DIR}/init"
+chroot "${ROOTFS_DIR}" /bin/bash << 'CHROOT_INSTALL'
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y --no-install-recommends \
+  locales xserver-xorg xserver-xorg-legacy lxde lxterminal pcmanfm chromium \
+  nodejs npm dbus libpam-systemd alsa-utils brightnessctl \
+  firmware-misc-nonfree firmware-iwlwifi firmware-realtek network-manager sudo
 
-cp /bin/busybox "${ROOTFS_DIR}/bin/busybox"
-chroot_bin="${ROOTFS_DIR}/bin"
-for app in sh ash echo ls cat mount umount mkdir cp mv rm ps kill clear sleep poweroff reboot ip ifconfig wpa_supplicant iw; do
-  ln -sf busybox "${chroot_bin}/${app}" 2>/dev/null || true
-done
+locale-gen en_US.UTF-8 pt_BR.UTF-8
+update-locale LANG=en_US.UTF-8
 
-echo -e "${YELLOW}[3/5] Gerando imagem SquashFS compactada (LFS RootFS)...${YELLOW}"
-mksquashfs "${ROOTFS_DIR}" "${IMAGE_DIR}/casper/filesystem.squashfs" -comp zstd -b 1M -no-progress
+useradd -m -s /bin/bash -G audio,video,netdev,sudo inove
+echo "inove:inove" | chpasswd
 
-echo -e "${YELLOW}[4/5] Configurando Kernel 7.3 RT e Gerando Initrd Universal a partir do RootFS LFS...${YELLOW}"
-RUNNING_KERNEL="$(uname -r)"
-if [ -f /boot/vmlinuz-${RUNNING_KERNEL} ]; then
-  cp /boot/vmlinuz-${RUNNING_KERNEL} "${IMAGE_DIR}/boot/vmlinuz-7.3.0-inovecloud-rt"
+mkdir -p /etc/sudoers.d
+echo "inove ALL=(ALL) NOPASSWD: /bin/systemctl reboot, /bin/systemctl poweroff, /usr/bin/brightnessctl" > /etc/sudoers.d/inovecloud-api
+chmod 0440 /etc/sudoers.d/inovecloud-api
+
+mkdir -p /etc/X11
+echo "allowed_users=anybody" > /etc/X11/Xwrapper.config
+echo "needs_root_rights=yes" >> /etc/X11/Xwrapper.config
+CHROOT_INSTALL
+
+echo "[INOVE_PROGRESS: 70%] [4/6] Copiando servidor Node.js e configurando LXDE Desktop..."
+mkdir -p "${ROOTFS_DIR}/opt/inovecloud"
+if [ -f "${SCRIPT_DIR}/server/server.js" ]; then
+  cp "${SCRIPT_DIR}/server/server.js" "${ROOTFS_DIR}/opt/inovecloud/server.js"
 else
-  touch "${IMAGE_DIR}/boot/vmlinuz-7.3.0-inovecloud-rt"
+  echo "console.log('InoveCloud API fallback');" > "${ROOTFS_DIR}/opt/inovecloud/server.js"
 fi
 
-cd "${ROOTFS_DIR}"
-find . -print0 | cpio --null -ov --format=newc | gzip -9 > "${IMAGE_DIR}/boot/initrd.img-7.3.0-inovecloud-rt"
-cd "${REPO_ROOT}"
+if [ -d "${REPO_ROOT}/dist" ]; then
+  mkdir -p "${ROOTFS_DIR}/iso-builder/public"
+  cp -a "${REPO_ROOT}/dist/"* "${ROOTFS_DIR}/iso-builder/public/"
+else
+  mkdir -p "${ROOTFS_DIR}/iso-builder/public"
+  echo "<h1>InoveCloud OS Glass Loading...</h1>" > "${ROOTFS_DIR}/iso-builder/public/index.html"
+fi
 
+cat << 'EOF' > "${ROOTFS_DIR}/home/inove/.xinitrc"
+#!/bin/sh
+node /opt/inovecloud/server.js &
+sleep 2
+chromium --no-sandbox --disable-infobars http://127.0.0.1:3000 &
+exec startlxde
+EOF
+chmod +x "${ROOTFS_DIR}/home/inove/.xinitrc"
+chown -R 1000:1000 "${ROOTFS_DIR}/home/inove"
+
+cat << 'EOF' > "${ROOTFS_DIR}/home/inove/.bash_profile"
+if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
+  exec startx
+fi
+EOF
+chown 1000:1000 "${ROOTFS_DIR}/home/inove/.bash_profile"
+
+echo "[INOVE_PROGRESS: 85%] [5/6] Compactando RootFS em SquashFS (filesystem.squashfs)..."
+mkdir -p dist-iso "${IMAGE_DIR}/casper"
+mksquashfs "${ROOTFS_DIR}" "${IMAGE_DIR}/casper/filesystem.squashfs" -comp zstd -b 1M -no-progress
+
+echo "[INOVE_PROGRESS: 95%] [6/6] Configurando GRUB e gerando ISO (${ISO_NAME})..."
+mkdir -p "${IMAGE_DIR}/boot/grub"
 cat << 'EOF' > "${IMAGE_DIR}/boot/grub/grub.cfg"
 set timeout=3
 set default=0
 
-menuentry "InoveCloud OS - Pure Kernel 7.3 RT (Real PC Edition)" {
-    linux /boot/vmlinuz-7.3.0-inovecloud-rt root=/dev/ram0 rw quiet inove.pure=1 console=tty1
-    initrd /boot/initrd.img-7.3.0-inovecloud-rt
+menuentry "InoveCloud OS Glass - Real Debian 12 LXDE Desktop" {
+    linux /boot/vmlinuz boot=casper quiet splash vt.handoff=7
+    initrd /boot/initrd.img
 }
 EOF
 
-echo -e "${YELLOW}[5/5] Empacotando ISO híbrida final para PC Real (${ISO_NAME})...${RESET}"
+if [ -f "${ROOTFS_DIR}/boot/vmlinuz-"* ]; then
+  cp "${ROOTFS_DIR}/boot/vmlinuz-"* "${IMAGE_DIR}/boot/vmlinuz"
+  cp "${ROOTFS_DIR}/boot/initrd.img-"* "${IMAGE_DIR}/boot/initrd.img"
+else
+  cp /boot/vmlinuz-$(uname -r) "${IMAGE_DIR}/boot/vmlinuz"
+  cp /boot/initrd.img-$(uname -r) "${IMAGE_DIR}/boot/initrd.img"
+fi
+
 grub-mkrescue -o "${OUTPUT_DIR}/${ISO_NAME}" "${IMAGE_DIR}"
 
 ISO_SIZE=$(du -h "${OUTPUT_DIR}/${ISO_NAME}" | awk '{print $1}')
-
-echo -e "${GREEN}${BOLD}========================================================================${RESET}"
-echo -e "${GREEN}${BOLD} ✅ Sucesso! ISO Real PC InoveCloud OS gerada com sucesso:${RESET}"
-echo -e "${CYAN} Arquivo: ${OUTPUT_DIR}/${ISO_NAME}${RESET}"
-echo -e "${CYAN} Tamanho: ${ISO_SIZE} (Compositor gráfico Liquid Glass integrado, Zero Debian/GNOME)${RESET}"
-echo -e "${GREEN}${BOLD}========================================================================${RESET}"
+echo "[INOVE_PROGRESS: 100%] [SUCESSO] ISO Real LXDE Desktop gerada em: ${OUTPUT_DIR}/${ISO_NAME} (${ISO_SIZE})"

@@ -1,18 +1,13 @@
 # ==============================================================================
-# InoveCloud OS - Pure Linux Kernel 7.3 RT LFS Standalone ISO Builder Dockerfile
-# Zero Debian • Zero GNOME • Ring 0 DRM/KMS Framebuffer • ~1.5 GB ISO
+# InoveCloud OS Glass - Real Debian 12 Kiosk ISO Builder Dockerfile
 # ==============================================================================
-FROM ubuntu:24.04 AS builder
+FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    bison \
-    flex \
-    libelf-dev \
-    libssl-dev \
-    bc \
+    debootstrap \
+    debian-archive-keyring \
     squashfs-tools \
     xorriso \
     grub-pc-bin \
@@ -21,14 +16,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dosfstools \
     curl \
     wget \
-    tar \
-    xz-utils \
-    cpio \
+    rsync \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY . /app
 
-RUN chmod +x iso-builder/build-iso.sh build-inovecloud.sh
+RUN chmod +x iso-builder/build-iso.sh
 
 CMD ["./iso-builder/build-iso.sh"]
