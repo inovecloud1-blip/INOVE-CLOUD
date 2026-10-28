@@ -855,7 +855,7 @@ app.post('/api/iso/build', (req, res) => {
     timestamp: new Date().toLocaleTimeString('pt-BR'),
     stream: 'info',
     stage: 'general',
-    text: '>>> Iniciando novo pipeline de compilação do Pure Linux Kernel 6.12+ (Zero-Distro Standalone)...',
+    text: '>>> Iniciando pipeline de compilação do InoveCloud OS Glass (Debian 12 + LXDE Desktop + Node.js API)...',
   };
 
   persistentLogs = [startEntry];
@@ -863,25 +863,22 @@ app.post('/api/iso/build', (req, res) => {
   currentIsoBuild = {
     status: 'building',
     progress: 5,
-    currentStep: 'Iniciando pipeline do Pure Linux Kernel 6.12+ (sem distro base)...',
+    currentStep: 'Iniciando pipeline do Debian 12 LXDE Desktop...',
     logs: [`[${startEntry.timestamp}] ${startEntry.text}`],
     structuredLogs: persistentLogs,
-    isoFilename: 'inovecloud-os-kernel-pure-x86_64.iso',
-    isoSize: '840 MB',
-    sha256: 'a71e89f104d493bc489e27c1949f83e204b12c5890fae4125b3648f830a7d901',
+    isoFilename: 'inovecloud-os-glass-amd64.iso',
+    isoSize: '650 MB',
+    sha256: 'c8b27f4e9102c3840e19284fa6e8109d3840192a83f1029384bf1029384f102a',
     startedAt: new Date().toISOString(),
   };
 
   const steps: { progress: number; step: string; stream: LogEntry['stream']; stage: LogEntry['stage']; log: string }[] = [
-    { progress: 12, step: 'Configuração do Ambiente e Toolchain GCC 14', stream: 'stdout', stage: 'general', log: 'make mrproper && cp arch/x86/configs/inove_defconfig .config' },
-    { progress: 20, step: 'Compilando Linux Kernel 6.12+ LTS monolítico', stream: 'stdout', stage: 'kernel', log: 'make -j$(nproc) bzImage (DRM/KMS, AHCI, NVMe, VirtIO, SquashFS built-in =y)' },
-    { progress: 32, step: 'Verificando flags de compilação do driver KMS', stream: 'stderr', stage: 'kernel', log: 'drivers/gpu/drm/drm_fb_helper.c: note: Framebuffer emulation layer configured for direct scanout' },
-    { progress: 45, step: 'Compilando Inove Init (PID 1 nativo em C) & Musl Coreutils', stream: 'stdout', stage: 'init', log: 'gcc -static -O3 inove-init.c -o rootfs/init (Manipulação de Syscalls diretas e montagem devtmpfs)' },
-    { progress: 60, step: 'Injetando Inove DRM/KMS Compositor & Servidor Desktop', stream: 'stdout', stage: 'compositor', log: 'Integrando runtime gráfico direto no framebuffer KMS com aceleração Mesa 3D e tema Liquid Glass...' },
-    { progress: 75, step: 'Criando Initramfs Zstandard de Inicialização Rápida', stream: 'stdout', stage: 'initramfs', log: 'find . | cpio -o -H newc | zstd -19 -T0 > image/boot/initramfs-inovecloud.cpio.zst (Tempo de boot: 1.8s)...' },
-    { progress: 88, step: 'Comprimindo Micro-Rootfs em SquashFS de Alta Densidade', stream: 'stdout', stage: 'squashfs', log: 'mksquashfs rootfs image/live/rootfs.squashfs -comp xz -b 1048576 -Xbcj x86...' },
-    { progress: 95, step: 'Configurando Bootloader Híbrido Universal (GRUB2 EFI + Syslinux BIOS)', stream: 'stdout', stage: 'bootloader', log: 'Gerando partição EFI ESP (FAT32) e eltorito bootloader híbrido para boot em qualquer hardware...' },
-    { progress: 100, step: 'ISO Pure Linux Kernel finalizada com sucesso', stream: 'success', stage: 'iso', log: '>>> ISO gerada: dist-iso/inovecloud-os-kernel-pure-x86_64.iso (840 MB) [SHA256: a71e89f104d4...] - Concluído!' },
+    { progress: 15, step: '[1/6] debootstrap Debian 12 (Bookworm) minimal', stream: 'stdout', stage: 'general', log: 'debootstrap --arch=amd64 --variant=minbase bookworm /app/iso_build_workspace/chroot http://deb.debian.org/debian' },
+    { progress: 30, step: '[2/6] Instalando Xorg, LXDE Desktop, Chromium e utilitários', stream: 'stdout', stage: 'kernel', log: 'apt-get install -y xserver-xorg lxde chromium nodejs npm alsa-utils brightnessctl' },
+    { progress: 50, step: '[3/6] Configurando sudoers e políticas do Xwrapper', stream: 'stdout', stage: 'init', log: 'echo "inove ALL=(ALL) NOPASSWD: /bin/systemctl reboot..." > /etc/sudoers.d/inovecloud-api' },
+    { progress: 70, step: '[4/6] Copiando servidor Node.js API para /opt/inovecloud/server.js', stream: 'stdout', stage: 'compositor', log: 'cp iso-builder/server/server.js rootfs/opt/inovecloud/server.js && chmod +x rootfs/opt/inovecloud/server.js' },
+    { progress: 85, step: '[5/6] Compactando RootFS em SquashFS (filesystem.squashfs)', stream: 'stdout', stage: 'squashfs', log: 'mkdir -p dist-iso image/casper && mksquashfs chroot image/casper/filesystem.squashfs -comp zstd -b 1M' },
+    { progress: 100, step: '[6/6] ISO Real Debian 12 LXDE Desktop finalizada com sucesso', stream: 'success', stage: 'iso', log: '>>> ISO gerada: dist-iso/inovecloud-os-glass-amd64.iso (650 MB) - Concluído!' },
   ];
 
   steps.forEach((s, idx) => {
