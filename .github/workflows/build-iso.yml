@@ -14,17 +14,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v3
+      - name: Make Build Script Executable
+        run: chmod +x iso-builder/build-iso.sh
 
-      - name: Build Inovecloud OS ISO in Alpine Container
-        run: |
-          docker run --privileged --rm -v ${{ github.workspace }}:/work alpine:3.20 sh -c "
-            apk update && apk add alpine-sdk sudo cdrkit syslinux squashfs-tools dosfstools mtools bash curl
-            cd /work
-            chmod +x build/build-iso.sh
-            ./build/build-iso.sh
-          "
+      - name: Build Inovecloud OS ISO
+        run: sudo ./iso-builder/build-iso.sh
 
       - name: Upload ISO Artifact
         uses: actions/upload-artifact@v4
