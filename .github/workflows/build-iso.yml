@@ -11,24 +11,24 @@ jobs:
   build-iso:
     runs-on: ubuntu-latest
     steps:
-      name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      name: Set up Docker
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v3
 
-      name: Build Inovecloud OS ISO in Alpine Container
-      run: |
-        docker run --privileged --rm -v ${{ github.workspace }}:/work alpine:3.20 sh -c "
-          apk update && apk add alpine-sdk sudo cdrkit syslinux squashfs-tools dosfstools mtools bash curl
-          cd /work
-          chmod +x build/build-iso.sh
-          ./build/build-iso.sh
-        "
+      - name: Build Inovecloud OS ISO in Alpine Container
+        run: |
+          docker run --privileged --rm -v ${{ github.workspace }}:/work alpine:3.20 sh -c "
+            apk update && apk add alpine-sdk sudo cdrkit syslinux squashfs-tools dosfstools mtools bash curl
+            cd /work
+            chmod +x build/build-iso.sh
+            ./build/build-iso.sh
+          "
 
-      name: Upload ISO Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: inovecloud-os-amd64
-        path: dist-iso/*.iso
-        retention-days: 30
+      - name: Upload ISO Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: inovecloud-os-amd64
+          path: dist-iso/*.iso
+          retention-days: 30
