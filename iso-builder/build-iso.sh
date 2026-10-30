@@ -123,6 +123,17 @@ fi
 EOF
 chown 1000:1000 "${ROOTFS_DIR}/home/inove/.bash_profile"
 
+echo "[INOVE_PROGRESS: 80%] Desmontando sistemas de arquivos virtuais do chroot..."
+umount -lf "${ROOTFS_DIR}/dev/pts" 2>/dev/null || true
+umount -lf "${ROOTFS_DIR}/dev" 2>/dev/null || true
+umount -lf "${ROOTFS_DIR}/proc" 2>/dev/null || true
+umount -lf "${ROOTFS_DIR}/sys" 2>/dev/null || true
+
+rm -rf "${ROOTFS_DIR}/proc/"*
+rm -rf "${ROOTFS_DIR}/sys/"*
+rm -rf "${ROOTFS_DIR}/dev/"*
+mkdir -p "${ROOTFS_DIR}/proc" "${ROOTFS_DIR}/sys" "${ROOTFS_DIR}/dev"
+
 echo "[INOVE_PROGRESS: 85%] [5/6] Compactando RootFS em SquashFS (filesystem.squashfs)..."
 mkdir -p dist-iso "${IMAGE_DIR}/casper"
 mksquashfs "${ROOTFS_DIR}" "${IMAGE_DIR}/casper/filesystem.squashfs" -comp zstd -b 1M -no-progress
