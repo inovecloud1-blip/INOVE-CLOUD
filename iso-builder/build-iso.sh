@@ -73,7 +73,8 @@ apt-get update
 apt-get install -y --no-install-recommends \
   locales xserver-xorg xserver-xorg-legacy lxde lxterminal pcmanfm chromium \
   nodejs npm dbus libpam-systemd alsa-utils brightnessctl \
-  firmware-misc-nonfree firmware-iwlwifi firmware-realtek network-manager sudo
+  firmware-misc-nonfree firmware-iwlwifi firmware-realtek network-manager sudo \
+  live-boot initramfs-tools linux-image-amd64
 
 locale-gen en_US.UTF-8 pt_BR.UTF-8
 update-locale LANG=en_US.UTF-8
@@ -88,6 +89,8 @@ chmod 0440 /etc/sudoers.d/inovecloud-api
 mkdir -p /etc/X11
 echo "allowed_users=anybody" > /etc/X11/Xwrapper.config
 echo "needs_root_rights=yes" >> /etc/X11/Xwrapper.config
+
+update-initramfs -u -k all || true
 CHROOT_INSTALL
 
 echo "[INOVE_PROGRESS: 70%] [4/6] Copiando servidor Node.js e configurando LXDE Desktop..."
@@ -145,7 +148,7 @@ set timeout=3
 set default=0
 
 menuentry "InoveCloud OS Glass - Real Debian 12 LXDE Desktop" {
-    linux /boot/vmlinuz boot=casper quiet splash vt.handoff=7
+    linux /boot/vmlinuz boot=live components quiet splash
     initrd /boot/initrd.img
 }
 EOF
