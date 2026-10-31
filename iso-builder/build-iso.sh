@@ -138,8 +138,8 @@ rm -rf "${ROOTFS_DIR}/dev/"*
 mkdir -p "${ROOTFS_DIR}/proc" "${ROOTFS_DIR}/sys" "${ROOTFS_DIR}/dev"
 
 echo "[INOVE_PROGRESS: 85%] [5/6] Compactando RootFS em SquashFS (filesystem.squashfs)..."
-mkdir -p dist-iso "${IMAGE_DIR}/casper"
-mksquashfs "${ROOTFS_DIR}" "${IMAGE_DIR}/casper/filesystem.squashfs" -comp zstd -b 1M -no-progress
+mkdir -p dist-iso "${IMAGE_DIR}/live"
+mksquashfs "${ROOTFS_DIR}" "${IMAGE_DIR}/live/filesystem.squashfs" -comp zstd -b 1M -no-progress
 
 echo "[INOVE_PROGRESS: 95%] [6/6] Configurando GRUB e gerando ISO (${ISO_NAME})..."
 mkdir -p "${IMAGE_DIR}/boot/grub"
